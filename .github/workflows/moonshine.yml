@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: moonshine-${{ github.ref }}
+  group: moonshine-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   policy:

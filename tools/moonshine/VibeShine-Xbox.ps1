@@ -195,7 +195,7 @@ function Sync-Games([bool]$Pilot,[bool]$EaPilot=$false,[bool]$EaOnly=$false) {
     $script:StreamProfiles=Load-StreamProfiles
     $script:SyncOutcome=''
     if (-not (Test-UndoAllowsSync ([bool]$Unattended))) {
-        $script:SyncOutcome='Retour arrière en cours. Reprendre l’annulation depuis Maintenance.'
+        $script:SyncOutcome='Retour arrière en cours. Reprendre l''annulation depuis Maintenance.'
         Write-Json (Join-Path $script:Data 'last-run.json') @{version=$script:Version;run_id=$script:RunId;time=(Get-Date).ToString('o');status='paused_rollback';reason=$script:SyncOutcome}
         return
     }
@@ -443,7 +443,7 @@ try {
     $cause=$failure.Exception
     while ($cause.InnerException) { $cause=$cause.InnerException }
     if ($GuiBridge -and $cause -is [OperationCanceledException]) {
-        $GuiBridge.Publish('fatal','Démarrage annulé. Aucun changement du catalogue n’a été appliqué.',-1,$null)
+        $GuiBridge.Publish('fatal','Démarrage annulé. Aucun changement du catalogue n''a été appliqué.',-1,$null)
         return
     }
     try { Record-Error $failure } catch { Write-Host 'Le diagnostic local n a pas pu etre enregistre.' -ForegroundColor Yellow }

@@ -44,7 +44,10 @@ namespace confighttp {
     services.package=std::filesystem::path(executable).parent_path()/L"tools/moonshine";
     services.user=[]() {
       moonshine::user_context result;
-      HANDLE token=platf::retrieve_users_token(false);if (!token) return result;
+      HANDLE token=nullptr;
+      if (platf::is_running_as_system()) token=platf::retrieve_users_token(false);
+      else if (!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY|TOKEN_DUPLICATE|TOKEN_IMPERSONATE,&token)) return result;
+      if (!token) return result;
       result.token=std::shared_ptr<void>(token,[](void *v) {CloseHandle(static_cast<HANDLE>(v));});
       DWORD size=0;GetTokenInformation(token,TokenUser,nullptr,0,&size);std::vector<unsigned char> storage(size);
       if (!size || !GetTokenInformation(token,TokenUser,storage.data(),size,&size)) return moonshine::user_context {};

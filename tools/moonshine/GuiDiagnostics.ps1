@@ -63,6 +63,6 @@ function Get-GuiDiagnostics($Apps,[string]$SelectedId) {
         $sdr=Field $app[0] 'prefer-10bit-sdr'
         Row 'SDR 10 bits' $(if ($null -eq $sdr) {'Préférence du client'} elseif ($sdr) {'Préféré par cette entrée'} else {'Non forcé'}) 'Entrée VibeShine'
     }
-    Row 'HDR et fréquence du flux' 'À valider avec le client et l’écran; aucun plafond universel imposé' 'Négociation de la session'
+    Row 'HDR et fréquence du flux' 'À valider avec le client et l''écran; aucun plafond universel imposé' 'Négociation de la session'
     return $rows.ToArray()
 }

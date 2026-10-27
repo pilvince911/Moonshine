@@ -38,7 +38,7 @@ function Read-Host([string]$Prompt,[switch]$AsSecureString) {
     if ($Prompt -like 'Taper APPLIQUER*') {
         $expected='APPLIQUER';$title='Appliquer les changements';$script:GuiPlanVerified=$true
         foreach ($row in @($script:LastPlan | Where-Object { $_.action -in @('add','update') })) { $details+=($row.title+' — '+$row.action+' '+$row.reason+"`n") }
-        $details+="`nUne sauvegarde du catalogue et de l’état précède les changements."
+        $details+="`nUne sauvegarde du catalogue et de l'état précède les changements."
     } elseif ($Prompt -like 'Taper REINITIALISER*') {
         $expected='REINITIALISER';$title='Retirer les entrées OPi5';$typed=$true
         $targets=Get-Variable -Name targets -Scope 1 -ValueOnly -ErrorAction SilentlyContinue
@@ -48,14 +48,14 @@ function Read-Host([string]$Prompt,[switch]$AsSecureString) {
         $expected='RESTAURER';$title='Restaurer le dernier reset'
         $journal=Get-Variable -Name journal -Scope 1 -ValueOnly -ErrorAction SilentlyContinue
         foreach ($op in @($journal.operations)) { $details+=([string]$op.title+"`n") }
-        $details+="`nLes entrées et leurs anciens réglages seront restaurés si aucune modification conflictuelle n’est détectée."
+        $details+="`nLes entrées et leurs anciens réglages seront restaurés si aucune modification conflictuelle n'est détectée."
     } elseif ($Prompt -like 'Taper ANNULER*') {
         $expected='ANNULER';$title='Annuler la dernière synchronisation'
         $journal=Get-Variable -Name journal -Scope 1 -ValueOnly -ErrorAction SilentlyContinue
         foreach ($op in @($journal.operations)) { $details+=([string](Field $op.after 'name' $op.key)+"`n") }
         $details+="`nRétablir ces entrées depuis leur sauvegarde. Toute personnalisation ultérieure bloque son écrasement. Une interruption pourra être reprise depuis le même bouton."
     }
-    elseif ($Prompt -like '*taper ACTIVER*') { $expected='ACTIVER';$title='Activer la synchronisation automatique';$details='Après validation des lancements Moonlight, activer la vérification à l’ouverture de session, puis toutes les dix minutes. Les jeux absents ne seront pas supprimés.' }
+    elseif ($Prompt -like '*taper ACTIVER*') { $expected='ACTIVER';$title='Activer la synchronisation automatique';$details='Après validation des lancements Moonlight, activer la vérification à l''ouverture de session, puis toutes les dix minutes. Les jeux absents ne seront pas supprimés.' }
     else { throw ('Confirmation graphique non reconnue : '+$Prompt) }
     Gui-PublishSnapshot
     $reply=$script:GuiBridge.Ask($title,$details,$expected,$typed)
@@ -133,7 +133,7 @@ function Gui-PublishSnapshot {
     $snapshot.Connected=$script:GuiOnline
     $snapshot.PlanVerified=$script:GuiPlanVerified
     $snapshot.Session=$script:GuiSession
-    $snapshot.Connection=$(if ($script:GuiOnline) {'Interface locale · connexion enregistrée'} else {'Connectez l’interface locale pour synchroniser.'})
+    $snapshot.Connection=$(if ($script:GuiOnline) {'Interface locale · connexion enregistrée'} else {'Connectez l''interface locale pour synchroniser.'})
     $snapshot.Endpoint=[string](Field $script:Connection 'url' 'https://127.0.0.1:47990')
     $snapshot.Tests=$script:SelfTestCount
     $snapshot.PlanScope=$script:GuiPlanScope
@@ -174,7 +174,7 @@ function Gui-PublishSnapshot {
     }
     $snapshot.Recovery=$(if ($script:GuiLocalError) {$script:GuiLocalError+' Créez le diagnostic depuis Maintenance.'}
         elseif ($invalid) {'Un journal de récupération doit être vérifié. Créez le diagnostic depuis Maintenance.'}
-        elseif ($snapshot.UndoPending) {'Retour arrière interrompu. Maintenance → Reprendre l’annulation; synchronisation en pause.'}
+        elseif ($snapshot.UndoPending) {'Retour arrière interrompu. Maintenance → Reprendre l''annulation; synchronisation en pause.'}
         elseif ($resetPending) {'Remise à zéro interrompue. Maintenance → terminer le retrait ou reprendre la restauration.'}
         elseif ($reset -and $reset.automatic_hold) {'Remise à zéro terminée. Réimportez manuellement ou restaurez le reset; automatisation en pause.'}
         elseif ($undoWarning) {$undoWarning}
@@ -292,7 +292,7 @@ function Start-GuiEngine {
                     Write-Host 'Profil enregistré. Analyser puis Synchroniser pour appliquer les changements proposés.'
                 }
             }
-            if ($script:GuiPromptDeclined) { $outcome='Aucune modification appliquée.';Write-Host 'Aucune confirmation donnée. Les changements proposés n’ont pas été appliqués.' }
+            if ($script:GuiPromptDeclined) { $outcome='Aucune modification appliquée.';Write-Host 'Aucune confirmation donnée. Les changements proposés n''ont pas été appliqués.' }
         } catch {
             $failure=$_;$exception=$failure.Exception
             while ($exception.InnerException) { $exception=$exception.InnerException }
