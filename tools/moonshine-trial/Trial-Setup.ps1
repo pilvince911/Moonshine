@@ -103,7 +103,7 @@ function Get-MoonshineOwnedTrialProcess($Instance) {
 function Start-MoonshineTrialInstance($Instance) {
     $existing=Get-MoonshineOwnedTrialProcess $Instance
     if ($existing -and -not $existing.HasExited) { return $existing }
-    if (@(Get-Process -Name sunshine,Moonshine -ErrorAction SilentlyContinue).Count) { throw 'Un hote VibeShine/Sunshine/Moonshine est encore actif. Terminer le stream et arreter temporairement cet hote dans Services, puis recommencer.' }
+    if (@(Get-Process -Name sunshine,vibeshine,Moonshine -ErrorAction SilentlyContinue).Count) { throw 'Un hote VibeShine/Sunshine/Moonshine est encore actif. Terminer le stream et arreter temporairement cet hote dans Services, puis recommencer.' }
     $busy=@([Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners() | Where-Object { $_.Port -in @(48984,48989,48990,49010) })
     if ($busy.Count) { throw 'Un port de cet essai est deja occupe. Fermer cette instance avant de recommencer.' }
     $config=Prepare-MoonshineTrialInstance $Instance

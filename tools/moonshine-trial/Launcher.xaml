@@ -1,5 +1,5 @@
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Moonshine · Essai Windows" Width="790" Height="610" MinWidth="720" MinHeight="570" WindowStartupLocation="CenterScreen"
+    Title="Moonshine · Essai Windows" Width="790" Height="650" MinWidth="720" MinHeight="630" WindowStartupLocation="CenterScreen"
     Background="#101814" Foreground="#EDF5EC" FontFamily="Segoe UI" FontSize="14">
   <Window.Resources>
     <Style TargetType="Button">

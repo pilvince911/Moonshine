@@ -19,7 +19,7 @@ try {
     if ($ValidateWindowOnly) { $window.Close();Write-Output 'Moonshine WPF window parsed and constructed.';return }
     . (Join-Path $PSScriptRoot 'Trial-Setup.ps1')
     . (Join-Path $PSScriptRoot 'Sauvegarde-Moonshine.ps1')
-    $script:instance=$null;$script:closing=$false;$script:timer=New-Object Windows.Threading.DispatcherTimer
+    $script:instance=$null;$script:trialProcess=$null;$script:stopRequested=$false;$script:closing=$false;$script:timer=New-Object Windows.Threading.DispatcherTimer
     $controls.FolderText.Text=$script:MoonshineTrialBase
     function Show-TrialError($ErrorRecord) { $controls.StatusText.Text='Action suspendue';$controls.DetailText.Text=[string]$ErrorRecord.Exception.Message }
     function Ensure-TrialInstance {
@@ -28,13 +28,13 @@ try {
     $controls.StartButton.Add_Click({
         try {
             $controls.StatusText.Text='Vérification et préparation…';$window.Dispatcher.Invoke([Action]{},[Windows.Threading.DispatcherPriority]::Render)
-            Ensure-TrialInstance;$null=Start-MoonshineTrialInstance $instance
+            Ensure-TrialInstance;$script:trialProcess=Start-MoonshineTrialInstance $instance;$script:stopRequested=$false
             $controls.StatusText.Text='Démarrage de Moonshine…';$controls.DetailText.Text='La bibliothèque ouvrira sur ce PC à https://localhost:48990/v2/library.'
         } catch { Show-TrialError $_ }
     })
     $controls.OpenButton.Add_Click({ try { Start-Process 'https://localhost:48990/v2/library' } catch { Show-TrialError $_ } })
     $controls.StopButton.Add_Click({
-        try { if ($instance -and (Request-MoonshineTrialStop $instance)) { $controls.StatusText.Text='Arrêt demandé…';$controls.DetailText.Text='Moonshine termine ses opérations et ferme le stream proprement.' } }
+        try { if ($instance -and (Request-MoonshineTrialStop $instance)) { $script:stopRequested=$true;$controls.StatusText.Text='Arrêt demandé…';$controls.DetailText.Text='Moonshine termine ses opérations et ferme le stream proprement.' } }
         catch { Show-TrialError $_ }
     })
     $controls.FilesButton.Add_Click({ try { Ensure-TrialInstance;[IO.Directory]::CreateDirectory($instance.Root) | Out-Null;Start-Process explorer.exe -ArgumentList ('"'+$instance.Root+'"') } catch { Show-TrialError $_ } })
@@ -56,8 +56,16 @@ try {
         try {
             $running=$false
             if ($instance) { $process=Get-MoonshineOwnedTrialProcess $instance;$running=($null -ne $process -and -not $process.HasExited) }
-            $controls.StartButton.IsEnabled=(-not $running -and -not $closing);$controls.OpenButton.IsEnabled=$running;$controls.StopButton.IsEnabled=$running
-            if ($running -and $controls.StatusText.Text -eq 'Démarrage de Moonshine…') { $controls.StatusText.Text='Moonshine est en cours d''exécution';$controls.DetailText.Text='Ouvrez la bibliothèque pour créer les identifiants de cet essai, puis analyser vos jeux.' }
+            $ready=$false
+            if ($running) { $ready=@([Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners() | Where-Object { $_.Port -eq 48990 }).Count -gt 0 }
+            $controls.StartButton.IsEnabled=(-not $running -and -not $closing);$controls.OpenButton.IsEnabled=$ready;$controls.StopButton.IsEnabled=$running
+            if ($ready -and $controls.StatusText.Text -eq 'Démarrage de Moonshine…') { $controls.StatusText.Text='Moonshine est en cours d''exécution';$controls.DetailText.Text='Ouvrez la bibliothèque pour créer les identifiants de cet essai, puis analyser vos jeux.' }
+            if ($script:trialProcess -and $script:trialProcess.HasExited) {
+                $exitCode=$script:trialProcess.ExitCode
+                if ($script:stopRequested -and $exitCode -eq 0) { $controls.StatusText.Text='Essai arrêté';$controls.DetailText.Text='Vous pouvez relancer votre service VibeShine habituel.' }
+                else { $controls.StatusText.Text=('Hôte arrêté · code '+$exitCode);$controls.DetailText.Text=('Les journaux de cet essai sont dans '+(Join-Path $instance.Package 'config')+'. Corriger la cause avant de recommencer.') }
+                $script:trialProcess.Dispose();$script:trialProcess=$null
+            }
             if ($closing -and -not $running) { $timer.Stop();$window.Close() }
         } catch { Show-TrialError $_ }
     })
