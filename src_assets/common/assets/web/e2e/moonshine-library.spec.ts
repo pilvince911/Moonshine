@@ -6,6 +6,7 @@ async function library(page: Page, idle = true) {
   let job: Record<string, unknown> | null = null;
   await page.route('**/api/**', async (route) => {
     const request = route.request(), path = new URL(request.url()).pathname;
+    if (!path.startsWith('/api/')) { await route.continue();return; }
     let body: unknown = { status: true };
     if (path === '/api/auth/status') body = { authenticated: true, credentials_configured: true, login_required: false };
     else if (path === '/api/configLocale') body = { locale: 'en' };

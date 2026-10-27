@@ -1,4 +1,11 @@
-﻿OPi5 / VibeShine Xbox Sync 0.8.0 — consolidation avant la candidate 1.0
+﻿MOONSHINE — qualification du moteur embarqué
+
+Consulter docs/moonshine/VALIDATION.md dans le dépôt pour distinguer les tests
+automatiques, le build de l'hôte, le service Windows et les essais de jeu. La
+procédure ci-dessous concerne le mode de secours OPi5, conservé pour récupération.
+Le rapport du commit GitHub exact fait foi pour les tests exécutés.
+
+OPi5 / VibeShine Xbox Sync 0.8.0 — consolidation avant la candidate 1.0
 
 PÉRIMÈTRE
 

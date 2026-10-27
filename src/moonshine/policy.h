@@ -33,5 +33,11 @@ namespace moonshine::policy {
   inline bool automatic_due(bool enabled, bool busy, bool user_active, bool idle, std::chrono::steady_clock::time_point now, std::chrono::steady_clock::time_point next) {
     return enabled && !busy && user_active && idle && now >= next;
   }
-  inline std::string bounded(std::string value, std::size_t limit = 1800) { if (value.size() > limit) value.resize(limit); return value; }
+  inline std::string bounded(std::string value, std::size_t limit = 1800) {
+    if (value.size() > limit) {
+      while (limit && (static_cast<unsigned char>(value[limit]) & 0xc0) == 0x80) --limit;
+      value.resize(limit);
+    }
+    return value;
+  }
 }

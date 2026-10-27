@@ -1,4 +1,14 @@
-﻿OPi5 — VibeShine / bibliothèque Xbox PC
+﻿MOONSHINE — moteur embarqué 0.8.0 (prototype source)
+
+Le point d'entrée intégré est la page Bibliothèque de Moonshine. L'hôte gère la
+connexion locale temporaire, les travaux et l'automatisation. Les instructions
+ci-dessous concernent la fenêtre et le menu de secours conservés du synchroniseur
+OPi5. Ne réactivez pas sa tâche automatique après son transfert à Moonshine.
+Aucun installateur de l'hôte ni essai réel de streaming n'est qualifié ici.
+
+DOCUMENTATION DU MODE DE SECOURS
+
+OPi5 — VibeShine / bibliothèque Xbox PC
 Version 0.8.0 — consolidation avant la candidate 1.0
 
 NOUVEAUTÉS 0.8.0

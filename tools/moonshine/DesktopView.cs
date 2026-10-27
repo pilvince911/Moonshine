@@ -50,7 +50,7 @@ public sealed class OPi5DesktopController : IDisposable {
     readonly OPi5GuiWorker worker = new OPi5GuiWorker();
     readonly DispatcherTimer timer;
     readonly string root, data;
-    readonly ObservableCollection<OPi5DesktopRow> games = new ObservableCollection<OPi5DesktopRow>();
+    ObservableCollection<OPi5DesktopRow> games = new ObservableCollection<OPi5DesktopRow>();
     readonly List<Button> actionButtons = new List<Button>();
     OPi5GuiSnapshot snapshot;
     bool ready, busy = true, closing, allowClose, disposed, workerStarted, observedCompletion;
@@ -209,10 +209,11 @@ public sealed class OPi5DesktopController : IDisposable {
         snapshot = value; lastRefresh = DateTime.UtcNow; string selectedKey = Selected == null ? null : Selected.Source.Key;
         applyingSnapshot = true;
         try {
-            using (CollectionViewSource.GetDefaultView(games).DeferRefresh()) {
-                games.Clear();
-                foreach (OPi5GuiGame game in (value.Games ?? new OPi5GuiGame[0]).OrderBy(x => x.Title, StringComparer.CurrentCultureIgnoreCase)) games.Add(new OPi5DesktopRow(game));
-            }
+            var next = new ObservableCollection<OPi5DesktopRow>((value.Games ?? new OPi5GuiGame[0])
+                .OrderBy(x => x.Title, StringComparer.CurrentCultureIgnoreCase).Select(x => new OPi5DesktopRow(x)));
+            CollectionViewSource.GetDefaultView(next).Filter = Filter;
+            games = next;
+            Find<ListBox>("GameRows").ItemsSource = games;
             if (selectedKey != null) Find<ListBox>("GameRows").SelectedItem = games.FirstOrDefault(x => x.Source.Key == selectedKey);
         } finally { applyingSnapshot = false; }
         Text("GameCount", games.Count.ToString(CultureInfo.CurrentCulture));

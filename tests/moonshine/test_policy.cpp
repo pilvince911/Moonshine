@@ -28,5 +28,6 @@ int main() {
   assert(!automatic_due(true,false,true,true,now,now+std::chrono::minutes(1)));
   assert(terminal("completed") && terminal("failed") && terminal("cancelled") && !terminal("awaiting_confirmation"));
   assert(bounded(std::string(4000,'x')).size()==1800);
+  assert(bounded(std::string(1799,'x')+"\xc3\xa9"+"end").size()==1799);
   std::cout << "Moonshine provider policy: passed\n";
 }
