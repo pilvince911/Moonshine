@@ -1,7 +1,7 @@
 name: Moonshine integration
 on:
   pull_request:
-    branches: [upstream/v2.0.1]
+    branches: [moonshine/main, upstream/v2.0.1]
   workflow_dispatch:
 permissions:
   contents: read

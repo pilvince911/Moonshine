@@ -1,6 +1,6 @@
 # Développement de Moonshine
 
-La branche de référence `upstream/v2.0.1` conserve la base VibeShine 2.0.1. La branche `moonshine/windows-integration` ajoute un module C++, un moteur PowerShell embarqué et une interface Web. Le moteur reste installé par utilisateur sous le chemin OPi5 existant pour conserver ses fiches et UUID.
+La branche de référence `upstream/v2.0.1` conserve la base VibeShine 2.0.1. Les PR de la fork ciblent `moonshine/main`, afin de garder la référence amont intacte. La branche `moonshine/windows-integration` ajoute un module C++, un moteur PowerShell embarqué et une interface Web. Le moteur reste installé par utilisateur sous le chemin OPi5 existant pour conserver ses fiches et UUID.
 
 ## Modules
 

@@ -6,7 +6,7 @@ Moonshine est une fork indépendante de [VibeShine](https://github.com/Nonary/vi
 
 ## Branche de développement
 
-Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` sert de référence et `moonshine/windows-integration` contient l'intégration. `master` suit encore la base reçue lors de la création de la fork.
+Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` conserve cette référence; `moonshine/main` est la branche de destination propre à la fork et `moonshine/windows-integration` contient l'intégration proposée dans la PR nº 1. `master` suit encore la base reçue lors de la création de la fork.
 
 **État : prototype source en validation. Aucun installateur Moonshine ni résultat de streaming sur le PC de PL n'est qualifié par cette branche.** Les vérifications de logiciel, le transport Windows, la compilation complète de l'hôte et les essais de jeu sont des étapes distinctes.
 

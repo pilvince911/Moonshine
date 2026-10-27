@@ -78,7 +78,7 @@ function Invoke-GuiSelfTests {
         Assert ($window.FindName('EmptyTitle').Text -like '*filtres*' -and $window.FindName('FilteredCount').Text -like '0 / 1*') 'Recherche vide explique les filtres et conserve le nombre total'
         Assert (-not $window.FindName('SyncButton').IsEnabled) 'Synchronisation désactivée quand l état de session n est pas confirmé'
         $window.FindName('SearchBox').Text=''
-        Assert ($window.FindName('SearchBox').GetValue([Windows.Automation.AutomationProperties]::NameProperty)) 'Champ de recherche nommé pour les outils d accessibilité'
+        Assert (-not [string]::IsNullOrWhiteSpace([string]$window.FindName('SearchBox').GetValue([Windows.Automation.AutomationProperties]::NameProperty))) 'Champ de recherche nommé pour les outils d accessibilité'
     } finally { if ($controller) { $controller.Dispose() };if ($window) { $window.Close() } }
 }
 function Invoke-GuiBoundarySelfTests {
