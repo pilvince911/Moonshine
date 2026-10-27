@@ -23,7 +23,7 @@ require('Migrate-LegacyAutomation' in worker and 'Takeover-MoonshineAutomation' 
 require("'REINITIALISER','ANNULER'" in worker,'destructive actions must pause native automation')
 backend=read('src/moonshine/bridge_windows.cpp');routes=read('src/confighttp.cpp');glue=read('src/confighttp_moonshine.cpp')
 require('TerminateProcess' not in backend and 'PowerShell.Stop' not in backend,'forceful cancellation added')
-require('PROC_THREAD_ATTRIBUTE_HANDLE_LIST' in backend and 'cancel_event' in backend,'private handle transport missing')
+require('PIPE_REJECT_REMOTE_CLIENTS' in backend and 'FILE_FLAG_FIRST_PIPE_INSTANCE' in backend and 'GetNamedPipeClientProcessId' in backend and 'cancel_event' in backend,'authenticated local pipe transport missing')
 require('revoke_token(owner_tag)' in backend and 'revoke_api_token_by_hash' in glue,'temporary token cleanup missing')
 require('validate_csrf_token' in routes,'upstream CSRF gate removed')
 require(not re.search(r'register_(?:blocking_)?api_route\("\^/api/(?:steam|playnite)/',routes),'redundant native provider route remains')

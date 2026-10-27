@@ -1,9 +1,14 @@
 ﻿#Requires -Version 5.1
 # SPDX-License-Identifier: GPL-3.0-only
+param([Parameter(Mandatory=$true)][ValidatePattern('^Moonshine\.Sync\.[a-f0-9]{32}$')][string]$PipeName)
 # Private stdin carries the temporary token. stdout is a bounded event protocol.
 $ErrorActionPreference='Stop'
-[Console]::InputEncoding=New-Object Text.UTF8Encoding($false)
-[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
+$script:MoonshineChannel=New-Object IO.Pipes.NamedPipeClientStream('.', $PipeName, [IO.Pipes.PipeDirection]::InOut, [IO.Pipes.PipeOptions]::None, [Security.Principal.TokenImpersonationLevel]::Identification)
+$script:MoonshineChannel.Connect(30000)
+$encoding=New-Object Text.UTF8Encoding($false)
+[Console]::SetIn((New-Object IO.StreamReader($script:MoonshineChannel,$encoding,$false,4096,$true)))
+$writer=New-Object IO.StreamWriter($script:MoonshineChannel,$encoding,4096,$true);$writer.AutoFlush=$true
+[Console]::SetOut($writer)
 $script:MoonshineBoot=$null;$script:EmbeddedCancel=$null;$script:MoonshineLock=$null;$script:MoonshineOldLock=$null
 $script:MoonshineLastLog='';$script:MoonshinePhase='starting'
 function Emit-Moonshine([string]$Type,$Data) {
@@ -201,4 +206,5 @@ try {
     $script:Authorization='';if ($script:MoonshineBoot) { $script:MoonshineBoot.token=$null }
     if ($script:EmbeddedCancel) { $script:EmbeddedCancel.Dispose() }
     if ($script:MoonshineOldLock) { $script:MoonshineOldLock.Dispose() };if ($script:MoonshineLock) { $script:MoonshineLock.Dispose() }
+    if ($script:MoonshineChannel) { $script:MoonshineChannel.Dispose() }
 }

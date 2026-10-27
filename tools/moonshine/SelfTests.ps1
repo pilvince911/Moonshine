@@ -166,7 +166,7 @@ function Invoke-SelfTests {
         $eaMeta=EA-ReadMetadata $eaRoot 'Titre provisoire' @('REGISTRY-ONLY')
         Assert ($eaMeta.manifest_status -eq 'read' -and -not $eaMeta.reason -and $eaMeta.content_ids.Count -eq 2) 'Identifiants EA lus dans le manifeste local'
         Assert ($eaMeta.monitor_names.Count -eq 1 -and $eaMeta.monitor_names[0] -eq 'GameEA') 'Lanceur antitriche exclu des noms de jeu suivis'
-        Assert ($eaMeta.icon_executable -eq (Join-Path $eaRoot 'GameEA.exe')) 'Icone associee au seul executable de jeu identifie'
+        Assert ($eaMeta.icon_executable -eq (Join-Path $eaRoot 'GameEA.exe')) ('Icone associee au seul executable de jeu identifie : '+(ConvertTo-Json -InputObject $eaMeta -Depth 10 -Compress))
         [IO.File]::WriteAllBytes((Join-Path $temporary 'outside.exe'),[byte[]]@(0))
         Assert ((EA-ResolveFile $eaRoot '..\outside.exe') -eq '') 'Chemin EA hors de l installation refuse'
         Assert ((EA-LaunchUri '16425629') -ceq 'origin2://game/launch?offerIds=16425629') 'URI EA construite depuis l identifiant confirme uniquement'

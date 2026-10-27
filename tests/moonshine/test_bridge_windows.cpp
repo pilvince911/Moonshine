@@ -31,7 +31,8 @@ int main(int argc,char **argv) {
   host.issue_token=[&](const std::string &){issued++;return secret;};host.revoke_token=[&](const std::string &){revoked++;};host.idle=[](){return true;};
   host.launch=[](const std::string &command,const std::wstring &directory,STARTUPINFOEXW &startup,PROCESS_INFORMATION &info,std::string &error) {
     const int length=MultiByteToWideChar(CP_UTF8,0,command.data(),static_cast<int>(command.size()),nullptr,0);std::wstring wide(length,L'\0');MultiByteToWideChar(CP_UTF8,0,command.data(),static_cast<int>(command.size()),wide.data(),length);wide.push_back(L'\0');
-    const bool success=CreateProcessW(nullptr,wide.data(),nullptr,nullptr,TRUE,CREATE_NO_WINDOW|EXTENDED_STARTUPINFO_PRESENT,nullptr,directory.c_str(),reinterpret_cast<STARTUPINFOW *>(&startup),&info)!=FALSE;
+    assert((startup.StartupInfo.dwFlags & STARTF_USESTDHANDLES)==0);
+    const bool success=CreateProcessW(nullptr,wide.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,directory.c_str(),reinterpret_cast<STARTUPINFOW *>(&startup),&info)!=FALSE;
     if (!success)error=std::to_string(GetLastError());return success;
   };
   moonshine::configure(std::move(host));moonshine::start();

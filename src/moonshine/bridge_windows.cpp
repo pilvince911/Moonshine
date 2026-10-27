@@ -131,6 +131,7 @@ namespace moonshine {
     }
     void run(const std::shared_ptr<record> &value, const user_context &user) {
       std::string owner_tag="moonshine-job:"+value->id, secret;
+      handle process_handle;
       try {
         const auto [url,pin]=host.endpoint();secret=host.issue_token(owner_tag);
         if (secret.empty()) throw std::runtime_error("Impossible de préparer l’autorisation locale temporaire.");
@@ -142,35 +143,42 @@ namespace moonshine {
         SetLastError(ERROR_SUCCESS);HANDLE event=CreateEventW(&event_sa,TRUE,FALSE,event_name.c_str());const auto event_error=GetLastError();LocalFree(security);
         if (!event || event_error==ERROR_ALREADY_EXISTS) { if (event) CloseHandle(event);throw std::runtime_error("Événement d’annulation indisponible."); }
         { std::lock_guard guard(value->mutex);value->cancellation.value=event;if (value->cancel_requested) SetEvent(event); }
-        SECURITY_ATTRIBUTES pipe_sa {sizeof(SECURITY_ATTRIBUTES),nullptr,TRUE};
-        handle child_in, child_out, output;
-        if (!CreatePipe(&child_in.value,&value->input.value,&pipe_sa,0) || !CreatePipe(&output.value,&child_out.value,&pipe_sa,0)) throw std::runtime_error("Canal interne indisponible.");
-        if (!SetHandleInformation(value->input.value,HANDLE_FLAG_INHERIT,0) || !SetHandleInformation(output.value,HANDLE_FLAG_INHERIT,0)) throw std::runtime_error("Protection des canaux indisponible.");
-        handle error(CreateFileW(L"NUL",GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,&pipe_sa,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr));
-        if (error.value==INVALID_HANDLE_VALUE) throw std::runtime_error("Sortie interne indisponible.");
-        STARTUPINFOEXW startup {};startup.StartupInfo.cb=sizeof(startup);startup.StartupInfo.dwFlags=STARTF_USESTDHANDLES;
-        startup.StartupInfo.hStdInput=child_in.value;startup.StartupInfo.hStdOutput=child_out.value;startup.StartupInfo.hStdError=error.value;
-        SIZE_T bytes=0;InitializeProcThreadAttributeList(nullptr,1,0,&bytes);
-        std::vector<unsigned char> attributes(bytes);startup.lpAttributeList=reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attributes.data());
-        if (!InitializeProcThreadAttributeList(startup.lpAttributeList,1,0,&bytes)) throw std::runtime_error("Attributs du moteur indisponibles.");
-        struct attribute_guard { LPPROC_THREAD_ATTRIBUTE_LIST p; ~attribute_guard() { DeleteProcThreadAttributeList(p); } } attr_guard {startup.lpAttributeList};
-        HANDLE inherited[]={child_in.value,child_out.value,error.value};
-        if (!UpdateProcThreadAttribute(startup.lpAttributeList,0,PROC_THREAD_ATTRIBUTE_HANDLE_LIST,inherited,sizeof(inherited),nullptr,nullptr)) throw std::runtime_error("Héritage des canaux refusé.");
+        // The service and interactive account can have different Windows sessions.
+        const auto pipe_id="Moonshine.Sync."+value->id;
+        const auto pipe_path=wide("\\\\.\\pipe\\"+pipe_id);
+        security=nullptr;
+        const auto pipe_sddl=wide("D:P(A;;GA;;;SY)(A;;GRGW;;;"+user.sid+")");
+        if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(pipe_sddl.c_str(),SDDL_REVISION_1,&security,nullptr)) throw std::runtime_error("Protection du canal indisponible.");
+        SECURITY_ATTRIBUTES pipe_sa {sizeof(SECURITY_ATTRIBUTES),security,FALSE};
+        HANDLE pipe=CreateNamedPipeW(pipe_path.c_str(),PIPE_ACCESS_DUPLEX|FILE_FLAG_FIRST_PIPE_INSTANCE,PIPE_TYPE_BYTE|PIPE_READMODE_BYTE|PIPE_NOWAIT|PIPE_REJECT_REMOTE_CLIENTS,1,65536,65536,30000,&pipe_sa);
+        LocalFree(security);
+        if (pipe==INVALID_HANDLE_VALUE) throw std::runtime_error("Canal local protégé indisponible.");
+        {std::lock_guard guard(value->mutex);value->input.value=pipe;}
+        STARTUPINFOEXW startup {};startup.StartupInfo.cb=sizeof(STARTUPINFOW);
         wchar_t system_directory[MAX_PATH];if (!GetSystemDirectoryW(system_directory,MAX_PATH)) throw std::runtime_error("Windows PowerShell introuvable.");
         const auto powershell=std::filesystem::path(system_directory)/L"WindowsPowerShell/v1.0/powershell.exe";
         const auto script=host.package/L"Moonshine-Worker.ps1";
         const auto quoted=[](const std::filesystem::path &p) {const auto v=utf8(p.wstring());if (v.find_first_of("\"\r\n")!=std::string::npos) throw std::runtime_error("Chemin du moteur invalide.");return "\""+v+"\"";};
-        const std::string command=quoted(powershell)+" -NoLogo -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "+quoted(script);
+        const std::string command=quoted(powershell)+" -NoLogo -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "+quoted(script)+" -PipeName "+pipe_id;
         PROCESS_INFORMATION process {};std::string error_message;
         if (!host.launch(command,host.package.wstring(),startup,process,error_message)) throw std::runtime_error("Démarrage dans le compte Windows impossible. "+policy::bounded(error_message,200));
-        handle process_handle(process.hProcess), process_thread(process.hThread);
-        CloseHandle(child_in.release());CloseHandle(child_out.release());
+        process_handle.value=process.hProcess;handle process_thread(process.hThread);
+        const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(30);
+        while (!ConnectNamedPipe(pipe,nullptr)) {
+          const auto error=GetLastError();if (error==ERROR_PIPE_CONNECTED) break;
+          if (error!=ERROR_PIPE_LISTENING || std::chrono::steady_clock::now()>=deadline || WaitForSingleObject(process_handle.value,0)==WAIT_OBJECT_0 || WaitForSingleObject(event,0)==WAIT_OBJECT_0) throw std::runtime_error("Connexion du moteur local interrompue.");
+          std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+        ULONG client_pid=0;
+        if (!GetNamedPipeClientProcessId(pipe,&client_pid) || client_pid!=process.dwProcessId) throw std::runtime_error("Identité du moteur local incorrecte.");
+        DWORD pipe_mode=PIPE_READMODE_BYTE|PIPE_WAIT;
+        if (!SetNamedPipeHandleState(pipe,&pipe_mode,nullptr,nullptr)) throw std::runtime_error("Communication du moteur indisponible.");
         auto boot=value->parameters;boot["protocol"]="moonshine-worker/1";boot["url"]=url;boot["pin"]=pin;boot["token"]=secret;
         boot["user_sid"]=user.sid;boot["cancel_event"]=utf8(event_name);
         { std::lock_guard guard(value->mutex);value->state="running";write_pipe(value->input.value,boot.dump()); }
         boot["token"]=nullptr;SecureZeroMemory(secret.data(),secret.size());secret.clear();
         char buffer[4096];std::string pending;DWORD count=0;
-        while (ReadFile(output.value,buffer,sizeof(buffer),&count,nullptr) && count) {
+        while (ReadFile(pipe,buffer,sizeof(buffer),&count,nullptr) && count) {
           pending.append(buffer,count);if (pending.size()>8388608) throw std::runtime_error("Réponse interne trop volumineuse.");
           std::size_t newline;
           while ((newline=pending.find('\n'))!=std::string::npos) {
@@ -188,9 +196,12 @@ namespace moonshine {
         std::lock_guard guard(value->mutex);if (value->cancellation.value) SetEvent(value->cancellation.value);
         value->outcome="failed";value->state="finishing";value->message=policy::bounded(e.what());value->prompt=nullptr;
       }
+      {std::lock_guard guard(value->mutex);if (value->input.value) {DisconnectNamedPipe(value->input.value);CloseHandle(value->input.release());}}
+      // Closing the channel also releases a worker waiting for confirmation on errors.
+      if (process_handle.value) WaitForSingleObject(process_handle.value,INFINITE);
       if (!secret.empty()) SecureZeroMemory(secret.data(),secret.size());
       try { host.revoke_token(owner_tag); } catch (...) { }
-      { std::lock_guard guard(value->mutex);if (value->input.value) CloseHandle(value->input.release());value->exited=true;value->state=value->outcome; }
+      { std::lock_guard guard(value->mutex);value->exited=true;value->state=value->outcome; }
       wake.notify_all();
     }
     json submit_impl(const json &request, bool internal) {
