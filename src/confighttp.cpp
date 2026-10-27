@@ -408,6 +408,12 @@ namespace confighttp {
     return policy::make_web_ui_url(get_web_ui_host_for_local_open(), port_https, path);
   }
 
+  void initializeMoonshine();
+  void getMoonshineStatus(resp_https_t, req_https_t);
+  void postMoonshineJob(resp_https_t, req_https_t);
+  void getMoonshineJob(resp_https_t, req_https_t);
+  void postMoonshineConfirm(resp_https_t, req_https_t);
+  void postMoonshineCancel(resp_https_t, req_https_t);
   // Forward declaration for error helper implemented later
   void bad_request(resp_https_t response, req_https_t request, const std::string &error_message);
 
@@ -1408,6 +1414,10 @@ namespace confighttp {
     }
 
     const bool is_v2_route = path_view == "/v2" || path_view.starts_with("/v2/");
+    if (!is_v2_route && !fs::path {path}.has_extension()) {
+      const std::string destination = (path_view == "/apps" || path_view == "/applications") ? "/v2/library" : path_view == "/config" ? "/v2/settings" : "/v2/";
+      response->write(SimpleWeb::StatusCode::redirection_found, "", {{"Location",destination},{"Cache-Control","no-store"}});return;
+    }
     const bool is_v2_static_path = path_view == "/v2/assets" || path_view.starts_with("/v2/assets/") ||
                                    path_view == "/v2/images" || path_view.starts_with("/v2/images/");
     if (is_v2_static_path) {
@@ -5758,11 +5768,12 @@ namespace confighttp {
     register_api_route("^/api/apps/purge_autosync$", "POST", purgeAutoSyncedApps);
 #if defined(_WIN32) || defined(__linux__)
     register_api_route("^/api/frame-limiter/status$", "GET", getFrameLimiterStatus);
+    register_api_route("^/api/moonshine/status$", "GET", getMoonshineStatus);
+    register_api_route("^/api/moonshine/jobs$", "POST", postMoonshineJob);
+    register_api_route("^/api/moonshine/jobs/([a-f0-9]{32})$", "GET", getMoonshineJob);
+    register_api_route("^/api/moonshine/jobs/([a-f0-9]{32})/confirm$", "POST", postMoonshineConfirm);
+    register_api_route("^/api/moonshine/jobs/([a-f0-9]{32})/cancel$", "POST", postMoonshineCancel);
 #endif
-    register_api_route("^/api/steam/status$", "GET", getSteamStatus);
-    register_api_route("^/api/steam/games$", "GET", getSteamGames);
-    register_api_route("^/api/steam/force_sync$", "POST", postSteamForceSync);
-    register_api_route("^/api/steam/launch$", "POST", postSteamLaunch);
 #ifdef __linux__
     register_api_route("^/api/lutris/status$", "GET", getLutrisStatus);
     register_api_route("^/api/lutris/games$", "GET", getLutrisGames);
@@ -5770,16 +5781,8 @@ namespace confighttp {
     register_api_route("^/api/lutris/launch$", "POST", postLutrisLaunch);
 #endif
 #ifdef _WIN32
-    register_api_route("^/api/playnite/status$", "GET", getPlayniteStatus);
     register_api_route("^/api/rtss/status$", "GET", getRtssStatus);
     register_api_route("^/api/lossless_scaling/status$", "GET", getLosslessScalingStatus);
-    register_api_route("^/api/playnite/install$", "POST", installPlaynite);
-    register_api_route("^/api/playnite/uninstall$", "POST", uninstallPlaynite);
-    register_api_route("^/api/playnite/games$", "GET", getPlayniteGames);
-    register_api_route("^/api/playnite/categories$", "GET", getPlayniteCategories);
-    register_api_route("^/api/playnite/force_sync$", "POST", postPlayniteForceSync);
-    register_blocking_api_route("^/api/playnite/cover$", "POST", postPlayniteCover);
-    register_api_route("^/api/playnite/launch$", "POST", postPlayniteLaunch);
     // Export logs bundle (Windows only). Collection and sanitizing can take
     // seconds on large log sets; keep it off the single io thread so the rest
     // of the WebUI stays responsive during an export.
@@ -5820,6 +5823,7 @@ namespace confighttp {
       }
     };
     api_token_manager.load_api_tokens();
+    initializeMoonshine();
     session_token_manager.load_session_tokens();
     std::thread tcp {accept_and_run, &server};
 

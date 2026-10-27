@@ -1,0 +1,64 @@
+name: Moonshine integration
+on:
+  push:
+    branches: [moonshine/windows-integration]
+  pull_request:
+    branches: [upstream/v2.0.1]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: moonshine-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: g++ -std=c++23 -Wall -Wextra -Werror -pedantic tests/moonshine/test_policy.cpp -o /tmp/moonshine-policy && /tmp/moonshine-policy
+      - run: python3 tools/moonshine-dev/validate_source.py
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: src_assets/common/assets/web/package-lock.json
+      - run: npm ci
+        working-directory: src_assets/common/assets/web
+      - run: npm run build
+        working-directory: src_assets/common/assets/web
+      - run: npm run test:unit
+        working-directory: src_assets/common/assets/web
+  windows-engine:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Windows PowerShell 5.1 regression suite
+        shell: powershell
+        run: ./tests/moonshine/Invoke-EngineTests.ps1
+  windows-bridge:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the pinned JSON test header
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force test-deps/nlohmann | Out-Null
+          Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/nlohmann/json/v3.11.3/single_include/nlohmann/json.hpp -OutFile test-deps/nlohmann/json.hpp
+          if ((Get-FileHash test-deps/nlohmann/json.hpp -Algorithm SHA256).Hash -ine '9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6') { throw 'JSON test dependency checksum mismatch' }
+      - name: Compile and exercise the actual Windows process bridge
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do call "%%i\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /EHsc /std:c++latest /utf-8 /W4 /I test-deps tests/moonshine/test_bridge_windows.cpp src/moonshine/bridge_windows.cpp /Fe:moonshine-bridge-test.exe /link advapi32.lib ole32.lib userenv.lib
+          if errorlevel 1 exit /b 1
+          mkdir test-fixture
+          copy tests\moonshine\worker_fixture.ps1 test-fixture\Moonshine-Worker.ps1
+          moonshine-bridge-test.exe test-fixture

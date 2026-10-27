@@ -38,6 +38,7 @@
 #include "session_history.h"
 #include "state_storage.h"
 #include "steam_auto_sync.h"
+#include "moonshine/bridge.h"
 #ifdef __linux__
   #include "lutris_auto_sync.h"
 #endif
@@ -564,6 +565,9 @@ int main(int argc, char *argv[]) {
     // Arm the owned deadline before any potentially unbounded join so that a
     // pathological message loop cannot hang process teardown indefinitely.
     shutdown_deadline.arm();
+#ifdef _WIN32
+  moonshine::stop();moonshine_guard.disable();
+#endif
 
     auto request_session_monitor_shutdown = [&](bool force_quit_only) {
       if (!force_quit_only) {
@@ -721,10 +725,15 @@ int main(int argc, char *argv[]) {
   // Steam's catalog can change while the server is running. The watcher is
   // started after logging/platform initialization and owns its shutdown
   // thread independently of the task pool.
+#ifdef _WIN32
+  auto moonshine_guard = util::fail_guard([]() { moonshine::stop(); });
+#endif
+#ifndef MOONSHINE_HOST
   platf::steam::autosync::start();
   auto steam_autosync_guard = util::fail_guard([]() {
     platf::steam::autosync::stop();
   });
+#endif
 #ifdef __linux__
   platf::lutris::autosync::start();
   auto lutris_autosync_guard = util::fail_guard([]() {
@@ -1051,8 +1060,10 @@ int main(int argc, char *argv[]) {
   platf::lutris::autosync::stop();
   lutris_autosync_guard.disable();
 #endif
+#ifndef MOONSHINE_HOST
   platf::steam::autosync::stop();
   steam_autosync_guard.disable();
+#endif
 
 #ifdef _WIN32
   // Full process shutdown cannot leave the paused-session watchdog running.

@@ -2254,15 +2254,7 @@ async function loadLutrisGames(): Promise<void> {
   }
 }
 
-function openGamePicker(): void {
-  if (!isNew.value) return;
-  cancelGameClose();
-  gamePickerOpen.value = true;
-  gameActiveIndex.value = -1;
-  if (isWindowsHost.value) void loadPlayniteGames();
-  void loadSteamGames();
-  if (isLinuxHost.value) void loadLutrisGames();
-}
+function openGamePicker(): void { return; } // The Moonshine library owns discovery.
 
 function closeGamePicker(): void {
   cancelGameClose();
@@ -3148,11 +3140,11 @@ onBeforeUnmount(() => {
                 class="vs-input"
                 data-field-key="name"
                 type="text"
-                :role="isNew ? 'combobox' : undefined"
+                :role="undefined"
                 autocomplete="off"
                 required
-                :aria-autocomplete="isNew ? 'list' : undefined"
-                :aria-controls="isNew ? 'app-game-options' : undefined"
+                :aria-autocomplete="undefined"
+                :aria-controls="undefined"
                 :aria-expanded="isNew ? gamePickerOpen : undefined"
                 :aria-activedescendant="
                   isNew && gameActiveIndex >= 0 ? `app-game-option-${gameActiveIndex}` : undefined
@@ -3166,7 +3158,7 @@ onBeforeUnmount(() => {
                 @keydown="handleNameKeydown"
               />
               <AppButton
-                v-if="isNew"
+                v-if="false"
                 size="compact"
                 icon="library"
                 :label="t('ui.application.gamePicker.browse')"

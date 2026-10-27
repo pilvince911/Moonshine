@@ -1,0 +1,74 @@
+﻿Sources primaires — OPi5 / VibeShine Xbox Sync 0.8.0
+
+VibeShine 2.0.1 :
+https://github.com/Nonary/vibeshine/blob/2.0.1/src/confighttp.cpp
+  API GET/POST /api/apps et DELETE /api/apps/{uuid}, normalisation, authentification,
+  préservation des champs et verrouillage du catalogue. Source disponible localement.
+https://github.com/Nonary/vibeshine/blob/2.0.1/src/http_auth.cpp
+  Jetons limités par chemin et méthode.
+https://github.com/Nonary/vibeshine/blob/2.0.1/src/app_framegen_config.cpp
+  Lecture de frame-generation-mode et frame-generation-provider; mode explicite
+  game-provided ou off, indépendamment des anciennes options de capture.
+https://github.com/Nonary/vibeshine/blob/2.0.1/src/framegen_policy.h
+  Coordination du fournisseur du jeu, écran virtuel, WGC et mode RTSS Reflex.
+https://github.com/Nonary/vibeshine/blob/2.0.1/docs/configuration.md
+  frame_limiter_auto_virtual_framegen et rtss_allow_virtual_display_override.
+https://github.com/Nonary/vibeshine
+  Présentation de WGC, de l'écran virtuel et de l'intégration RTSS.
+
+NVIDIA :
+https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/gaming.html
+  DLSS Super Resolution, Frame Generation, Reflex et incompatibilité du cumul
+  Frame Generation native / Smooth Motion. Aucun réglage interne de jeu n'est
+  déduit automatiquement du modèle de carte graphique.
+https://www.nvidia.com/en-us/geforce/news/gfecnt/20258/nvidia-app-global-dlss-overrides-rtx-40-series-smooth-motion/
+  Frame Generation et Smooth Motion pour RTX 40, fonctions distinctes.
+
+Windows et PowerShell :
+https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/disable-scheduledtask
+https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/set-scheduledtask
+  Désactivation d'une tâche et mise à jour de son action.
+https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/convertto-json?view=powershell-5.1
+  Sous PowerShell 5.1, une racine null ne produit pas de texte; traitement explicite.
+https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew
+https://learn.microsoft.com/en-us/dotnet/api/system.io.file.replace?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.flush?view=netframework-4.8.1
+  Remplacement atomique, erreurs partielles et vidage des tampons.
+
+Découverte EA et images, sources déjà vérifiées pour les versions précédentes :
+https://github.com/lutris/lutris/blob/master/lutris/services/ea_app.py
+https://store.steampowered.com/api/storesearch/?term=pga%20tour&l=english&cc=ca
+https://store.steampowered.com/api/appdetails?appids=1677350&l=english&cc=ca
+https://store.steampowered.com/api/appdetails?appids=3940610&l=english&cc=ca
+https://store.steampowered.com/api/appdetails?appids=4080220&l=english&cc=ca
+https://api.steampowered.com/IStoreBrowseService/GetItems/v1/
+https://displaycatalog.mp.microsoft.com/v7.0/products
+  Identifiants d'installation, identité du titre, plateforme et actifs d'image.
+  Les portraits des trois jeux EA ont été récupérés et décodés lors de 0.3.1.
+
+Preuves fournies par PL : captures du catalogue et des réglages VibeShine,
+diagnostic Windows 0.4.1 du 26 octobre 2026. Ces pièces ne valident pas l'exécution
+réelle de 0.8.0, qui doit être confirmée par les autotests et le retour du PC.
+
+Interface Windows 0.8.0 — sources Microsoft :
+https://learn.microsoft.com/en-us/dotnet/desktop/wpf/overview/
+  WPF/.NET Framework pour les fenêtres et contrôles Windows.
+https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/threading-model
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.threading.dispatchertimer
+  Fil de présentation, dispatcher et opérations longues séparées.
+https://learn.microsoft.com/en-us/powershell/scripting/developer/hosting/adding-and-invoking-commands
+https://learn.microsoft.com/en-us/dotnet/api/system.management.automation.powershell.begininvoke
+  Invocation asynchrone et paramètres d'une commande PowerShell hébergée.
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.media.imaging.bitmapimage.cacheoption?view=netframework-4.8.1
+  OnLoad permet de fermer le flux après chargement de l'image.
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.markup.xamlreader.load?view=netframework-4.8.1
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.virtualizingpanel.virtualizationmode?view=netframework-4.8.1
+  Lecture XAML WPF et recyclage des éléments de liste.
+
+Consolidation 0.8.0 — références complémentaires Microsoft :
+https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_operators?view=powershell-5.1
+https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_return?view=powershell-5.1
+  Énumération dans le pipeline, conservation des tableaux et virgule unaire.
+https://learn.microsoft.com/en-us/dotnet/desktop/wpf/controls/combobox-styles-and-templates
+https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.combobox.isdropdownopen?view=netframework-4.8.1
+  Modèle natif du menu déroulant et PART_Popup.

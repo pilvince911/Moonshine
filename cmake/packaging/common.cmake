@@ -2,14 +2,14 @@
 
 # common cpack options
 # Branding: show Vibeshine by Nonary in installer UI
-set(CPACK_PACKAGE_NAME "Vibeshine")
-set(CPACK_PACKAGE_VENDOR "Nonary")
+set(CPACK_PACKAGE_NAME "Moonshine")
+set(CPACK_PACKAGE_VENDOR "Moonshine / OPi5")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION_NUMERIC})
 set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(CPACK_PACKAGE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpack_artifacts)
-set(CPACK_PACKAGE_CONTACT "https://github.com/Nonary/vibeshine/issues")
+set(CPACK_PACKAGE_CONTACT "https://github.com/pilvince911/Moonshine/issues")
 set(CPACK_PACKAGE_DESCRIPTION ${CMAKE_PROJECT_DESCRIPTION})
 set(CPACK_PACKAGE_HOMEPAGE_URL ${CMAKE_PROJECT_HOMEPAGE_URL})
 set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
@@ -53,7 +53,7 @@ if(WIN32)
     include(${CMAKE_MODULE_PATH}/packaging/windows.cmake)
     # WiX specifics: ensure license is RTF and set stable Upgrade GUID
     set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/packaging/windows/LICENSE.rtf)
-    set(CPACK_WIX_UPGRADE_GUID "{C2C36624-2D9C-4AFD-9C79-6B7861AE4A0D}")
+    set(CPACK_WIX_UPGRADE_GUID "{D1E73422-7FE8-5DD9-AB83-FA0C4E50FD58}")
 elseif(UNIX)
     include(${CMAKE_MODULE_PATH}/packaging/unix.cmake)
 
@@ -64,4 +64,6 @@ elseif(UNIX)
     endif()
 endif()
 
-include(CPack)
+if(NOT WIN32 OR MOONSHINE_BUILD_INSTALLER)
+    include(CPack)
+endif()
