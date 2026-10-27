@@ -13,7 +13,7 @@ try {
         [IO.File]::WriteAllText((Join-Path $folder 'moonshine-trial-only.txt'),'trial')
     }
     $config=Join-Path $Package 'config\smoke.conf';[IO.Directory]::CreateDirectory((Split-Path -Parent $config)) | Out-Null
-    [IO.File]::WriteAllText($config,"port = 48989`r`nsunshine_name = Moonshine CI`r`nupnp = disabled`r`nsystem_tray = disabled`r`ninstall_steam_audio_drivers = disabled`r`nvirtual_display_mode = disabled`r`nencoder = software`r`norigin_web_ui_allowed = pc`r`nupdate_check_interval_seconds = 0`r`n")
+    [IO.File]::WriteAllText($config,"port = 48989`r`nsunshine_name = Moonshine CI`r`nupnp = disabled`r`nsystem_tray = disabled`r`ninstall_steam_audio_drivers = disabled`r`nvirtual_display_mode = disabled`r`nencoder = software`r`norigin_web_ui_allowed = pc`r`nupdate_check_interval = 0`r`n")
     $production=Join-Path $env:LOCALAPPDATA 'OPi5\VibeShine-Xbox';$wasPresent=Test-Path -LiteralPath $production
     [IO.Directory]::CreateDirectory($production) | Out-Null
     $sentinel=Join-Path $production ('moonshine-smoke-sentinel-'+$id+'.json')

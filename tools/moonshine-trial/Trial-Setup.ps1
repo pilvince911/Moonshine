@@ -85,7 +85,7 @@ function Prepare-MoonshineTrialInstance($Instance) {
     }
     $config=Join-Path $Instance.Package 'config\moonshine.conf'
     if (-not (Test-Path -LiteralPath $config)) {
-        $lines=@('sunshine_name = Moonshine Essai','port = 48989','upnp = disabled','system_tray = disabled','install_steam_audio_drivers = disabled','origin_web_ui_allowed = pc','update_check_interval_seconds = 0')
+        $lines=@('sunshine_name = Moonshine Essai','port = 48989','upnp = disabled','system_tray = disabled','install_steam_audio_drivers = disabled','origin_web_ui_allowed = pc','update_check_interval = 0')
         Write-MoonshineTrialAtomic $config ([Text.Encoding]::UTF8.GetBytes(($lines -join [Environment]::NewLine)))
     }
     return $config

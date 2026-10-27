@@ -4,6 +4,10 @@ async function library(page: Page, idle = true, isolated = false) {
   const id = 'a'.repeat(32), nonce = 'b'.repeat(32);
   const calls: { action?: string; nonce?: string; accept?: boolean; text?: string; csrf?: string }[] = [];
   let job: Record<string, unknown> | null = null;
+  await page.route('https://api.github.com/repos/**/releases**', async (route) => {
+    expect(route.request().url()).toMatch(/^https:\/\/api\.github\.com\/repos\/pilvince911\/Moonshine\/releases/);
+    await route.fulfill({ json: [] });
+  });
   await page.route('**/api/**', async (route) => {
     const request = route.request(), path = new URL(request.url()).pathname;
     if (!path.startsWith('/api/')) { await route.continue();return; }
@@ -11,7 +15,7 @@ async function library(page: Page, idle = true, isolated = false) {
     if (path === '/api/auth/status') body = { authenticated: true, credentials_configured: true, login_required: false };
     else if (path === '/api/configLocale') body = { locale: 'en' };
     else if (path === '/api/csrf-token') body = { csrf_token: 'synthetic-ui-csrf' };
-    else if (path === '/api/metadata') body = { platform: 'windows', version: '0.8.0', encoder_status: { state: 'ready', h264: true } };
+    else if (path === '/api/metadata') body = { platform: 'windows', version: '0.8.1', encoder_status: { state: 'ready', h264: true } };
     else if (path === '/api/session/status') body = { status: true, activeSessions: idle ? 0 : 1, appRunning: !idle };
     else if (path === '/api/apps' && request.method() === 'GET') body = { apps: [
       { uuid: 'desktop', name: 'Desktop', cmd: '' },
@@ -78,10 +82,31 @@ test('an active stream retains mutation controls while allowing an analysis', as
 });
 
 test('trial context and Moonshine branding are visible', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
   await library(page, true, true);
   await expect(page.getByText('Mode essai ·', { exact: false })).toBeVisible();
   const mark = page.locator('img[src$="moonshine-mark.svg"]:visible').first();
   await expect(mark).toBeVisible();
   await expect.poll(() => mark.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect(page.locator('.ms-cover img')).toHaveCount(0);
+  for (const theme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    const ratios = await page.locator('.moonshine-library h1, .ms-game h2').evaluateAll((headings) => {
+      const luminance = (color: string) => {
+        const channels = (color.match(/[\\d.]+/g) ?? []).slice(0, 3).map((part) => {
+          const value = Number(part) / 255;return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+        });
+        return channels[0]! * .2126 + channels[1]! * .7152 + channels[2]! * .0722;
+      };
+      return headings.map((heading) => {
+        let background = heading.parentElement!;
+        while (background.parentElement && ['rgba(0, 0, 0, 0)', 'transparent'].includes(getComputedStyle(background).backgroundColor)) background = background.parentElement;
+        const text = luminance(getComputedStyle(heading).color), surface = luminance(getComputedStyle(background).backgroundColor);
+        return (Math.max(text, surface) + .05) / (Math.min(text, surface) + .05);
+      });
+    });
+    for (const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(4.5);
+  }
   await page.screenshot({ path: 'test-results/moonshine-library-trial.png', fullPage: true });
 });
