@@ -283,7 +283,7 @@ namespace moonshine {
       wchar_t flag[4] {};if (GetEnvironmentVariableW(L"SUNSHINE_LAUNCHED_BY_SERVICE",flag,4)!=1 || flag[0]!=L'1') throw std::runtime_error("Démarrer MoonshineService depuis sa fenêtre de gestion.");
       // Open diagnostics in the destination session; no inherited service handles.
       if (!_wfreopen((root/L"config/service-stdout.log").c_str(),L"a",stdout) || !_wfreopen((root/L"config/service-stderr.log").c_str(),L"a",stderr)) throw std::runtime_error("Les diagnostics privés du service sont indisponibles.");
-      std::setvbuf(stdout,nullptr,_IOLBF,0);std::setvbuf(stderr,nullptr,_IOLBF,0);
+      std::setvbuf(stdout,nullptr,_IONBF,0);std::setvbuf(stderr,nullptr,_IONBF,0);
       return;
     }
     const bool isolated=std::filesystem::is_regular_file(root/L"moonshine-trial-only.txt");

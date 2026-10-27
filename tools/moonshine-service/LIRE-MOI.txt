@@ -14,6 +14,8 @@ INSTALLATION SUR LE PC HÔTE
 6. Ouvrir la bibliothèque. Le catalogue, les identifiants et les certificats de
    cet essai sont copiés. L’entrée Moonshine Essai de Moonlight reste utilisable;
    port 48989 et interface Web https://localhost:48990/v2/library.
+7. Pour les prochaines ouvertures, utiliser Moonshine Service dans le menu
+   Démarrer. Le gestionnaire et sa référence de réparation restent installés.
 
 CE QUI CHANGE
 MoonshineService est un nouveau service en démarrage manuel. Il exécute l’hôte
@@ -43,6 +45,15 @@ réseau, puis redémarre SunshineService si son identité correspond toujours
 service avait un autre nom, le démarrer dans Services Windows.
 Le type de démarrage et le binaire de l’ancien service ne sont pas modifiés.
 Pour reprendre le portable : arrêter MoonshineService, puis ouvrir l’ancien kit.
+
+RÉPARATION
+Arrêter le service puis utiliser Réparer et démarrer dans sa fenêtre. Le kit
+local est revérifié avant de remplacer uniquement les fichiers exécutables
+endommagés de la même version. Leurs anciens octets restent dans Recovery;
+la configuration et le catalogue actifs sont conservés. Le démarrage automatique
+de Moonshine est temporairement suspendu pendant la réparation. Après une
+interruption, reprendre cette même opération. Un reçu ambigu, un lien de fichiers
+ou une référence altérée suspend la réparation au lieu de deviner une identité.
 
 VALIDATION À FAIRE SUR LA RTX 4080
 Tester un jeu déjà synchronisé avec les mêmes paramètres Moonlight. Vérifier

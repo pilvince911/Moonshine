@@ -55,7 +55,8 @@ try {
             $busy=$script:operation -and -not $script:operation.HasExited
             $running=$service -and $service.Status -eq 'Running'
             $controls.StatusText.Text=if ($running) {'Service Moonshine démarré'} elseif ($service) {'Service Moonshine arrêté'} else {'Service Moonshine non installé'}
-            $controls.InstallButton.IsEnabled=(-not $busy -and -not $service -and $choices.Count -gt 0)
+            $controls.InstallButton.IsEnabled=(-not $busy -and -not $running -and $choices.Count -gt 0)
+            $controls.InstallButton.Content=if ($service) {'Réparer et démarrer'} else {'Installer et démarrer'}
             $controls.StartButton.IsEnabled=(-not $busy -and $service -and -not $running)
             $controls.StopButton.IsEnabled=(-not $busy -and $running)
             $controls.ReturnButton.IsEnabled=(-not $busy -and $null -ne $service)

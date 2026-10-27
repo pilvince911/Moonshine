@@ -35,7 +35,7 @@ function Set-MoonshineProtectedFolder([string]$Path,[switch]$Private) {
 function Write-MoonshineServiceJson([string]$Path,$Value) {
     $temporary=$Path+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
     try {
-        [IO.File]::WriteAllText($temporary,(ConvertTo-Json -InputObject $Value -Depth 20),(New-Object Text.UTF8Encoding($false)))
+        [IO.File]::WriteAllText($temporary,(ConvertTo-Json -InputObject $Value -Depth 20 -Compress),(New-Object Text.UTF8Encoding($false)))
         if ([IO.File]::Exists($Path)) { [IO.File]::Replace($temporary,$Path,$Path+'.previous') }
         else { [IO.File]::Move($temporary,$Path) }
     } finally { if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) } }
@@ -65,9 +65,9 @@ function Read-MoonshineServiceManifest([string]$KitRoot) {
 }
 function Get-MoonshineServiceTrial([string]$OwnerSid,[string]$TrialId) {
     if ($OwnerSid -cnotmatch '\AS-1-(?:5-21|12-1)-[0-9-]+\z' -or $TrialId -cnotmatch '\A[a-f0-9]{32}\z') { throw 'Compte ou identifiant de l''essai invalide.' }
-    $profile=(Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$OwnerSid) -Name ProfileImagePath).ProfileImagePath
-    $profile=[Environment]::ExpandEnvironmentVariables($profile);Assert-MoonshinePlainPath $profile
-    $root=Join-Path $profile ('AppData\Local\OPi5\Moonshine-Trial\'+$TrialId);Assert-MoonshinePlainPath $root
+    $ownerProfile=(Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$OwnerSid) -Name ProfileImagePath).ProfileImagePath
+    $ownerProfile=[Environment]::ExpandEnvironmentVariables($ownerProfile);Assert-MoonshinePlainPath $ownerProfile
+    $root=Join-Path $ownerProfile ('AppData\Local\OPi5\Moonshine-Trial\'+$TrialId);Assert-MoonshinePlainPath $root
     $package=Join-Path $root 'Package'
     foreach ($folder in @($package,(Join-Path $package 'tools\moonshine'))) {
         $marker=Join-Path $folder 'moonshine-trial-id.txt'
@@ -97,7 +97,8 @@ function Copy-MoonshinePrivateTree([string]$Source,[string]$Target) {
 }
 function Read-MoonshineServiceReceipt {
     $path=Join-Path $script:MoonshineServiceRoot 'service-receipt.json';Assert-MoonshinePlainPath $path
-    if (-not [IO.File]::Exists($path) -or (Get-Item -LiteralPath $path).Length -gt 65536) { throw 'Reçu du service absent; aucune modification de service existant.' }
+    if (-not [IO.File]::Exists($path)) { throw 'Reçu du service absent; aucune modification de service existant.' }
+    if ((Get-Item -LiteralPath $path).Length -gt 4194304) { throw 'Reçu du service trop volumineux; installation conservée.' }
     $value=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($path))
     if ($value.schema -cne 'moonshine-service-receipt/1' -or $value.name -cne $script:MoonshineServiceName -or $value.id -cnotmatch '\A[a-f0-9]{32}\z' -or $value.commit -cnotmatch '\A[a-f0-9]{40}\z' -or $value.files -isnot [array] -or $value.files.Count -lt 4 -or $value.owner_sid -cnotmatch '\AS-1-(?:5-21|12-1)-[0-9-]+\z' -or $value.firewall_created -isnot [bool]) { throw 'Reçu de service invalide.' }
     foreach ($row in $value.files) { if (-not $row.path.StartsWith('Package/') -or $row.sha256 -cnotmatch '\A[a-f0-9]{64}\z') { throw 'Empreintes du service invalides.' } }
@@ -117,12 +118,79 @@ function Assert-MoonshineInstalledPackage($Receipt) {
         $marker=Get-MoonshineServiceKitPath $script:MoonshineServiceRoot ($folder+'/moonshine-trial-id.txt')
         if (-not [IO.File]::Exists($marker) -or (Get-Item -LiteralPath $marker).Length -gt 128 -or [IO.File]::ReadAllText($marker).Trim() -cne $Receipt.id) { throw 'Identifiant installé incohérent; démarrage suspendu.' }
     }
-    $profile=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $script:MoonshineServiceRoot 'Package\moonshine-service-profile.json')))
-    if ($profile.schema -cne 'moonshine-service-preview/1' -or $profile.id -cne $Receipt.id -or $profile.owner_sid -cne $Receipt.owner_sid) { throw 'Le profil du service ne correspond pas au reçu.' }
+    $serviceIdentity=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $script:MoonshineServiceRoot 'Package\moonshine-service-profile.json')))
+    if ($serviceIdentity.schema -cne 'moonshine-service-preview/1' -or $serviceIdentity.id -cne $Receipt.id -or $serviceIdentity.owner_sid -cne $Receipt.owner_sid) { throw 'Le profil du service ne correspond pas au reçu.' }
     foreach ($row in $Receipt.files) {
         $path=Get-MoonshineServiceKitPath $script:MoonshineServiceRoot $row.path
         if (-not [IO.File]::Exists($path) -or (Get-FileHash -LiteralPath $path).Hash -ine $row.sha256) { throw ('Fichier installé modifié; démarrage suspendu : '+$row.path) }
     }
+}
+function Save-MoonshineServiceKit([string]$KitRoot,$Manifest) {
+    $cache=Join-Path $script:MoonshineServiceRoot 'Kit'
+    [IO.Directory]::CreateDirectory($cache) | Out-Null
+    foreach ($row in $Manifest.files) {
+        $source=Get-MoonshineServiceKitPath $KitRoot $row.path;$target=Get-MoonshineServiceKitPath $cache $row.path
+        if ([IO.File]::Exists($target) -and (Get-FileHash -LiteralPath $target).Hash -ieq $row.sha256) { continue }
+        if ([IO.File]::Exists($target)) {
+            $copy=Get-MoonshineServiceKitPath (Join-Path $script:MoonshineServiceRoot ('Recovery\kit-'+[guid]::NewGuid().ToString('N'))) $row.path
+            [IO.Directory]::CreateDirectory((Split-Path -Parent $copy)) | Out-Null;Copy-Item -LiteralPath $target -Destination $copy
+        }
+        [IO.Directory]::CreateDirectory((Split-Path -Parent $target)) | Out-Null
+        Copy-Item -LiteralPath $source -Destination $target -Force
+        if ((Get-FileHash -LiteralPath $target).Hash -ine $row.sha256) { throw 'Copie de récupération du kit non vérifiée.' }
+    }
+    $sourceManifest=Join-Path ([IO.Path]::GetFullPath($KitRoot)) 'manifest.json';$targetManifest=Join-Path $cache 'manifest.json'
+    if ($sourceManifest -ine $targetManifest) { Copy-Item -LiteralPath $sourceManifest -Destination $targetManifest -Force }
+    $null=Read-MoonshineServiceManifest $cache
+}
+function Add-MoonshineServiceShortcut {
+    $menu=[Environment]::GetFolderPath('CommonPrograms');$path=Join-Path $menu 'Moonshine Service.lnk'
+    $shell=New-Object -ComObject WScript.Shell
+    $link=$shell.CreateShortcut($path);$target=Join-Path $script:MoonshineServiceRoot 'Kit\Ouvrir-Moonshine-Service.cmd'
+    if ([IO.File]::Exists($path) -and $link.TargetPath -ine $target) { throw 'Un raccourci Moonshine Service différent existe; il est conservé.' }
+    $link.TargetPath=$target;$link.WorkingDirectory=Split-Path -Parent $target;$link.Description='Gérer le service Moonshine';$link.Save()
+}
+function Repair-MoonshineServicePackage([string]$KitRoot,$Receipt) {
+    $manifest=Read-MoonshineServiceManifest $KitRoot
+    $service=Get-MoonshineOwnedService
+    if ($service -and $service.State -ne 'Stopped') { throw 'Arrêter le service avant la réparation.' }
+    if ($manifest.commit -cne $Receipt.commit) { throw 'La réparation demande exactement le kit de cette version.' }
+    foreach ($name in @('repair_start_mode','repair_delayed')) {
+        if ($name -notin @($Receipt.PSObject.Properties.Name)) { Add-Member -InputObject $Receipt -NotePropertyName $name -NotePropertyValue $null }
+    }
+    if ($Receipt.phase -ne 'repairing') {
+        $Receipt.repair_start_mode=if ($service) { $service.StartMode } else { 'Manual' }
+        $key='HKLM:\SYSTEM\CurrentControlSet\Services\MoonshineService'
+        $Receipt.repair_delayed=[bool]((Get-ItemProperty -LiteralPath $key -Name DelayedAutoStart -ErrorAction SilentlyContinue).DelayedAutoStart -eq 1)
+        $Receipt.phase='repairing';Save-MoonshineServiceReceipt $Receipt
+    }
+    # An interrupted repair must not autostart a partially repaired executable.
+    if ($service) { Set-Service -Name $script:MoonshineServiceName -StartupType Manual }
+    $recovery=Join-Path $script:MoonshineServiceRoot ('Recovery\repair-'+[guid]::NewGuid().ToString('N'))
+    foreach ($row in $Receipt.files) {
+        $reference=@($manifest.files | Where-Object { $_.path -ceq $row.path -and $_.sha256 -ceq $row.sha256 })
+        if ($reference.Count -ne 1) { throw 'Le manifeste ne correspond pas au reçu; réparation suspendue.' }
+        $target=Get-MoonshineServiceKitPath $script:MoonshineServiceRoot $row.path
+        if ([IO.File]::Exists($target) -and (Get-FileHash -LiteralPath $target).Hash -ieq $row.sha256) { continue }
+        if ([IO.File]::Exists($target)) {
+            $backup=Get-MoonshineServiceKitPath $recovery $row.path
+            [IO.Directory]::CreateDirectory((Split-Path -Parent $backup)) | Out-Null
+            Copy-Item -LiteralPath $target -Destination $backup
+        }
+        $source=Get-MoonshineServiceKitPath $KitRoot $row.path
+        [IO.Directory]::CreateDirectory((Split-Path -Parent $target)) | Out-Null
+        Copy-Item -LiteralPath $source -Destination $target -Force
+        if ((Get-FileHash -LiteralPath $target).Hash -ine $row.sha256) { throw 'Copie de réparation non vérifiée; service laissé en démarrage manuel.' }
+    }
+    Assert-MoonshineInstalledPackage $Receipt
+    if ($service) {
+        switch ($Receipt.repair_start_mode) {
+            'Auto' { Set-Service -Name $script:MoonshineServiceName -StartupType Automatic;Set-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\MoonshineService' -Name DelayedAutoStart -Value ([int][bool]$Receipt.repair_delayed) }
+            'Disabled' { Set-Service -Name $script:MoonshineServiceName -StartupType Disabled }
+            default { Set-Service -Name $script:MoonshineServiceName -StartupType Manual }
+        }
+    }
+    $Receipt.phase='installed';$Receipt.repair_start_mode=$null;$Receipt.repair_delayed=$null;Save-MoonshineServiceReceipt $Receipt
 }
 function Install-MoonshineService([string]$KitRoot,[string]$OwnerSid,[string]$TrialId) {
     Assert-MoonshineAdmin
@@ -134,8 +202,10 @@ function Install-MoonshineService([string]$KitRoot,[string]$OwnerSid,[string]$Tr
     if (Test-Path -LiteralPath $script:MoonshineServiceRoot) {
         $receipt=Read-MoonshineServiceReceipt
         if ($receipt.owner_sid -cne $OwnerSid -or $receipt.id -cne $TrialId -or $receipt.commit -cne $manifest.commit) { throw 'Une autre installation Moonshine est conservée ici. Aucun écrasement.' }
-        Assert-MoonshineInstalledPackage $receipt
+        Save-MoonshineServiceKit $KitRoot $manifest
+        Repair-MoonshineServicePackage $KitRoot $receipt
         if (-not $existing) { New-Service -Name $script:MoonshineServiceName -DisplayName 'Moonshine — essai service' -BinaryPathName ('"'+(Join-Path $script:MoonshineServiceRoot 'Package\tools\sunshinesvc.exe')+'"') -StartupType Manual | Out-Null }
+        Add-MoonshineServiceShortcut
         return $receipt
     }
     if ($existing) { throw 'Service existant sans reçu; installation suspendue.' }
@@ -170,6 +240,7 @@ function Install-MoonshineService([string]$KitRoot,[string]$OwnerSid,[string]$Tr
     $receipt=@{schema='moonshine-service-receipt/1';name=$script:MoonshineServiceName;owner_sid=$OwnerSid;id=$TrialId;commit=$manifest.commit;phase='prepared';files=$files;firewall_created=$false;legacy=$null}
     if ($legacy) { $receipt.legacy=@{name='SunshineService';path=$legacy.PathName;start_mode=$legacy.StartMode} }
     Save-MoonshineServiceReceipt $receipt
+    Save-MoonshineServiceKit $KitRoot $manifest
     # Publish the verified tree only when every private copy is complete.
     [IO.Directory]::Move($stage,$finalRoot)
     } finally { $script:MoonshineServiceRoot=$finalRoot }
@@ -177,22 +248,30 @@ function Install-MoonshineService([string]$KitRoot,[string]$OwnerSid,[string]$Tr
     New-Service -Name $script:MoonshineServiceName -DisplayName 'Moonshine — essai service' -BinaryPathName ('"'+(Join-Path $package 'tools\sunshinesvc.exe')+'"') -StartupType Manual | Out-Null
     $null=Get-MoonshineOwnedService
     $receipt.phase='installed';Save-MoonshineServiceReceipt $receipt
+    Add-MoonshineServiceShortcut
     return $receipt
 }
 function Start-MoonshineService {
     Assert-MoonshineAdmin;$receipt=Read-MoonshineServiceReceipt;$service=Get-MoonshineOwnedService
     if (-not $service) { throw 'Service Moonshine non installé.' }
+    if ($receipt.phase -eq 'repairing') { throw 'Une réparation interrompue doit être terminée avec Installer / réparer avant le démarrage.' }
     Assert-MoonshineInstalledPackage $receipt
     if ($service.State -eq 'Running') { return }
     if (@(Get-Process -Name sunshine,vibeshine,Moonshine -ErrorAction SilentlyContinue).Count) { throw 'Un autre hôte est actif. L''arrêter avant de démarrer Moonshine.' }
     $listeners=@([Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners() | Where-Object { $_.Port -in @(48984,48989,48990,49010) })
     if ($listeners.Count) { throw 'Un port de l''essai est déjà occupé.' }
     $rule='MoonshineServicePreview-'+$receipt.id
-    if (-not $receipt.firewall_created) {
-        if (Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue) { throw 'Règle réseau existante non reconnue; aucune modification.' }
+    $networkRule=Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue
+    if ($networkRule) {
+        if (@($networkRule).Count -ne 1) { throw 'Identité de règle réseau ambiguë.' }
+        $application=Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $networkRule
+        $addresses=Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $networkRule
+        $remote=@($addresses.RemoteAddress)
+        if ($application.Program -ine (Join-Path $script:MoonshineServiceRoot 'Package\sunshine.exe') -or [string]$networkRule.Profile -ne 'Private' -or [string]$networkRule.Direction -ne 'Inbound' -or [string]$networkRule.Action -ne 'Allow' -or [string]$networkRule.Enabled -ne 'True' -or $remote.Count -ne 1 -or $remote[0] -ne 'LocalSubnet') { throw 'Règle réseau personnalisée détectée; aucune modification automatique.' }
+    } else {
         New-NetFirewallRule -Name $rule -DisplayName 'Moonshine essai service — réseau local privé' -Direction Inbound -Action Allow -Profile Private -Program (Join-Path $script:MoonshineServiceRoot 'Package\sunshine.exe') -RemoteAddress LocalSubnet | Out-Null
-        $receipt.firewall_created=$true;Save-MoonshineServiceReceipt $receipt
     }
+    $receipt.firewall_created=$true;Save-MoonshineServiceReceipt $receipt
     Start-Service -Name $script:MoonshineServiceName
     $controller=Get-Service -Name $script:MoonshineServiceName
     try { $controller.WaitForStatus('Running',[TimeSpan]::FromSeconds(30)) } finally { $controller.Dispose() }

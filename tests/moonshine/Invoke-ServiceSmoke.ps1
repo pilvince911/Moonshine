@@ -20,10 +20,21 @@ try {
     [IO.File]::WriteAllText((Join-Path $fixture 'Sync\service-sentinel.txt'),'unchanged')
     $before=@{};foreach ($file in @(Get-ChildItem -LiteralPath $fixture -Recurse -File)) { $before[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash }
     $receipt=Install-MoonshineService ([IO.Path]::GetFullPath($KitRoot)) $owner $id;$created=$true
+    $receiptFile=Join-Path $script:MoonshineServiceRoot 'service-receipt.json'
+    $receiptBytes=(Get-Item -LiteralPath $receiptFile).Length
+    Check ($receiptBytes -lt 4194304 -and (Read-MoonshineServiceReceipt).id -ceq $id) 'The genuine package receipt could not be read after installation.'
     Check ($receipt.id -ceq $id -and $receipt.phase -eq 'installed') 'Verified service installation receipt missing.'
     $service=Get-MoonshineOwnedService;Check ($service.StartMode -eq 'Manual' -and $service.StartName -eq 'LocalSystem') 'Service account or manual startup changed.'
     foreach ($path in $before.Keys) { Check ((Get-FileHash -LiteralPath $path).Hash -ceq $before[$path]) 'Setup changed its stopped source profile.' }
     $target=Join-Path $script:MoonshineServiceRoot 'Package'
+    $originalConfigHash=(Get-FileHash -LiteralPath (Join-Path $target 'config\moonshine.conf')).Hash
+    $repairTarget=Join-Path $target 'tools\audio-info.exe';$expectedHash=(Get-FileHash -LiteralPath $repairTarget).Hash
+    [IO.File]::WriteAllBytes($repairTarget,[byte[]](1,2,3))
+    $receipt=Install-MoonshineService (Join-Path $script:MoonshineServiceRoot 'Kit') $owner $id
+    Check ((Get-FileHash -LiteralPath $repairTarget).Hash -ceq $expectedHash) 'The verified local kit could not repair its corrupted installed helper.'
+    Check ((Get-FileHash -LiteralPath (Join-Path $target 'config\moonshine.conf')).Hash -ceq $originalConfigHash) 'Repair replaced personal host settings.'
+    Check (@(Get-ChildItem -LiteralPath (Join-Path $script:MoonshineServiceRoot 'Recovery') -Recurse -File | Where-Object { $_.Name -eq 'audio-info.exe' -and $_.Length -eq 3 }).Count -eq 1) 'Repair did not preserve its replaced bytes.'
+    Check ((Get-MoonshineOwnedService).StartMode -eq 'Manual') 'Repair changed the selected service startup mode.'
     $cfg=Join-Path $target 'config\moonshine.conf';$text=[IO.File]::ReadAllText($cfg)
     $text=[regex]::Replace($text,'(?m)^virtual_display_mode\s*=.*$','virtual_display_mode = disabled')
     [IO.File]::WriteAllText($cfg,$text)
@@ -95,7 +106,7 @@ try {
     Check ($restarted -and (Get-MoonshineOwnedService).State -eq 'Running') 'The service did not restore its actual HTTPS host after restart.'
     Stop-MoonshineService
     Remove-MoonshineService
-    $record=@{status='passed';service='MoonshineService';id=$id;checks=$record.checks;system_host=$true;normal_user_worker=$true;catalogue_preserved=$true;source_profile_unchanged_at_install=$true;engine_tests=$job.snapshot.tests;scm_start_stop_restart_remove=$true;real_display_qualified=$false}
+    $record=@{status='passed';service='MoonshineService';id=$id;checks=$record.checks;system_host=$true;normal_user_worker=$true;catalogue_preserved=$true;source_profile_unchanged_at_install=$true;local_verified_repair=$true;engine_tests=$job.snapshot.tests;scm_start_stop_restart_remove=$true;real_display_qualified=$false}
 } catch { $record.status='failed';$record.error=$_.Exception.Message;$record.stack=$_.ScriptStackTrace }
 finally {
     if ($created) { try { Remove-MoonshineService } catch { $record.cleanup_error=$_.Exception.Message } }
@@ -107,6 +118,8 @@ finally {
     [IO.File]::WriteAllText([IO.Path]::GetFullPath($Evidence),(ConvertTo-Json -InputObject $record -Depth 12),(New-Object Text.UTF8Encoding($false)))
     $password=$null;$auth=$null
     if ($created -and -not (Get-Service -Name 'MoonshineService' -ErrorAction SilentlyContinue)) { Remove-Item -LiteralPath $script:MoonshineServiceRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    $link=Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Moonshine Service.lnk'
+    if ($created -and (Test-Path -LiteralPath $link)) { Remove-Item -LiteralPath $link -Force -ErrorAction SilentlyContinue }
     if (Test-Path -LiteralPath $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force -ErrorAction SilentlyContinue }
 }
 if ($record.status -ne 'passed') { throw ('Service qualification failed: '+$record.error+'; '+$record.stack) }

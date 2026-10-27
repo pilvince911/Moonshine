@@ -61,6 +61,8 @@ Les copies sont préparées dans un répertoire protégé temporaire, publiées 
 
 Le wrapper ne transmet aucun handle hérité entre sessions. L’hôte ouvre ses propres diagnostics dans sa session et reçoit l’arrêt par événement nommé réservé à SYSTEM. Le canal du worker conserve son contrôle SID/PID. Le garde-fou d’affichage physique reste actif en cas d’échec de création virtuelle. Aucun écran physique n’est forcé sous une identité virtuelle absente.
 
+Le kit vérifié et son gestionnaire restent installés dans `Kit`, avec un raccourci du menu Démarrer. La réparation conserve les octets remplacés et rétablit uniquement les fichiers décrits par le manifeste de la même version. Son journal suspend le démarrage automatique de Moonshine jusqu’à vérification, puis restaure le type choisi. Le reçu, les marqueurs d’identité et les personnalisations du catalogue ne sont pas remplacés au jugé. L’export de diagnostic inclut au plus 2 Mio par journal de service, avec l’anonymisation habituelle.
+
 `Invoke-ServiceSmoke.ps1` est limité à GitHub Actions et refuse tout service hôte préexistant. Il utilise le vrai SCM, le vrai wrapper, le vrai hôte HTTPS et le moteur embarqué. Le pilote, l’affichage exclusif, HDR et cadence réelle restent des essais matériels distincts. Les changements de service sur le PC du propriétaire se font uniquement quand il exécute le kit et accepte la confirmation Windows.
 
 ### Portable
