@@ -50,6 +50,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Restricted-token startup fixture
+        shell: powershell
+        run: ./tests/moonshine/Invoke-RestrictedProbe.ps1
       - name: Windows PowerShell 5.1 regression suite
         shell: powershell
         run: ./tests/moonshine/Invoke-EngineTests.ps1

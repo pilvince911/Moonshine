@@ -96,6 +96,7 @@ jobs:
           export PATH="$(cygpath -u "$MOONSHINE_NODE_DIR"):$PATH"
           cmake --build build --target CMakeFiles/sunshine.dir/src/main.cpp.obj CMakeFiles/sunshine.dir/src/confighttp_moonshine.cpp.obj CMakeFiles/sunshine.dir/src/moonshine/bridge_windows.cpp.obj --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
       - name: Compile the host and its runtime helpers
+        id: compile_host
         shell: msys2 {0}
         run: |
           set -euo pipefail
@@ -116,6 +117,7 @@ jobs:
           if (Test-Path build/compile_commands.json) { Copy-Item build/compile_commands.json build-evidence/ }
           if (Test-Path build/CMakeFiles/CMakeConfigureLog.yaml) { Copy-Item build/CMakeFiles/CMakeConfigureLog.yaml build-evidence/ }
       - name: Stage and inspect the portable trial
+        id: stage_trial
         shell: msys2 {0}
         run: |
           set -euo pipefail
@@ -133,8 +135,10 @@ jobs:
         with:
           name: Moonshine-Windows-Essai-0.8.1
           path: trial-kit/
+          include-hidden-files: true
           retention-days: 30
       - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.compile_host.outcome == 'success' }}
         with:
           name: moonshine-windows-native-build
           path: |
@@ -143,3 +147,10 @@ jobs:
             build/assets
             build/tools
           retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() && steps.stage_trial.outcome == 'success' }}
+        with:
+          name: moonshine-unqualified-trial-debug
+          path: trial-kit/
+          include-hidden-files: true
+          retention-days: 3
