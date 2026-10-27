@@ -30,4 +30,5 @@ try {
     Write-Output ('Complete Moonshine host: non-admin HTTPS/auth/scoped token/real PowerShell worker/confirmed reset/restore/personal-entry preservation/isolation/clean shutdown passed; '+$data.engine_tests+' embedded engine tests.')
 } finally {
     if (-not $child -or $child.HasExited) { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue } }
+    if ($child) { $child.Dispose() }
 }

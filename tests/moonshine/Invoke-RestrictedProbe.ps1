@@ -21,4 +21,4 @@ try {
     $data=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($result))
     if ($child.ExitCode -ne 0 -or $data.system -or $data.admin) { throw 'The child did not use a normal Windows identity.' }
     Write-Output 'Restricted Windows token: PowerShell startup and non-administrator execution passed.'
-} finally { if (Test-Path -LiteralPath $folder) { Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue } }
+} finally { if ($child) { $child.Dispose() };if (Test-Path -LiteralPath $folder) { Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue } }
