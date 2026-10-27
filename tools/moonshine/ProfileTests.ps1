@@ -1,6 +1,8 @@
 ﻿#Requires -Version 5.1
 function Invoke-ProfileSelfTests {
     $savedData=$script:Data;$savedProfiles=$script:StreamProfiles
+    $savedCreation=Get-Variable -Name CreationStreamMode -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+    $script:CreationStreamMode='unmanaged'
     $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-profile-selftest-'+[guid]::NewGuid().ToString('N'))
     try {
         $script:Data=$temporary
@@ -31,11 +33,40 @@ function Invoke-ProfileSelfTests {
         Assert ($off.payload['frame-generation-mode'] -eq 'off') 'Retour explicite au profil sans FG pris en compte'
         Save-GameStreamProfile $current 'unmanaged'
         Assert ((Get-GameStreamFields $game).Count -eq 0 -and (Load-StreamProfiles).games.Count -eq 0) 'Retrait du profil cesse de gerer les reglages sans les effacer dans VibeShine'
+        $script:SelfTestCheckpoint='Préréglage de création distinct des réglages existants'
+        Assert ((Read-CreationStreamMode) -eq 'game-provided') 'Moonshine propose la FG fournie par le jeu pour les nouvelles fiches'
+        $script:CreationStreamMode=Read-CreationStreamMode
+        $fresh=@(Build-Plan @($game) @() (Empty-State) 'C:\Runtime' $temporary)[0]
+        Assert ($fresh.action -eq 'add' -and $fresh.payload['frame-generation-mode'] -eq 'game-provided' -and
+            $fresh.payload['frame-generation-provider'] -eq 'game-provided' -and -not $fresh.payload['lossless-scaling-enabled'] -and -not $fresh.payload['lossless-scaling-framegen']) 'Préréglage nouveau jeu configure FG et désactive Lossless Scaling'
+        Assert (-not $fresh.payload.Contains('config-overrides') -and -not $fresh.payload.Contains('gen1-framegen-fix') -and
+            -not $fresh.payload.Contains('gen2-framegen-fix') -and -not $fresh.payload.Contains('lossless-scaling-target-fps')) 'Aucune fréquence cible ni correction de capture imposée par le préréglage'
+        $freshState=Empty-State;$freshState.managed[$game.uuid]=@{key=$game.key;fields=$fresh.baseline}
+        $repeat=@(Build-Plan @($game) @($fresh.payload) $freshState 'C:\Runtime' $temporary)[0]
+        Assert ($repeat.action -eq 'unchanged') 'Nouvelle fiche préréglée inchangée à la synchronisation suivante'
+        $personalized=To-Map $fresh.payload;$personalized['frame-generation-mode']='off'
+        $kept=@(Build-Plan @($game) @($personalized) $freshState 'C:\Runtime' $temporary)[0]
+        Assert ($kept.action -eq 'unchanged' -and $kept.payload['frame-generation-mode'] -eq 'off') 'Préréglage de création ne remplace pas un choix personnel ultérieur'
+        $legacy=@(Build-Plan @($game) @($app) $state 'C:\Runtime' $temporary)[0]
+        Assert ($legacy.payload['frame-generation-mode'] -eq 'off') 'Fiche déjà existante ne reçoit pas le préréglage nouveau jeu'
+        Save-GameStreamProfile $current 'off'
+        $explicit=@(Build-Plan @($game) @() (Empty-State) 'C:\Runtime' $temporary)[0]
+        Assert ($explicit.payload['frame-generation-mode'] -eq 'off') 'Profil explicite du jeu prioritaire au préréglage de création lors du réimport'
+        Save-GameStreamProfile $current 'unmanaged'
+        Save-CreationStreamMode 'unmanaged';$script:CreationStreamMode=Read-CreationStreamMode
+        $neutral=@(Build-Plan @($game) @() (Empty-State) 'C:\Runtime' $temporary)[0]
+        Assert (-not $neutral.payload.Contains('frame-generation-mode')) 'Préférence neutre retire uniquement le préréglage des créations futures'
+        Write-Json (Join-Path $temporary 'moonshine-creation-profile.json') @{schema='unknown';mode='off'}
+        $refused=$false;try { $null=Read-CreationStreamMode } catch { $refused=$true }
+        Assert $refused 'Préréglage corrompu bloque les créations au lieu de forcer une valeur'
+        Save-CreationStreamMode 'game-provided'
+        Assert ((Read-CreationStreamMode) -eq 'game-provided' -and @(Get-ChildItem -LiteralPath (Join-Path $temporary 'Recovery') -Recurse -File).Count -gt 0) 'Choix explicite répare le préréglage et conserve sa version précédente'
+        $script:CreationStreamMode='unmanaged'
         Write-Json (Join-Path $temporary 'stream-profiles.json') @{schema='opi5-stream-profiles/99';games=@{}}
         $bad=$false;try { $null=Load-StreamProfiles } catch { $bad=$true }
         Assert $bad 'Profil de version inconnue conserve et refuse sans reinitialisation'
     } finally {
-        $script:Data=$savedData;$script:StreamProfiles=$savedProfiles
+        $script:Data=$savedData;$script:StreamProfiles=$savedProfiles;$script:CreationStreamMode=$savedCreation
         if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force }
     }
 }

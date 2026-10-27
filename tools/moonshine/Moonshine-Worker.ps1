@@ -46,7 +46,7 @@ function Publish-MoonshineSnapshot {
         $rows+=@{uuid='';key=$entry.key;title=$(if ($entry.title) {$entry.title} else {$entry.key});platform=([string]$entry.key).Split(':')[0];action='pending';reason=$entry.reason;changed_fields=@();managed=$false;profile='unmanaged'}
     }
     $snapshot=@{schema='moonshine-snapshot/1';version=$script:Version;created=(Get-Date).ToString('o');games=@($rows);tests=$script:SelfTestCount;
-        reset=(Get-ResetSummary);rollback=(Get-UndoSummary);scope=[string]$script:MoonshineBoot.scope;cached=($script:InventoryInfo.origin -ne 'current_run');inventory_created=[string](Field $script:LastInventory 'created' '')}
+        reset=(Get-ResetSummary);rollback=(Get-UndoSummary);creation_profile=[string]$script:CreationStreamMode;scope=[string]$script:MoonshineBoot.scope;cached=($script:InventoryInfo.origin -ne 'current_run');inventory_created=[string](Field $script:LastInventory 'created' '')}
     Write-Json (Join-Path $script:Data 'moonshine-snapshot.json') $snapshot
     Emit-Moonshine 'snapshot' $snapshot
 }
@@ -110,7 +110,7 @@ try {
     $line=[Console]::In.ReadLine()
     if ($null -eq $line -or $line.Length -gt 65536) { throw 'Démarrage interne absent ou trop volumineux.' }
     $script:MoonshineBoot=ConvertFrom-Json -InputObject $line -ErrorAction Stop;$line=$null
-    if ($script:MoonshineBoot.protocol -ne 'moonshine-worker/1' -or $script:MoonshineBoot.action -notin @('preview','sync','auto','reset','restore','undo','profile','export','enable_auto','disable_auto') -or
+    if ($script:MoonshineBoot.protocol -ne 'moonshine-worker/1' -or $script:MoonshineBoot.action -notin @('preview','sync','auto','reset','restore','undo','profile','creation_profile','export','enable_auto','disable_auto') -or
         $script:MoonshineBoot.scope -notin @('all','ea','pilot','ea-pilot') -or
         $script:MoonshineBoot.cancel_event -notmatch '^Global\\Moonshine\.Sync\.[a-f0-9]{32}$') { throw 'Commande interne invalide.' }
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
@@ -143,6 +143,7 @@ try {
     $script:SelfTestStatus='running';$script:SelfTestCount=Invoke-SelfTests;$script:SelfTestStatus='passed'
     $script:Repairs.Clear();$script:AtomicWriteEvents.Clear();$script:AtomicRetained.Clear()
     $script:StreamProfiles=Load-StreamProfiles
+    $script:CreationStreamMode=$(if ($script:MoonshineBoot.action -eq 'creation_profile') {'unmanaged'} else {Read-CreationStreamMode})
     Migrate-LegacyAutomation
     Takeover-MoonshineAutomation
     Operation-Checkpoint
@@ -166,6 +167,11 @@ try {
             if ($selected.Count -ne 1) { throw 'Entrée à actualiser avant de changer son profil.' }
             Save-GameStreamProfile $selected[0] $script:MoonshineBoot.mode
             Write-Host 'Profil enregistré. Synchroniser pour appliquer le plan proposé.'
+        }
+        'creation_profile' {
+            Save-CreationStreamMode ([string]$script:MoonshineBoot.mode)
+            $script:CreationStreamMode=Read-CreationStreamMode
+            Write-Host 'Préréglage de création enregistré. Les fiches existantes conservent leurs réglages.'
         }
         'export' { $null=Export-Return }
         'enable_auto' {

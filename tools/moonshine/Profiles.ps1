@@ -36,12 +36,42 @@ function Load-StreamProfiles {
     Resume-StreamProfileCommit
     return Read-StreamProfileRoot
 }
+function Get-StreamModeFields([string]$Mode) {
+    if ($Mode -eq 'unmanaged') { return [ordered]@{} }
+    if ($Mode -notin @('game-provided','off')) { throw 'Préréglage de création invalide.' }
+    return [ordered]@{'frame-generation-mode'=$Mode;
+        'frame-generation-provider'=$(if ($Mode -eq 'game-provided') { 'game-provided' } else { 'lossless-scaling' });
+        'lossless-scaling-enabled'=$false;'lossless-scaling-framegen'=$false}
+}
+function Read-CreationStreamMode {
+    $path=Join-Path $script:Data 'moonshine-creation-profile.json'
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return 'game-provided' }
+    if ((Get-Item -LiteralPath $path).Length -gt 4096) { throw 'Préréglage de création trop volumineux; fichier conservé.' }
+    $root=Read-Json $path
+    if ((Field $root 'schema') -ne 'moonshine-creation-profile/1' -or (Field $root 'mode') -notin @('game-provided','off','unmanaged')) {
+        throw 'Préréglage de création illisible. Fichier conservé; choisir et enregistrer un préréglage dans Diffusion pour le réparer.'
+    }
+    return [string]$root.mode
+}
+function Save-CreationStreamMode([string]$Mode) {
+    if ($Mode -notin @('game-provided','off','unmanaged')) { throw 'Préréglage de création invalide.' }
+    $path=Join-Path $script:Data 'moonshine-creation-profile.json'
+    if (Test-Path -LiteralPath $path) { Preserve-RecoveryFile $path 'creation-profile' }
+    Write-Json $path @{schema='moonshine-creation-profile/1';mode=$Mode}
+}
+function Get-NewGameStreamFields($Game) {
+    # Only the native worker activates this preference after its self-tests.
+    # Existing entries always use their explicit per-game profile instead.
+    $explicit=Get-GameStreamFields $Game
+    if ($explicit.Count) { return $explicit }
+    $mode=Get-Variable -Name CreationStreamMode -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+    if (-not $mode) { return [ordered]@{} }
+    return Get-StreamModeFields ([string]$mode)
+}
 function Get-GameStreamFields($Game) {
     $profile=Field $script:StreamProfiles.games $Game.uuid
     if (-not $profile -or $profile.key -ne $Game.key) { return [ordered]@{} }
-    return [ordered]@{'frame-generation-mode'=$profile.mode;
-        'frame-generation-provider'=$(if ($profile.mode -eq 'game-provided') { 'game-provided' } else { 'lossless-scaling' });
-        'lossless-scaling-enabled'=$false;'lossless-scaling-framegen'=$false}
+    return Get-StreamModeFields ([string]$profile.mode)
 }
 function Save-GameStreamProfile($App,[string]$Mode) {
     $null=Test-UndoAllowsSync $false
@@ -94,7 +124,7 @@ function Configure-StreamProfile {
         default { throw 'Profil invalide.' }
     }
     Write-Host 'Ce profil ne change pas les options graphiques du jeu. DLSS et FG doivent etre actives dans le jeu.'
-    Write-Host 'Pour FG : verifier ecran virtuel, capture WGC et RTSS dans le controle de sante VibeShine.'
+    Write-Host 'Pour FG : verifier capture et affichage dans le controle de sante. RTSS reste optionnel pour le profil fourni par le jeu.'
     if ((Read-Host 'Taper CONFIGURER pour enregistrer ce choix local, ou Entree pour revenir') -cne 'CONFIGURER') { return }
     Save-GameStreamProfile $apps[$index-1] $mode
     Write-Host 'Profil enregistre. Choix 1 pour voir le plan, puis 4 et APPLIQUER pour le synchroniser.' -ForegroundColor Green

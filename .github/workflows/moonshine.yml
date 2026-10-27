@@ -50,9 +50,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Restricted-token startup fixture
-        shell: powershell
-        run: ./tests/moonshine/Invoke-RestrictedProbe.ps1
       - name: Windows PowerShell 5.1 regression suite
         shell: powershell
         run: ./tests/moonshine/Invoke-EngineTests.ps1
@@ -64,6 +61,14 @@ jobs:
       - name: Trial window and reversible file workflows
         shell: powershell
         run: ./tests/moonshine/Invoke-TrialKitTests.ps1
+  windows-user-context:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Standard-account process startup
+        shell: powershell
+        run: ./tests/moonshine/Invoke-RestrictedProbe.ps1
   windows-bridge:
     runs-on: windows-latest
     timeout-minutes: 10

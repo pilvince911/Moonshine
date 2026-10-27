@@ -107,7 +107,15 @@ function Build-Plan($Games,$Apps,$State,[string]$Runtime,[string]$Data) {
             $other=@($Apps | Where-Object { Existing-Game $_ $game })
             if ($other.Count -gt 1) { $row.action='conflict';$row.reason='Plusieurs entrees correspondantes existent deja; aucun ajout.' }
             elseif ($other.Count -eq 1) { $row.action='existing';$row['matched_uuid']=[string](Field $other[0] 'uuid');$row.reason='Entree existante par identifiant ou titre; la conserver.' }
-            else { $row.action='add';$row.payload=$fields;$row.baseline=$fields }
+            else {
+                $creation=Get-NewGameStreamFields $game
+                foreach ($name in @(Keys $creation)) { $fields[$name]=$creation[$name] }
+                $row.action='add';$row.fields=$fields;$row.payload=$fields;$row.baseline=$fields
+                if ($creation.Count) {
+                    $row.changed_fields=@(Keys $creation)
+                    $row.reason=$(if ($creation['frame-generation-mode'] -eq 'game-provided') {'Création : Frame Generation fournie par le jeu; Lossless Scaling désactivé.'} else {'Création : aucune Frame Generation coordonnée par Moonshine.'})
+                }
+            }
         } else {
             $app=$found[0]
             $known=Field $State.managed $game.uuid

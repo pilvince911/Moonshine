@@ -8,7 +8,7 @@
 #include <string_view>
 
 namespace moonshine::policy {
-  inline constexpr std::array<std::string_view,10> actions {"preview", "sync", "reset", "restore", "undo", "profile", "export", "enable_auto", "disable_auto", "auto"};
+  inline constexpr std::array<std::string_view,11> actions {"preview", "sync", "reset", "restore", "undo", "profile", "creation_profile", "export", "enable_auto", "disable_auto", "auto"};
   inline constexpr std::array<std::string_view,4> scopes {"all", "ea", "pilot", "ea-pilot"};
   inline bool action(std::string_view value, bool internal = false) {
     return std::find(actions.begin(), actions.end(), value) != actions.end() && (internal || value != "auto");

@@ -8,6 +8,7 @@ int main() {
   for (auto command : actions) assert(action(command, true));
   assert(!action("auto") && action("auto", true));
   assert(!action("powershell.exe") && !action("../sync") && !scope("arbitrary"));
+  assert(action("creation_profile"));
   assert(scope("all") && scope("ea") && scope("pilot") && scope("ea-pilot"));
   assert(game_id("706c6f73-7862-8830-81ec-2118ff82baaa"));
   assert(!game_id("00000000-0000-4000-8000-000000000001"));

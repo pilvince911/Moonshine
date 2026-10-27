@@ -535,7 +535,7 @@ const rtxHdrCalibrationFields = computed<RtxHdrCalibrationField[]>(() => [
   },
 ]);
 const isPlayniteLinked = computed(() => Boolean(form.playniteId.trim()));
-const isSteamLinked = computed(() => Boolean(form.steamId.trim()));
+const isSteamLinked = computed(() => Boolean(form.steamId.trim() && form.steamManaged.trim()));
 const isLutrisLinked = computed(() => Boolean(form.lutrisId.trim()));
 const isProviderLinked = computed(
   () => isPlayniteLinked.value || isSteamLinked.value || isLutrisLinked.value,

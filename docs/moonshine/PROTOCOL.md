@@ -19,3 +19,7 @@ Le jeton autorise uniquement GET/POST apps, DELETE des UUID privés OPi5 et GET 
 stdout émet des lignes JSON `type`/`data` : progress, log, snapshot, prompt, complete, error, cancelled. Les lignes et le journal sont bornés. Un prompt reçoit un nonce créé par l'hôte. Une réponse périmée, dupliquée, d'un autre travail ou avec le mauvais texte de reset est rejetée. Les confirmations ne sont pas enregistrées pour une utilisation future.
 
 Annuler, fermer l'hôte ou changer d'utilisateur demande l'arrêt au prochain point sûr. Les mutations déjà envoyées sont vérifiées avant d'observer l'annulation. Les journaux du moteur prennent en charge les réponses perdues et interruptions. Une fin sans résultat confirmé reste un échec visible.
+
+## Préréglage de création
+
+L’action native `creation_profile` accepte seulement `mode` parmi `game-provided`, `off`, `unmanaged`. Elle enregistre une préférence locale, sans écrire d’applications. Le worker charge cette préférence après ses autotests; elle s’applique uniquement aux vrais ajouts et reste soumise à la confirmation du plan. Un profil explicite par jeu est prioritaire. Les instantanés et l’état natif exposent `creation_profile`. Le fichier local utilise le schéma `moonshine-creation-profile/1`; un fichier invalide bloque les créations et un choix explicite conserve l’original avant réparation.

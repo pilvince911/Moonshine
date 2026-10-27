@@ -223,10 +223,11 @@ namespace moonshine {
       auto user=host.user();if (user.sid.empty() || !user.token) throw std::runtime_error("Ouvrez votre session Windows pour analyser la bibliothèque.");
       const auto value=std::make_shared<record>();value->id=random_id();value->owner=user.sid;value->action=action;
       value->parameters={{"action",action},{"scope",scope}};
-      if (action=="profile") {
+      if (action=="profile" || action=="creation_profile") {
         const std::string game=request.value("game_id",""), mode=request.value("mode","");
-        if (!policy::game_id(game) || !policy::mode(mode)) throw std::runtime_error("Profil ou jeu invalide.");
-        value->parameters["game_id"]=game;value->parameters["mode"]=mode;
+        if ((action=="profile" && !policy::game_id(game)) || !policy::mode(mode)) throw std::runtime_error("Profil ou jeu invalide.");
+        if (action=="profile") value->parameters["game_id"]=game;
+        value->parameters["mode"]=mode;
       }
       { std::lock_guard guard(manager_mutex);
         if (busy_locked()) throw std::runtime_error("Une opération est déjà en cours. Son résultat reste accessible.");
@@ -289,6 +290,12 @@ namespace moonshine {
     if (!configured) return out;
     const auto user=host.user();if (user.sid.empty()) return out;
     out["available"]=true;out["isolated"]=!user.trial_id.empty();out["automatic"]=auto_enabled(user);out["session_idle"]=host.idle();
+    out["creation_profile"]="game-provided";
+    const auto creation=read_user_json(user,"moonshine-creation-profile.json",4096);
+    if (creation.is_object() && !creation.empty()) {
+      const bool valid=creation.contains("schema") && creation["schema"].is_string() && creation["schema"]=="moonshine-creation-profile/1" && creation.contains("mode") && creation["mode"].is_string() && policy::mode(creation["mode"].get<std::string>());
+      out["creation_profile"]=valid ? creation["mode"] : json("invalid");
+    }
     { std::lock_guard guard(manager_mutex);for (auto it=records.rbegin();it!=records.rend();++it) { if ((*it)->owner==user.sid) {out["job"]=public_record(*it);break;} } }
     auto snapshot=read_user_json(user,"moonshine-snapshot.json",8388608);
     if (snapshot.is_object() && snapshot.value("schema","")=="moonshine-snapshot/1" && snapshot.contains("games") && snapshot["games"].is_array()) {snapshot["cached"]=true;out["snapshot"]=std::move(snapshot);}

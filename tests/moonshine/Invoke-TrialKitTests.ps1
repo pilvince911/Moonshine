@@ -9,7 +9,7 @@ foreach ($file in $scripts) {
     $tokens=$null;$errors=$null;$null=[Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errors)
     Check ($errors.Count -eq 0) ('PowerShell parse failure: '+$file.Name+': '+($errors | Out-String))
 }
-Add-Type -Path (Join-Path $PSScriptRoot 'restricted_process.cs')
+Add-Type -Path (Join-Path $PSScriptRoot 'test_user_process.cs')
 & (Join-Path $trial 'Demarrer-Moonshine.ps1') -ValidateWindowOnly
 . (Join-Path $trial 'Sauvegarde-Moonshine.ps1')
 . (Join-Path $trial 'Trial-Setup.ps1')

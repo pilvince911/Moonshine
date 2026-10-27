@@ -7,6 +7,7 @@ try {
     Save-SmokeResult
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent();$principal=New-Object Security.Principal.WindowsPrincipal($identity)
     Check (-not $identity.IsSystem -and -not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 'Smoke test did not reach a non-administrator token.'
+    $env:LOCALAPPDATA=[Environment]::GetFolderPath('LocalApplicationData')
     $env:MOONSHINE_TRIAL_ID=$id
     foreach ($folder in @($Package,(Join-Path $Package 'tools\moonshine'))) {
         [IO.File]::WriteAllText((Join-Path $folder 'moonshine-trial-id.txt'),$id)
@@ -82,6 +83,7 @@ try {
         $reply=Request 'GET' '/api/apps' $authorization;Check ($reply.Status -eq 200) 'Native app catalogue readback failed.'
         return @((ConvertFrom-Json -InputObject $reply.Body).apps)
     }
+    Check ($status.creation_profile -eq 'game-provided') 'Native creation preset did not default to game-provided FG.'
     $personalId=[guid]::NewGuid().ToString();$key='steam:777777';$managedId=Stable-Id $key
     $personal=@{uuid=$personalId;name='CI personal entry';cmd='';detached=@();'prep-cmd'=@();'ci-preference'='keep personal'}
     $managedFixture=@{uuid=$managedId;name='CI historical managed entry';cmd='';detached=@();'prep-cmd'=@();'ci-preference'='keep historical';'plos-xbox-owner'='plos-xbox-sync/1';'plos-xbox-key'=$key}

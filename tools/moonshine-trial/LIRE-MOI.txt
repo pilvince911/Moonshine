@@ -31,3 +31,5 @@ PÉRIMÈTRE
 Le streaming natif Moonlight est compilé. WebRTC et PyroWave sont désactivés dans ce build; aucun pilote n'est installé ou fourni par ce kit. Les pilotes existants restent nécessaires aux fonctions qui en dépendent. TrueHDR et les fonctions matérielles ne sont pas qualifiés ici.
 Une compilation et des tests automatisés ne remplacent pas les essais de jeux, du GPU et du streaming sur votre PC. Ce paquet ne constitue pas la version 1.0.
 Sources, licences et identité exacte du commit sont incluses.
+
+Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.

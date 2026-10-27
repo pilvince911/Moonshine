@@ -2,8 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function library(page: Page, idle = true, isolated = false, emptyScan = false) {
   const id = 'a'.repeat(32), nonce = 'b'.repeat(32);
-  const calls: { action?: string; nonce?: string; accept?: boolean; text?: string; csrf?: string }[] = [];
+  const calls: { action?: string; nonce?: string; accept?: boolean; text?: string; mode?: string; csrf?: string }[] = [];
   let job: Record<string, unknown> | null = null;
+  let creationProfile = 'game-provided';
   await page.route('https://api.github.com/repos/**/releases**', async (route) => {
     expect(route.request().url()).toMatch(/^https:\/\/api\.github\.com\/repos\/pilvince911\/Moonshine\/releases/);
     await route.fulfill({ json: [] });
@@ -21,9 +22,15 @@ async function library(page: Page, idle = true, isolated = false, emptyScan = fa
       { uuid: 'desktop', name: 'Desktop', cmd: '' },
       { uuid: '706c6f73-7862-8830-81ec-2118ff82baaa', name: 'Jeu Steam existant', 'plos-xbox-owner': 'plos-xbox-sync/1', 'plos-xbox-key': 'steam:990080' },
     ] };
-    else if (path === '/api/moonshine/status') body = { available: true, automatic: false, session_idle: idle, brand: 'Moonshine', isolated, engine_version: '0.8.1', job, snapshot: emptyScan ? { schema: 'moonshine-snapshot/1', version: '0.8.1', games: [], tests: 444 } : null };
+    else if (path === '/api/moonshine/status') body = { available: true, automatic: false, session_idle: idle, brand: 'Moonshine', isolated, engine_version: '0.8.1', creation_profile: creationProfile, job, snapshot: emptyScan ? { schema: 'moonshine-snapshot/1', version: '0.8.1', games: [], tests: 444 } : null };
     else if (path === '/api/moonshine/jobs' && request.method() === 'POST') {
       const input = request.postDataJSON();calls.push({ action: input.action, csrf: request.headers()['x-csrf-token'] });
+      if (input.action === 'creation_profile') {
+        creationProfile = input.mode;calls[calls.length - 1]!.mode = input.mode;
+        job = { job_id: id, action: input.action, state: 'completed', message: 'Préréglage enregistré', percent: 100, logs: [], prompt: null,
+          snapshot: { schema: 'moonshine-snapshot/1', version: '0.8.1', creation_profile: creationProfile, games: [], tests: 454 } };
+        await route.fulfill({ json: job });return;
+      }
       const reset = input.action === 'reset';
       job = { job_id: id, action: input.action, state: 'awaiting_confirmation', percent: -1, message: 'Plan synthétique à confirmer', logs: [],
         prompt: { nonce, message: 'Vérifier le plan synthétique', expected: reset ? 'REINITIALISER' : 'APPLIQUER', typed: reset, rows: [{ title: 'Jeu Steam existant', action: reset ? 'remove' : 'update', reason: 'Modification synthétique' }] } };
@@ -117,4 +124,15 @@ test('a missing installation in a fresh scan keeps the historical entry visible'
   await expect(page.getByText('Entrée conservée dans l’hôte; installation non retrouvée dans cette analyse. Aucune suppression automatique.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Tous les réglages de l’entrée ↗' })).toHaveAttribute('href', /706c6f73-7862-8830-81ec-2118ff82baaa/);
   expect(calls).toEqual([]);
+});
+
+test('creation preset is an explicit local preference and leaves existing games untouched', async ({ page }) => {
+  const calls = await library(page, true, true);
+  await expect(page.getByText('Nouvelles fiches : Frame Generation fournie par le jeu.', { exact: false })).toBeVisible();
+  await page.getByText('Diffusion · DLSS et Frame Generation', { exact: true }).click();
+  await page.getByLabel('Préréglage des nouvelles fiches').selectOption('off');
+  await page.getByRole('button', { name: 'Enregistrer pour les nouvelles fiches' }).click();
+  await expect(page.getByText('Nouvelles fiches : Aucune coordination FG.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Jeu Steam existant' })).toBeVisible();
+  expect(calls).toEqual([{ action: 'creation_profile', mode: 'off', csrf: 'synthetic-ui-csrf' }]);
 });

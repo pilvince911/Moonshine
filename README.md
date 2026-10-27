@@ -46,3 +46,5 @@ Le build standard du binaire reste celui de VibeShine, avec ses dépendances. Le
 Le projet conserve la [GPL-3.0](LICENSE), les [avis amont](NOTICE) et les licences des dépendances. Aucun identifiant de PL, inventaire personnel, journal brut, jeton, clé de signature de production ou compte de service ne fait partie du dépôt. `tools/moonshine/Transport-Test.pfx` est exclusivement le certificat synthétique public des tests de transport; il ne doit jamais servir en production.
 
 GitHub conserve les sources; les archives de développement et rapports de PL restent sur son Drive. Le dépôt ne publie pas de release ni d'installateur automatiquement.
+
+Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.
