@@ -47,8 +47,6 @@
     <Style TargetType="ToolTip"><Setter Property="Background" Value="#243044"/><Setter Property="Foreground" Value="#ECF2FA"/><Setter Property="BorderBrush" Value="#526779"/><Setter Property="MaxWidth" Value="500"/></Style>
     <Style TargetType="DataGrid"><Setter Property="Background" Value="#121A26"/><Setter Property="Foreground" Value="#E8EEF6"/><Setter Property="RowBackground" Value="#151D2A"/><Setter Property="AlternatingRowBackground" Value="#192231"/><Setter Property="BorderBrush" Value="#29374D"/><Setter Property="HorizontalGridLinesBrush" Value="#29374D"/><Setter Property="VerticalGridLinesBrush" Value="Transparent"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="RowHeaderWidth" Value="0"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="CanUserDeleteRows" Value="False"/><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="CanUserReorderColumns" Value="False"/><Setter Property="CanUserResizeRows" Value="False"/><Setter Property="EnableRowVirtualization" Value="True"/>
     </Style>
-    <Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#202B3E"/><Setter Property="Foreground" Value="#B8C5D8"/><Setter Property="Padding" Value="12,11"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="BorderBrush" Value="#344158"/></Style>
-    <Style TargetType="DataGridCell"><Setter Property="Padding" Value="10,10"/><Setter Property="BorderThickness" Value="0"/></Style>
   </Window.Resources>
   <Grid>
     <Grid.ColumnDefinitions><ColumnDefinition Width="214"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
