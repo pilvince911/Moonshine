@@ -94,7 +94,7 @@ test('trial context and Moonshine branding are visible', async ({ page }) => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     const ratios = await page.locator('.moonshine-library h1, .ms-game h2').evaluateAll((headings) => {
       const luminance = (color: string) => {
-        const channels = (color.match(/[\\d.]+/g) ?? []).slice(0, 3).map((part) => {
+        const channels = (color.match(/[0-9.]+/g) ?? []).slice(0, 3).map((part) => {
           const value = Number(part) / 255;return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
         });
         return channels[0]! * .2126 + channels[1]! * .7152 + channels[2]! * .0722;
