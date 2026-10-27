@@ -53,6 +53,18 @@ Les commandes de synchronisation vérifient la session, l'identité du jeu et le
 
 ## Kit d’essai
 
+### Service Windows
+
+Le candidat 0.9.0 conserve le moteur 0.8.1. `tools/moonshine-service` prépare une copie de configuration et garde le même identifiant de synchronisation que l’essai portable sélectionné. Il ne migre pas le profil de production VibeShine. Le service est lié au SID du compte choisi; les travaux d’un autre utilisateur restent indisponibles. `service_constants.h` sépare MoonshineService et SunshineService; l’API de démarrage Windows ne doit jamais contrôler l’ancien hôte.
+
+Les copies sont préparées dans un répertoire protégé temporaire, publiées après vérification, puis enregistrées auprès du SCM. Le reçu, les empreintes et le chemin absolu cité du wrapper bornent démarrage/arrêt/retrait. Les fichiers de configuration et Recovery sont privés; le code ne peut pas être remplacé par un utilisateur ordinaire. Une interruption de copie laisse le staging séparé. L’identité inconnue d’un service existant bloque l’opération.
+
+Le wrapper ne transmet aucun handle hérité entre sessions. L’hôte ouvre ses propres diagnostics dans sa session et reçoit l’arrêt par événement nommé réservé à SYSTEM. Le canal du worker conserve son contrôle SID/PID. Le garde-fou d’affichage physique reste actif en cas d’échec de création virtuelle. Aucun écran physique n’est forcé sous une identité virtuelle absente.
+
+`Invoke-ServiceSmoke.ps1` est limité à GitHub Actions et refuse tout service hôte préexistant. Il utilise le vrai SCM, le vrai wrapper, le vrai hôte HTTPS et le moteur embarqué. Le pilote, l’affichage exclusif, HDR et cadence réelle restent des essais matériels distincts. Les changements de service sur le PC du propriétaire se font uniquement quand il exécute le kit et accepte la confirmation Windows.
+
+### Portable
+
 `tools/moonshine-trial` contient le lanceur WPF et ses opérations réversibles. La fenêtre refuse l’élévation et une seconde fenêtre; l’hôte exige les marqueurs d’identité du kit. La copie privée est réparée uniquement à partir d’un paquet vérifié; les fichiers modifiés sont conservés dans Recovery. Le profil de l’hôte est adjacent au binaire privé et le moteur utilise le même identifiant d’essai pour ses données. L’index des essais utilise un verrou de fichier et des écritures atomiques.
 
 `tests/moonshine/Invoke-TrialKitTests.ps1` construit la fenêtre WPF et vérifie sauvegarde, refus d’écrasement, corruption et réparation. `Invoke-HostSmoke.ps1` crée puis retire un compte standard temporaire sur la machine jetable de CI. Son enfant démarre le vrai binaire, vérifie HTTPS, autorisations, aperçu du moteur, révocation du jeton, absence d’écriture dans le profil de production et arrêt via un événement local protégé. Il ne simule ni une session de streaming ni un GPU.

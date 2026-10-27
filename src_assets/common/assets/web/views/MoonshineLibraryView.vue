@@ -99,7 +99,7 @@ onBeforeUnmount(() => { disposed = true;generation++;if (timer) window.clearInte
 <template>
   <section class="moonshine-library" aria-labelledby="moonshine-title">
     <header class="ms-heading"><div><p class="ms-eyebrow">BIBLIOTHÈQUE WINDOWS · MOONSHINE</p><h1 id="moonshine-title">Vos jeux, directement.</h1><p>Xbox PC, Steam et EA réunis par notre moteur de synchronisation.</p></div><RouterLink to="/library/new" class="ms-link">Application manuelle ↗</RouterLink></header>
-    <p v-if="status?.isolated" class="ms-notice" role="status">Mode essai · catalogue et données de synchronisation séparés de votre installation actuelle.</p>
+    <p v-if="status?.isolated" class="ms-notice" role="status">{{ status.execution_mode === 'service' ? 'Essai en service Windows · synchronisation dans votre session utilisateur; catalogue repris de votre essai portable.' : 'Mode essai · catalogue et données de synchronisation séparés de votre installation actuelle.' }}</p>
     <p v-if="error" role="alert" class="ms-notice ms-error">{{ error }}</p>
     <p v-if="recovery" role="status" class="ms-notice">{{ recovery }}</p>
     <p v-if="status && !status.available" class="ms-notice">Ouvrez la session Windows qui contient vos jeux. Le moteur lit la bibliothèque de ce compte.</p>

@@ -82,6 +82,25 @@ namespace moonshine {
     std::mutex wake_mutex;
     bool configured=false;
 
+    std::filesystem::path executable_root() {
+      std::wstring name(32768,L'\0');
+      const auto size=GetModuleFileNameW(nullptr,name.data(),static_cast<DWORD>(name.size()));
+      if (!size || size>=name.size()) throw std::runtime_error("Chemin du programme indisponible.");
+      name.resize(size);return std::filesystem::path(name).parent_path();
+    }
+    json service_profile() {
+      const auto path=executable_root()/L"moonshine-service-profile.json";
+      if (!std::filesystem::exists(path)) return {};
+      if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path)>4096) throw std::runtime_error("Profil du service Moonshine invalide.");
+      std::ifstream input(path,std::ios::binary);const auto value=json::parse(input);
+      if (!value.is_object() || value.value("schema","")!="moonshine-service-preview/1" || !policy::id(value.value("id",""))) throw std::runtime_error("Identité du service Moonshine invalide.");
+      const auto owner=value.value("owner_sid","");PSID sid=nullptr;
+      const bool valid=owner.starts_with("S-1-") && owner.size()<192 && ConvertStringSidToSidW(wide(owner).c_str(),&sid);
+      if (sid) LocalFree(sid);
+      if (!valid || owner=="S-1-5-18" || owner=="S-1-5-19" || owner=="S-1-5-20") throw std::runtime_error("Compte utilisateur du service invalide.");
+      return value;
+    }
+
     json public_record(const std::shared_ptr<record> &value) {
       std::lock_guard guard(value->mutex);
       return {{"status",true},{"job_id",value->id},{"action",value->action},{"state",value->state},
@@ -239,9 +258,11 @@ namespace moonshine {
     }
   }
   void configure(host_services services) { std::lock_guard guard(manager_mutex);if (configured) return;host=std::move(services);configured=true; }
+  bool service_preview() { return !service_profile().empty(); }
+  std::string service_owner_sid() { const auto value=service_profile();return value.empty()?std::string():value.value("owner_sid",""); }
   std::string trial_id() {
     wchar_t value[34] {};const auto size=GetEnvironmentVariableW(L"MOONSHINE_TRIAL_ID",value,34);
-    if (!size) return {};
+    if (!size) { const auto value=service_profile();return value.empty()?std::string():value.value("id",""); }
     if (size!=32) throw std::runtime_error("Identifiant d’essai Moonshine invalide.");
     std::string result;for (DWORD n=0;n<size;++n) {if (value[n]>127) throw std::runtime_error("Identifiant d’essai Moonshine invalide.");result.push_back(static_cast<char>(value[n]));}
     if (!policy::id(result)) throw std::runtime_error("Identifiant d’essai Moonshine invalide.");return result;
@@ -250,6 +271,21 @@ namespace moonshine {
     const auto id=trial_id();std::wstring name(32768,L'\0');const auto size=GetModuleFileNameW(nullptr,name.data(),static_cast<DWORD>(name.size()));
     if (!size || size>=name.size()) throw std::runtime_error("Chemin du programme indisponible.");name.resize(size);
     const auto root=std::filesystem::path(name).parent_path();
+    const auto profile=service_profile();
+    const bool service_only=std::filesystem::is_regular_file(root/L"moonshine-service-only.txt");
+    if (service_only && profile.empty()) throw std::runtime_error("Installer cet essai avec la fenêtre Moonshine Service.");
+    if (!profile.empty()) {
+      if (!service_only || profile.value("id","")!=id) throw std::runtime_error("Le profil ne correspond pas au service Moonshine.");
+      handle token;DWORD bytes=0;
+      if (!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&token.value)) throw std::runtime_error("Identité du service indisponible.");
+      GetTokenInformation(token.value,TokenUser,nullptr,0,&bytes);std::vector<unsigned char> storage(bytes);
+      if (!bytes || !GetTokenInformation(token.value,TokenUser,storage.data(),bytes,&bytes) || !IsWellKnownSid(reinterpret_cast<TOKEN_USER *>(storage.data())->User.Sid,WinLocalSystemSid)) throw std::runtime_error("Ce paquet doit être démarré par le service Windows Moonshine.");
+      wchar_t flag[4] {};if (GetEnvironmentVariableW(L"SUNSHINE_LAUNCHED_BY_SERVICE",flag,4)!=1 || flag[0]!=L'1') throw std::runtime_error("Démarrer MoonshineService depuis sa fenêtre de gestion.");
+      // Open diagnostics in the destination session; no inherited service handles.
+      if (!_wfreopen((root/L"config/service-stdout.log").c_str(),L"a",stdout) || !_wfreopen((root/L"config/service-stderr.log").c_str(),L"a",stderr)) throw std::runtime_error("Les diagnostics privés du service sont indisponibles.");
+      std::setvbuf(stdout,nullptr,_IOLBF,0);std::setvbuf(stderr,nullptr,_IOLBF,0);
+      return;
+    }
     const bool isolated=std::filesystem::is_regular_file(root/L"moonshine-trial-only.txt");
     if (isolated && id.empty()) throw std::runtime_error("Ouvrir cet essai avec Demarrer-Moonshine.cmd.");
     if (!id.empty()) {
@@ -287,6 +323,7 @@ namespace moonshine {
   }
   json status() {
     json out={{"status",true},{"brand","Moonshine"},{"engine_version","0.8.1"},{"isolated",false},{"available",false},{"automatic",false},{"session_idle",false},{"job",nullptr},{"snapshot",nullptr}};
+    out["execution_mode"]=service_preview()?"service":(trial_id().empty()?"direct":"trial");
     if (!configured) return out;
     const auto user=host.user();if (user.sid.empty()) return out;
     out["available"]=true;out["isolated"]=!user.trial_id.empty();out["automatic"]=auto_enabled(user);out["session_idle"]=host.idle();
@@ -304,14 +341,15 @@ namespace moonshine {
   void start() {
     std::lock_guard guard(manager_mutex);if (!configured || ticker.joinable()) return;stopping=false;
     const auto user=host.user();
-    if (!user.trial_id.empty()) {
-      if (!policy::id(user.trial_id) || user.sid.empty() || !host.request_shutdown) throw std::runtime_error("Contexte d’essai invalide.");
+    const bool service=service_preview();const auto shutdown_id=service?trial_id():user.trial_id;
+    if (!shutdown_id.empty()) {
+      if (!policy::id(shutdown_id) || (!service && user.sid.empty()) || !host.request_shutdown) throw std::runtime_error("Contexte d’essai invalide.");
       PSECURITY_DESCRIPTOR security=nullptr;
-      const auto sddl=wide("D:P(A;;GA;;;SY)(A;;0x100002;;;"+user.sid+")");
+      const auto sddl=wide(service?"D:P(A;;GA;;;SY)":"D:P(A;;GA;;;SY)(A;;0x100002;;;"+user.sid+")");
       if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.c_str(),SDDL_REVISION_1,&security,nullptr)) throw std::runtime_error("Protection de l’arrêt indisponible.");
       SECURITY_ATTRIBUTES attributes {sizeof(SECURITY_ATTRIBUTES),security,FALSE};
       SetLastError(ERROR_SUCCESS);
-      const auto event=CreateEventW(&attributes,TRUE,FALSE,wide("Global\\Moonshine.Trial.Stop."+user.trial_id).c_str());
+      const auto event=CreateEventW(&attributes,TRUE,FALSE,wide(std::string(service?"Global\\Moonshine.Service.Stop.":"Global\\Moonshine.Trial.Stop.")+shutdown_id).c_str());
       const auto error=GetLastError();LocalFree(security);
       if (!event || error==ERROR_ALREADY_EXISTS) {if(event)CloseHandle(event);throw std::runtime_error("Une instance de cet essai est déjà ouverte.");}
       trial_shutdown.value=event;

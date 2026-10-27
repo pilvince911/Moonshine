@@ -46,7 +46,7 @@ namespace confighttp {
     services.user=[]() {
       moonshine::user_context result;
       result.trial_id=moonshine::trial_id();
-      if (!result.trial_id.empty() && platf::is_running_as_system()) throw std::runtime_error("L’essai Moonshine doit utiliser une session Windows normale.");
+      if (!result.trial_id.empty() && platf::is_running_as_system() && !moonshine::service_preview()) throw std::runtime_error("L’essai Moonshine doit utiliser une session Windows normale.");
       HANDLE token=nullptr;
       if (platf::is_running_as_system()) token=platf::retrieve_users_token(false);
       else if (!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY|TOKEN_DUPLICATE|TOKEN_IMPERSONATE,&token)) return result;
@@ -56,6 +56,7 @@ namespace confighttp {
       if (!size || !GetTokenInformation(token,TokenUser,storage.data(),size,&size)) return moonshine::user_context {};
       LPWSTR sid=nullptr;if (!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER *>(storage.data())->User.Sid,&sid)) return moonshine::user_context {};
       for (const wchar_t *p=sid;*p;++p) result.sid.push_back(static_cast<char>(*p));LocalFree(sid);
+      if (moonshine::service_preview() && result.sid!=moonshine::service_owner_sid()) return moonshine::user_context {};
       PWSTR local=nullptr;if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData,0,token,&local)) || !local) return moonshine::user_context {};
       result.local_data=result.trial_id.empty() ? std::filesystem::path(local)/L"OPi5/VibeShine-Xbox" : std::filesystem::path(local)/L"OPi5/Moonshine-Trial"/std::filesystem::path(result.trial_id)/L"Sync";CoTaskMemFree(local);return result;
     };

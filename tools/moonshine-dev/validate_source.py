@@ -35,6 +35,13 @@ require('MoonshineLibraryView.vue' in read('src_assets/common/assets/web/router.
 require('Moonshine' in read('src_assets/common/assets/web/components/layout/AppShell.vue'),'host brand missing')
 require('SUNSHINE_REPO_NAME "Moonshine"' in read('cmake/prep/build_version.cmake'),'updater targets upstream host')
 require('MOONSHINE_BUILD_INSTALLER' in read('cmake/packaging/common.cmake'),'installer qualification gate missing')
+service_constants=read('src/platform/windows/service_constants.h');service_wrapper=read('tools/sunshinesvc.cpp');service_setup=read('tools/moonshine-service/Service-Setup.ps1')
+require('"MoonshineService"' in service_constants and 'wide_name' in read('src/platform/windows/service_startup.h'),'service startup could target the old host')
+require('moonshine-service-profile.json' in backend and 'WinLocalSystemSid' in backend and 'service_owner_sid()' in glue,'service owner/context boundary missing')
+require('Moonshine.Service.Stop.' in backend and 'Moonshine.Service.Stop.' in service_wrapper,'graceful cross-session service stop missing')
+require('Get-MoonshineOwnedService' in service_setup and 'SetAccessRuleProtection($true,$false)' in service_setup and '[IO.Directory]::Move($stage,$finalRoot)' in service_setup,'verified protected service setup missing')
+service_test=read('tests/moonshine/Invoke-ServiceSmoke.ps1')
+require("$env:GITHUB_ACTIONS -ne 'true'" in service_test and 'An existing host service must never be changed' in service_test,'SCM test safety boundary missing')
 for p in engine.glob('*.ps1'):
     require(p.read_bytes().startswith(b'\xef\xbb\xbf'),'Windows PowerShell UTF-8 BOM '+p.name)
 for path in ('src_assets/windows/assets/apps.json',):json.loads(read(path))

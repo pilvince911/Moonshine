@@ -5,7 +5,7 @@ export interface SyncGame { uuid: string; key: string; title: string; platform: 
 export interface SyncSnapshot { creation_profile?: string; schema: string; created: string; inventory_created?: string; version: string; tests: number; cached: boolean; games: SyncGame[]; scope: SyncScope; reset?: { status: string; automatic_hold?: boolean } | null; rollback?: { status: string } | null; }
 export interface SyncPrompt { nonce: string; message: string; expected: string; typed: boolean; rows: { title: string; action: string; reason: string }[]; }
 export interface SyncJob { job_id: string; action: string; state: string; message: string; percent: number; snapshot?: SyncSnapshot | null; prompt?: SyncPrompt | null; logs: string[]; }
-export interface SyncStatus { creation_profile?: string; isolated?: boolean; available: boolean; automatic: boolean; session_idle: boolean; brand: string; engine_version: string; job: SyncJob | null; snapshot: SyncSnapshot | null; }
+export interface SyncStatus { creation_profile?: string; isolated?: boolean; execution_mode?: 'service' | 'trial' | 'direct'; available: boolean; automatic: boolean; session_idle: boolean; brand: string; engine_version: string; job: SyncJob | null; snapshot: SyncSnapshot | null; }
 export const terminal = (state: string) => ['completed', 'failed', 'cancelled'].includes(state);
 export const getSyncStatus = () => apiGet<SyncStatus>('/api/moonshine/status');
 export const getSyncJob = (id: string) => apiGet<SyncJob>(`/api/moonshine/jobs/${encodeURIComponent(id)}`);

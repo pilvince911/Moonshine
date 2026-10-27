@@ -8,7 +8,7 @@ Moonshine est une fork indépendante de [VibeShine](https://github.com/Nonary/vi
 
 Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` conserve cette référence; `moonshine/main` est la branche de destination propre à la fork et `moonshine/windows-integration` contient l'intégration proposée dans la PR nº 1. `master` suit encore la base reçue lors de la création de la fork.
 
-**État : hôte Windows et kit d’essai autonome en validation. Aucun installateur Moonshine ni résultat de streaming sur le PC de PL n'est qualifié par cette branche.** Les vérifications de logiciel, le transport Windows, la compilation complète de l'hôte et les essais de jeu sont des étapes distinctes.
+**État : kit portable 0.8.1 essayé sur le PC réel; candidat service Windows 0.9.0 en qualification.** Le lancement et l’arrêt associé d’une session ont été observés. L’affichage virtuel exclusif reste à valider : le portable a utilisé son repli physique après un échec d’accès au pilote. Les vérifications de logiciel, les essais SCM, les pilotes et la qualité DLSS/FG sont des preuves distinctes.
 
 ## Bibliothèque intégrée
 
@@ -34,6 +34,14 @@ Le workflow `.github/workflows/moonshine-host.yml` compile l’hôte complet, se
 Le kit propose une fenêtre Windows (`Demarrer-Moonshine.cmd`), une sauvegarde locale vérifiée et un arrêt propre. Il utilise son propre profil sous `%LOCALAPPDATA%\\OPi5\\Moonshine-Trial`, un catalogue neuf et le port Web 48990. Il ne reprend pas les tâches ni les données de production; arrêter temporairement l’autre hôte avant de démarrer cet essai. Voir [le parcours d’essai](tools/moonshine-trial/LIRE-MOI.txt).
 
 Les versions portables sont des builds de développement non signés. Elles ne qualifient pas le streaming, les pilotes ou l’installateur. WebRTC et PyroWave sont désactivés dans ce kit. Le DLSS et la Frame Generation restent configurés dans les jeux.
+
+## Candidat service Windows 0.9.0
+
+Le kit `tools/moonshine-service` reprend une copie vérifiée du profil de l’essai portable arrêté. Il conserve les certificats, l’appairage Moonlight et les UUID, puis enregistre **MoonshineService**, distinct de SunshineService. Le binaire amont s’exécute comme SYSTEM dans la session de console; le worker est toujours lancé sans élévation dans le compte sélectionné. Le moteur et ses données d’essai restent en version 0.8.1. Aucun autre importateur n’est réintroduit.
+
+Les exécutables sont protégés sous Program Files, les configurations privées ont une ACL réservée à SYSTEM/Administrateurs, et l’ancien hôte reste installé. Le service démarre manuellement; le réglage de démarrage Windows contrôle uniquement MoonshineService. La fenêtre fournit installation, démarrage, arrêt et retour à VibeShine. Aucun pilote n’est installé ni réinstallé. Voir [la procédure](tools/moonshine-service/LIRE-MOI.txt).
+
+La CI doit installer, démarrer, arrêter, redémarrer et retirer le véritable service sur un runner jetable, vérifier son enfant SYSTEM et son worker utilisateur réel, préserver un catalogue synthétique et révoquer les jetons temporaires. Elle ne qualifie pas l’écran virtuel d’un PC sans GPU. Le candidat ne devient distribuable que lorsque le workflow du commit exact réussit.
 
 ## Validation et compilation
 

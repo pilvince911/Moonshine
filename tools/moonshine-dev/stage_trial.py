@@ -68,10 +68,10 @@ def main():
     result=subprocess.run([str(package/'sunshine.exe'),'--version'],cwd=package,capture_output=True,text=True,timeout=30)
     version=result.stdout+result.stderr
     if result.returncode or commit not in version:raise RuntimeError('Staged native host loader/version test failed: '+version)
-    (out/'build-info.json').write_text(json.dumps({'commit':commit,'version':'0.8.1','version_output':version.strip(),'runtime_dlls':sorted(set(copied)),'webrtc':False,'pyrowave':False,'drivers_bundled':False,'services_installed':False,'real_stream_validated':False},indent=2)+'\n',encoding='utf-8')
+    (out/'build-info.json').write_text(json.dumps({'commit':commit,'version':'0.9.0','version_output':version.strip(),'runtime_dlls':sorted(set(copied)),'webrtc':False,'pyrowave':False,'drivers_bundled':False,'services_installed':False,'real_stream_validated':False},indent=2)+'\n',encoding='utf-8')
     files=[{'path':p.relative_to(out).as_posix(),'sha256':digest(p),'size':p.stat().st_size} for p in sorted(out.rglob('*')) if p.is_file()]
-    (out/'manifest.json').write_text(json.dumps({'schema':'moonshine-trial-kit/1','version':'0.8.1','commit':commit,'files':files},indent=2)+'\n',encoding='utf-8')
-    archive=out.parent/'Moonshine-Windows-Essai-0.8.1.zip'
+    (out/'manifest.json').write_text(json.dumps({'schema':'moonshine-trial-kit/1','version':'0.9.0','commit':commit,'files':files},indent=2)+'\n',encoding='utf-8')
+    archive=out.parent/'Moonshine-Windows-Essai-0.9.0.zip'
     with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
         for p in sorted(out.rglob('*')):
             if p.is_file():z.write(p,'Moonshine-Essai/'+p.relative_to(out).as_posix())

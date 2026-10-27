@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      BUILD_VERSION: 0.8.1
+      BUILD_VERSION: 0.9.0
       CMAKE_BUILD_PARALLEL_LEVEL: 3
       COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -101,7 +101,7 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$(cygpath -u "$MOONSHINE_NODE_DIR"):$PATH"
-          cmake --build build --target sunshine playnite-launcher sunshine_wgc_capture audio-info dxgi-info --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
+          cmake --build build --target sunshine sunshinesvc playnite-launcher sunshine_wgc_capture audio-info dxgi-info --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
       - uses: actions/cache/save@v4
         with:
           path: .moonshine-ccache
@@ -125,6 +125,14 @@ jobs:
       - name: Exercise the complete host as a non-administrator
         shell: powershell
         run: ./tests/moonshine/Invoke-HostSmoke.ps1 -KitRoot trial-kit
+      - name: Prepare the separate Windows service candidate
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          "$(cygpath -u "$MOONSHINE_PYTHON")" tools/moonshine-dev/stage_service.py --trial-kit trial-kit --output service-kit
+      - name: Qualify the genuine SCM service and normal-user worker
+        shell: powershell
+        run: ./tests/moonshine/Invoke-ServiceSmoke.ps1 -KitRoot service-kit
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -133,8 +141,8 @@ jobs:
           retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
-          name: Moonshine-Windows-Essai-0.8.1
-          path: trial-kit/
+          name: Moonshine-Windows-Service-0.9.0
+          path: service-kit/
           include-hidden-files: true
           retention-days: 30
       - uses: actions/upload-artifact@v4

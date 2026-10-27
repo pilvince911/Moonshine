@@ -61,6 +61,15 @@ jobs:
       - name: Trial window and reversible file workflows
         shell: powershell
         run: ./tests/moonshine/Invoke-TrialKitTests.ps1
+      - name: Service entry points and actual WPF window
+        shell: powershell
+        run: |
+          Get-ChildItem tools/moonshine-service -Filter *.ps1 | ForEach-Object {
+            $tokens=$null;$errors=$null
+            $null=[Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
+          ./tools/moonshine-service/Gestion-Moonshine.ps1 -ValidateWindowOnly
   windows-user-context:
     runs-on: windows-2022
     timeout-minutes: 5
