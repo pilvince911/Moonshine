@@ -63,7 +63,7 @@ namespace confighttp {
     services.launch=[](const std::string &command,const std::wstring &directory,STARTUPINFOEXW &startup,PROCESS_INFORMATION &process,std::string &error) {
       std::error_code ec;
       const bool success=platf::is_running_as_system()
-        ? platf::launch_process_with_impersonation(false,command,directory,CREATE_NO_WINDOW,startup,process,ec)
+        ? platf::launch_process_with_impersonation(false,command,directory,CREATE_NO_WINDOW|CREATE_UNICODE_ENVIRONMENT,startup,process,ec)
         : platf::launch_process_without_impersonation(command,directory,CREATE_NO_WINDOW,startup,process,ec);
       if (!success) error="Windows "+std::to_string(ec.value());return success;
     };
