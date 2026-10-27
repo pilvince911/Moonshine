@@ -60,21 +60,21 @@ function Read-MoonshineServiceManifest([string]$KitRoot) {
     foreach ($required in @('Package/sunshine.exe','Package/tools/sunshinesvc.exe','Package/tools/moonshine/SHA256.txt','Package/moonshine-service-only.txt')) {
         if (-not $seen.ContainsKey((Get-MoonshineServiceKitPath $KitRoot $required))) { throw ('Fichier requis absent : '+$required) }
     }
-    if (@($value.files | Where-Object { $_.path -match '^Package/config/' -or $_.path -match 'moonshine-trial-(only|id)\.txt$' }).Count) { throw 'Le paquet source contient un profil personnel ou des marqueurs de l’ancien kit.' }
+    if (@($value.files | Where-Object { $_.path -match '^Package/config/' -or $_.path -match 'moonshine-trial-(only|id)\.txt$' }).Count) { throw 'Le paquet source contient un profil personnel ou des marqueurs de l''ancien kit.' }
     return $value
 }
 function Get-MoonshineServiceTrial([string]$OwnerSid,[string]$TrialId) {
-    if ($OwnerSid -cnotmatch '\AS-1-(?:5-21|12-1)-[0-9-]+\z' -or $TrialId -cnotmatch '\A[a-f0-9]{32}\z') { throw 'Compte ou identifiant de l’essai invalide.' }
+    if ($OwnerSid -cnotmatch '\AS-1-(?:5-21|12-1)-[0-9-]+\z' -or $TrialId -cnotmatch '\A[a-f0-9]{32}\z') { throw 'Compte ou identifiant de l''essai invalide.' }
     $profile=(Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$OwnerSid) -Name ProfileImagePath).ProfileImagePath
     $profile=[Environment]::ExpandEnvironmentVariables($profile);Assert-MoonshinePlainPath $profile
     $root=Join-Path $profile ('AppData\Local\OPi5\Moonshine-Trial\'+$TrialId);Assert-MoonshinePlainPath $root
     $package=Join-Path $root 'Package'
     foreach ($folder in @($package,(Join-Path $package 'tools\moonshine'))) {
         $marker=Join-Path $folder 'moonshine-trial-id.txt'
-        if (-not [IO.File]::Exists($marker) -or (Get-Item -LiteralPath $marker).Length -gt 128 -or [IO.File]::ReadAllText($marker).Trim() -cne $TrialId) { throw 'L’essai sélectionné ne correspond pas à ce compte Windows.' }
+        if (-not [IO.File]::Exists($marker) -or (Get-Item -LiteralPath $marker).Length -gt 128 -or [IO.File]::ReadAllText($marker).Trim() -cne $TrialId) { throw 'L''essai sélectionné ne correspond pas à ce compte Windows.' }
     }
     $config=Join-Path $package 'config\moonshine.conf'
-    if (-not [IO.File]::Exists($config) -or (Get-Item -LiteralPath $config).Length -gt 1048576) { throw 'Configuration de l’essai absente.' }
+    if (-not [IO.File]::Exists($config) -or (Get-Item -LiteralPath $config).Length -gt 1048576) { throw 'Configuration de l''essai absente.' }
     $text=[IO.File]::ReadAllText($config)
     if ($text -match '(?m)^\s*(pkey|cert|file_state|vibeshine_file_state|credentials_file|file_apps|log_path)\s*=') { throw 'Des chemins de configuration personnalisés nécessitent une migration distincte. Les fichiers existants sont conservés.' }
     return @{Root=$root;Package=$package;Config=$config;OwnerSid=$OwnerSid;Id=$TrialId}
@@ -113,6 +113,10 @@ function Get-MoonshineOwnedService {
     return $service
 }
 function Assert-MoonshineInstalledPackage($Receipt) {
+    foreach ($folder in @('Package','Package/tools/moonshine')) {
+        $marker=Get-MoonshineServiceKitPath $script:MoonshineServiceRoot ($folder+'/moonshine-trial-id.txt')
+        if (-not [IO.File]::Exists($marker) -or (Get-Item -LiteralPath $marker).Length -gt 128 -or [IO.File]::ReadAllText($marker).Trim() -cne $Receipt.id) { throw 'Identifiant installé incohérent; démarrage suspendu.' }
+    }
     $profile=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $script:MoonshineServiceRoot 'Package\moonshine-service-profile.json')))
     if ($profile.schema -cne 'moonshine-service-preview/1' -or $profile.id -cne $Receipt.id -or $profile.owner_sid -cne $Receipt.owner_sid) { throw 'Le profil du service ne correspond pas au reçu.' }
     foreach ($row in $Receipt.files) {
@@ -125,7 +129,7 @@ function Install-MoonshineService([string]$KitRoot,[string]$OwnerSid,[string]$Tr
     $manifest=Read-MoonshineServiceManifest $KitRoot
     $source=Get-MoonshineServiceTrial $OwnerSid $TrialId
     $existing=Get-MoonshineOwnedService
-    if (@(Get-Process -Name sunshine,vibeshine,Moonshine -ErrorAction SilentlyContinue).Count) { throw 'Terminer le stream et arrêter l’hôte actif avant l’installation. Pour l’essai portable, utiliser son bouton Arrêter.' }
+    if (@(Get-Process -Name sunshine,vibeshine,Moonshine -ErrorAction SilentlyContinue).Count) { throw 'Terminer le stream et arrêter l''hôte actif avant l''installation. Pour l''essai portable, utiliser son bouton Arrêter.' }
     $receiptPath=Join-Path $script:MoonshineServiceRoot 'service-receipt.json'
     if (Test-Path -LiteralPath $script:MoonshineServiceRoot) {
         $receipt=Read-MoonshineServiceReceipt
@@ -180,9 +184,9 @@ function Start-MoonshineService {
     if (-not $service) { throw 'Service Moonshine non installé.' }
     Assert-MoonshineInstalledPackage $receipt
     if ($service.State -eq 'Running') { return }
-    if (@(Get-Process -Name sunshine,vibeshine,Moonshine -ErrorAction SilentlyContinue).Count) { throw 'Un autre hôte est actif. L’arrêter avant de démarrer Moonshine.' }
+    if (@(Get-Process -Name sunshine,vibeshine,Moonshine -ErrorAction SilentlyContinue).Count) { throw 'Un autre hôte est actif. L''arrêter avant de démarrer Moonshine.' }
     $listeners=@([Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners() | Where-Object { $_.Port -in @(48984,48989,48990,49010) })
-    if ($listeners.Count) { throw 'Un port de l’essai est déjà occupé.' }
+    if ($listeners.Count) { throw 'Un port de l''essai est déjà occupé.' }
     $rule='MoonshineServicePreview-'+$receipt.id
     if (-not $receipt.firewall_created) {
         if (Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue) { throw 'Règle réseau existante non reconnue; aucune modification.' }
@@ -217,7 +221,7 @@ function Remove-MoonshineService([switch]$ReturnToVibeShine) {
     $receipt.phase='removed';Save-MoonshineServiceReceipt $receipt
     if ($ReturnToVibeShine -and $receipt.legacy) {
         $legacy=Get-CimInstance Win32_Service -Filter "Name='SunshineService'"
-        if (-not $legacy -or $legacy.PathName -cne $receipt.legacy.path) { throw 'L’ancien service a changé depuis la sauvegarde. Le vérifier dans Services avant de le démarrer.' }
+        if (-not $legacy -or $legacy.PathName -cne $receipt.legacy.path) { throw 'L''ancien service a changé depuis la sauvegarde. Le vérifier dans Services avant de le démarrer.' }
         Start-Service -Name 'SunshineService'
     }
 }

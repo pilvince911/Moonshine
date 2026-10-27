@@ -78,13 +78,21 @@ try {
     }
     Check ($observedUser -and $job.state -eq 'completed') ('Service worker did not complete in its normal user token: '+$job.message)
     Check ($job.snapshot.tests -ge 454) 'The embedded engine suite did not complete through the service.'
-    $reply=Request 'GET' '/api/tokens' $auth;$tokens=ConvertFrom-Json -InputObject $reply.Body
-    if ($tokens -is [array]) { $items=@($tokens) } else { $items=@($tokens.tokens) }
+    for ($n=0;$n -lt 30;$n++) {
+        $reply=Request 'GET' '/api/tokens' $auth;$tokens=ConvertFrom-Json -InputObject $reply.Body
+        if ($tokens -is [array]) { $items=@($tokens) } else { $items=@($tokens.tokens) }
+        if (@($items | Where-Object { $_.username -like 'moonshine-job:*' }).Count -eq 0) { break };Start-Sleep -Milliseconds 100
+    }
     Check (@($items | Where-Object { $_.username -like 'moonshine-job:*' }).Count -eq 0) 'A service job token remained after completion.'
     Stop-MoonshineService
     Check (-not (Get-Process -Id $serviceHostPid -ErrorAction SilentlyContinue)) 'SCM stop left its host process running.'
     Start-MoonshineService
-    Check ((Get-MoonshineOwnedService).State -eq 'Running') 'The service could not restart.'
+    $restarted=$false
+    for ($n=0;$n -lt 120;$n++) {
+        try { $probe=Request 'GET' '/api/csrf-token';if ($probe.Status -eq 200) {$restarted=$true;break} } catch { }
+        Start-Sleep -Milliseconds 500
+    }
+    Check ($restarted -and (Get-MoonshineOwnedService).State -eq 'Running') 'The service did not restore its actual HTTPS host after restart.'
     Stop-MoonshineService
     Remove-MoonshineService
     $record=@{status='passed';service='MoonshineService';id=$id;checks=$record.checks;system_host=$true;normal_user_worker=$true;catalogue_preserved=$true;source_profile_unchanged_at_install=$true;engine_tests=$job.snapshot.tests;scm_start_stop_restart_remove=$true;real_display_qualified=$false}

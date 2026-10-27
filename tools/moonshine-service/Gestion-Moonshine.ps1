@@ -19,7 +19,7 @@ try {
         $index=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($indexPath))
         if ($index.schema -cne 'moonshine-trial-instances/1') { throw 'Index des essais invalide.' }
         foreach ($item in $index.instances.PSObject.Properties) {
-            if ($item.Name -cnotmatch '\A[a-f0-9]{40}\z' -or $item.Value -cnotmatch '\A[a-f0-9]{32}\z') { throw 'Identité de l’essai invalide.' }
+            if ($item.Name -cnotmatch '\A[a-f0-9]{40}\z' -or $item.Value -cnotmatch '\A[a-f0-9]{32}\z') { throw 'Identité de l''essai invalide.' }
             $path=Join-Path $base ($item.Value+'\Package\config\moonshine.conf')
             if (Test-Path -LiteralPath $path) { $choices+=@([pscustomobject]@{Id=[string]$item.Value;Label=('Moonshine · '+$item.Name.Substring(0,8)+' · réglages du '+(Get-Item -LiteralPath $path).LastWriteTime.ToString('yyyy-MM-dd HH:mm'));Modified=(Get-Item -LiteralPath $path).LastWriteTime}) }
         }
@@ -31,8 +31,8 @@ try {
         $selected=$controls.TrialChoice.SelectedItem
         if ($Action -eq 'Install' -and -not $selected) { throw 'Aucun essai Moonshine à reprendre. Conserver le profil du kit 0.8.1 sur ce compte Windows.' }
         $message=switch ($Action) {
-            'Install' { 'Installer MoonshineService en démarrage manuel, copier le catalogue et l’appairage de cet essai, puis démarrer le service? Terminer le stream et arrêter les autres hôtes avant de continuer. Le pilote existant est conservé.' }
-            'Return' { 'Arrêter et retirer MoonshineService, puis redémarrer l’ancien service VibeShine reconnu? Les fichiers, sauvegardes et jeux installés sont conservés.' }
+            'Install' { 'Installer MoonshineService en démarrage manuel, copier le catalogue et l''appairage de cet essai, puis démarrer le service? Terminer le stream et arrêter les autres hôtes avant de continuer. Le pilote existant est conservé.' }
+            'Return' { 'Arrêter et retirer MoonshineService, puis redémarrer l''ancien service VibeShine reconnu? Les fichiers, sauvegardes et jeux installés sont conservés.' }
             'Stop' { 'Arrêter MoonshineService? Terminer le stream et les opérations de bibliothèque avant de continuer.' }
             default { 'Démarrer MoonshineService? Les autres hôtes doivent être arrêtés.' }
         }

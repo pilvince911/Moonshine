@@ -67,7 +67,7 @@ jobs:
           Get-ChildItem tools/moonshine-service -Filter *.ps1 | ForEach-Object {
             $tokens=$null;$errors=$null
             $null=[Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
-            if ($errors.Count) { throw ($errors | Out-String) }
+            if ($errors.Count) { throw ($_.FullName+': '+(($errors | ForEach-Object { $_.Message+' at line '+$_.Extent.StartLineNumber }) -join '; ')) }
           }
           ./tools/moonshine-service/Gestion-Moonshine.ps1 -ValidateWindowOnly
   windows-user-context:
