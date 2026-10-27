@@ -80,7 +80,7 @@ test('an active stream retains mutation controls while allowing an analysis', as
 test('trial context and Moonshine branding are visible', async ({ page }) => {
   await library(page, true, true);
   await expect(page.getByText('Mode essai ·', { exact: false })).toBeVisible();
-  const mark = page.locator('img[src$="moonshine-mark.svg"]').first();
+  const mark = page.locator('img[src$="moonshine-mark.svg"]:visible').first();
   await expect(mark).toBeVisible();
   await expect.poll(() => mark.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
   await page.screenshot({ path: 'test-results/moonshine-library-trial.png', fullPage: true });

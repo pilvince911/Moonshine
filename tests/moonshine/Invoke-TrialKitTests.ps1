@@ -52,5 +52,13 @@ try {
     [IO.File]::AppendAllText((Join-Path $kit 'Package\sunshine.exe'),'tamper')
     Refuses { Prepare-MoonshineTrialInstance $instance } 'An altered source kit could repair or start a trial.'
     Check ([IO.File]::ReadAllText($privateExe) -ceq $fake['Package/sunshine.exe']) 'Altered kit changed the private executable.'
+    [xml]$layout=[IO.File]::ReadAllText((Join-Path $trial 'Launcher.xaml'));$reader=New-Object Xml.XmlNodeReader($layout)
+    $previewWindow=[Windows.Markup.XamlReader]::Load($reader);$element=$previewWindow.Content;$element.Background=$previewWindow.Background
+    $element.Measure((New-Object Windows.Size($previewWindow.Width,$previewWindow.Height)))
+    $element.Arrange((New-Object Windows.Rect(0,0,$previewWindow.Width,$previewWindow.Height)));$element.UpdateLayout()
+    $bitmap=New-Object Windows.Media.Imaging.RenderTargetBitmap([int]$previewWindow.Width,[int]$previewWindow.Height,96,96,[Windows.Media.PixelFormats]::Pbgra32)
+    $bitmap.Render($element);$encoder=New-Object Windows.Media.Imaging.PngBitmapEncoder;$encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+    $stream=New-Object IO.MemoryStream
+    try { $encoder.Save($stream);Write-Output ('MOONSHINE_WPF_PNG='+[Convert]::ToBase64String($stream.ToArray())) } finally { $stream.Dispose();$previewWindow.Close() }
     Write-Output ('Moonshine portable trial: '+$checks+' checks passed (WPF construction, backup, restoration, source verification, private repair and isolation).')
 } finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Recurse -Force } }

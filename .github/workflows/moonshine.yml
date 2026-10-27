@@ -36,6 +36,9 @@ jobs:
         working-directory: src_assets/common/assets/web
       - run: npx playwright test e2e/moonshine-library.spec.ts
         working-directory: src_assets/common/assets/web
+      - name: Emit the synthetic interface preview
+        working-directory: src_assets/common/assets/web
+        run: node -e "console.log('MOONSHINE_UI_PNG=' + require('node:fs').readFileSync('test-results/moonshine-library-trial.png').toString('base64'))"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
