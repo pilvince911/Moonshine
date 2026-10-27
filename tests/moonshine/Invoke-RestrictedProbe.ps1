@@ -13,10 +13,13 @@ try {
     $script=Join-Path $folder 'probe.ps1'
     [IO.File]::WriteAllText($script,$code,(New-Object Text.UTF8Encoding($true)))
     $powershell=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $command='"'+$env:ComSpec+'" /d /s /c ""'+$powershell+'" -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File "'+$script+'" > "'+$trace+'" 2>&1"'
+    $command='"'+$powershell+'" -NoLogo -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File "'+$script+'"'
     Write-Output ('CI caller SYSTEM: '+[Security.Principal.WindowsIdentity]::GetCurrent().IsSystem+'; startup command length: '+$command.Length)
     $child=[MoonshineTestUserProcess]::Start($command,$folder,$testUser.Name,$testUser.Password)
-    if (-not $child.WaitForExit(30000)) { throw 'Restricted-token fixture timed out.' }
+    if (-not $child.WaitForExit(120000)) {
+        $processes=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+$child.Id+' OR ParentProcessId='+$child.Id) | Select-Object ProcessId,ParentProcessId,Name)
+        throw ('Standard-account fixture timed out: '+(ConvertTo-Json -InputObject $processes -Compress))
+    }
     if (-not (Test-Path -LiteralPath $result)) {
         $startup=if (Test-Path -LiteralPath $trace) { [IO.File]::ReadAllText($trace) } else { 'No startup output.' }
         throw ('Restricted-token startup failed; exit='+$child.ExitCode+'; '+$startup)

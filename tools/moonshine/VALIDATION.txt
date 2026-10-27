@@ -1,115 +1,59 @@
-﻿MOONSHINE — qualification du moteur embarqué
+﻿MOONSHINE — qualification du moteur embarqué 0.8.1
 
-Consulter docs/moonshine/VALIDATION.md dans le dépôt pour distinguer les tests
-automatiques, le build de l'hôte, le service Windows et les essais de jeu. La
-procédure ci-dessous concerne le mode de secours OPi5, conservé pour récupération.
-Le rapport du commit GitHub exact fait foi pour les tests exécutés.
-
-OPi5 / VibeShine Xbox Sync 0.8.1 — consolidation avant la candidate 1.0
+ÉTAT ET PREUVES
+Le rapport du commit GitHub exact fait foi :
+- .github/workflows/moonshine.yml : politique C++, frontend, tests de navigateur,
+  régressions Windows PowerShell 5.1, fenêtre WPF et vrai pont de processus.
+- .github/workflows/moonshine-host.yml : compilation complète, dépendances PE,
+  démarrage HTTPS sous un compte standard et exécution du vrai moteur embarqué.
+La présence du test ne signifie pas que le test a réussi. Les sorties de CI et
+le rapport accompagnant l'archive distinguent les contrôles passés des limites.
 
 PÉRIMÈTRE
+La bibliothèque Web intégrée réunit Xbox PC, Steam et EA. Les anciens importateurs
+Steam et Playnite sont désactivés et retirés des écrans. Le helper partagé de
+lancement/capture reste une dépendance du moteur de streaming.
+Le moteur conserve UUID, marqueurs historiques, préférences, sauvegardes,
+comparaisons avant/après écriture et journaux de reprise. Il n'adopte pas une
+application ambiguë sur son seul titre. Annuler attend un point sûr.
+Le mode de secours console/WPF reste disponible hors du kit isolé; il ne faut
+pas l'exécuter en parallèle de l'automatisation native.
 
-Fenêtre WPF native avec Bibliothèque, Diffusion et Maintenance; connexion masquée,
-images locales, filtre/recherche, compte des changements, confirmations, profils,
-pilotes, automatisation, reset/restauration, sauvegardes et diagnostic. La console
-reste accessible par Mode-console.cmd. Demarrer.cmd ouvre la fenêtre par défaut.
+DLSS ET FRAME GENERATION
+Les nouvelles fiches du module natif proposent « Frame Generation fournie par
+le jeu », avec Lossless Scaling désactivé. Le plan décrit ce choix avant toute
+confirmation. Les fiches existantes et les profils explicites restent prioritaires.
+Diffusion permet de choisir un autre préréglage. Moonshine ne modifie ni les
+réglages internes DLSS/FG des jeux, ni les pilotes ou fréquences par ce choix.
+L'effet réel dépend du jeu, du GPU et du client et doit être mesuré en streaming.
 
-Le moteur existant conserve l'identité, l'API, les sauvegardes, la comparaison des
-préférences, la migration, les images et les lancements. L'interface échange des
-objets typés avec un runspace STA séparé. Elle ne reçoit pas le jeton API ni le
-mot de passe dans son modèle de présentation. Les commandes sont en liste fermée.
+ESSAI ISOLÉ
+Le parcours à suivre est tools/moonshine-trial/LIRE-MOI.txt, inclus à la racine
+du kit sous LIRE-MOI.txt. Démarrer avec Demarrer-Moonshine.cmd sans élévation.
+La fenêtre propose sauvegarde locale, démarrage, bibliothèque et arrêt propre.
+Le profil d'essai et son catalogue neuf sont distincts des données de production;
+les anciennes tâches ne sont pas reprises. Le paquet et sa copie privée sont
+vérifiés; une copie privée réparée conserve les fichiers remplacés dans Recovery.
+La restauration d'une sauvegarde prépare un nouveau dossier sans écraser l'actif.
+Ne jamais partager les sauvegardes privées contenant identifiants/certificats.
 
-L'annulation est coopérative : checkpoints avant les opérations, jamais un arrêt
-forcé entre POST/DELETE et leur vérification. La fenêtre ne garde pas le verrou
-lorsqu'elle attend une action, permettant les passages automatiques. Chaque action
-reprend les verrous; le catalogue est relu avant et après les écritures existantes.
+VALIDATIONS RESTANTES SUR LE PC
+1. Vérifier fenêtre, lisibilité, jeux Xbox/Steam/EA et pochettes du compte réel.
+2. Analyser, examiner le plan et tester un pilote de chaque plateforme présente.
+3. Répéter : aucun doublon ni changement inutile. Personnaliser une fiche et
+   confirmer que son titre et ses réglages restent conservés au passage suivant.
+4. Tester chaque lancement, la sortie, le son, la manette et le streaming DLSS/FG
+   sur la RTX 4080 avec le client et l'écran réels.
+5. Vérifier qu'une session de streaming active retient les écritures.
+6. Facultatif dans le catalogue d'essai : reset confirmé, répétition, restauration
+   et conservation d'une application personnelle. Aucun jeu n'est désinstallé.
+7. Exporter le diagnostic depuis la bibliothèque et l'inspecter avant partage.
+8. Arrêter l'essai proprement et relancer l'ancien service VibeShine.
 
-DIAGNOSTIC
-
-Valeurs locales lues depuis une liste de clés de configuration; aucune copie brute
-du fichier ni des mots de passe. Les emplacements usuels de configuration ne
-prouvent pas le fichier réellement chargé par le service. Les préférences et les
-exceptions d'entrée ne prouvent pas la capture, le codec ou le HDR d'une session.
-RTSS détecté sur disque ne signifie pas RTSS actif ou correctement intégré.
-
-Les messages d'échec sont conservés après l'actualisation des données. Les plans
-sont recalculés après synchronisation et les anciens scans portent un avertissement.
-Les images utilisent BitmapCacheOption.OnLoad et sont figées après décodage, afin
-de fermer leur flux et permettre les remplacements atomiques par le moteur.
-
-TESTS WINDOWS AJOUTÉS AU DÉMARRAGE
-
-- Compilation réelle des types du pont et du contrôleur WPF.
-- Liste fermée des commandes; double clic bloqué; passage de requête typée.
-- SecureString libéré après requête; aucun mot de passe/Authorization dans Snapshot.
-- Aller-retour de confirmation avec thread .NET et rejet d'une réponse périmée.
-- Annulation injectée pendant le premier POST du vrai Apply-Plan simulé : premier
-  jeu vérifié et journalisé, deuxième non envoyé; reprise sans renvoyer le premier.
-- Parseur de préférences : mots de passe et jetons ignorés par la liste de clés.
-- Création d'une pochette temporaire : décodage WPF puis accès exclusif et retrait
-  du fichier pour vérifier la fermeture du flux d'image.
-- Chargement réel de Desktop.xaml, sans afficher la fenêtre de test; présence de
-  tous les contrôles requis, création du contrôleur, liaison des compteurs,
-  avertissement de cache et nom d'accessibilité du champ de recherche.
-- Connexion DPAPI ancienne et nouvelle; panne de login ou d'écriture : ancienne
-  connexion conservée en mémoire et sur disque; session provisoire fermée.
-- Copie JSON des tableaux racines et valeurs null, false, zéro et chaîne vide.
-- Cache JSON syntaxiquement valide mais incohérent conservé puis écarté.
-- Session active ou de structure ambiguë : aucune conclusion d'inactivité erronée.
-- Journaux de reset et de synchronisation avec une seule opération.
-- Retour arrière : précontrôle des personnalisations avant tout retrait, annulation
-  pendant DELETE, réponse perdue, blocage de la synchronisation et reprise sans
-  double DELETE du jeu déjà retiré.
-- Choix de profil interrompu : reprise locale, aucun POST implicite et refus
-  d'écraser un registre changé après la panne.
-- Filtres combinés et absence de résultats; bouton de synchronisation bloqué tant
-  que la session n'est pas confirmée.
-- Les tests antérieurs d'API, EA, images, reprise, reset, migration et profils
-  restent présents. Ils ne remplacent pas les essais de lancement des vrais jeux.
-
-CONTRÔLES À LA PRÉPARATION
-
-Analyse syntaxique de 25 scripts PowerShell et 5 C#; parsing XML du XAML; contrats
-entre noms de contrôles et contrôleur, DTO et données du moteur, boutons et actions;
-cohérence des imports et fichiers Bootstrap/install; vérification de la conservation
-des UUID; lecture des limites d'annulation et de fermeture, des verrous et des
-flux d'images; encodages Windows, manifestes SHA-256 et intégrité du ZIP.
-
-LIMITES RÉELLES
-
-Windows PowerShell 5.1 et WPF ne peuvent pas être exécutés dans l'environnement de
-préparation. Le rendu natif, les clics et les nouveaux autotests Windows ne sont
-donc PAS déclarés vérifiés ici. Aucun nouveau total de tests réussis, lancement
-réel ou résultat de synchronisation 0.8.1 n'est annoncé. Le dernier diagnostic
-reçu reste 0.4.1 avec 197 tests puis un échec corrigé dans les versions suivantes.
-
-Les contrôles de démarrage s'exécutent sur le PC avant les actions. Confirmer la
-fenêtre sous Windows, les neuf jeux, les profils et l'automatisation avant 1.0.
-La version 0.8.1 est une livraison fonctionnelle à valider, pas une certification
-universelle des réglages RTX 4080/client/téléviseur.
-
-PARCOURS DE VALIDATION AU RETOUR DE PL
-
-1. Extraire complètement la nouvelle archive et lancer Demarrer.cmd sans admin.
-   Relever le nombre réel d'autotests et toute erreur de démarrage.
-2. Confirmer les pochettes, titres, filtres, Détails, journal et lisibilité à la
-   mise à l'échelle Windows habituelle. Une mise à jour de lanceur est normale
-   au premier passage de cette version.
-3. Analyser et lire la comparaison; synchroniser, puis répéter immédiatement.
-   Attendu au deuxième passage sans changement : zéro ajout/mise à jour inutile.
-4. Fermer/réouvrir et refaire ce passage. Vérifier qu'un titre ou réglage personnel
-   volontairement modifié reste conservé.
-5. Tester un lancement Steam, Xbox et EA, la sortie du jeu et la fin du stream.
-   Pour les jeux compatibles, valider DLSS/FG avec la RTX 4080 et le client réel.
-6. Vérifier qu'une session Moonlight active retient les écritures. Après la fin
-   de session, Actualiser le diagnostic doit libérer les actions possibles.
-7. Facultatif : annuler une synchronisation, interrompre avec Annuler entre deux
-   jeux puis reprendre. Vérifier le journal et l'absence de doublons.
-8. Facultatif : reset confirmé, restauration, vérification des applications
-   personnelles; aucun jeu installé ne doit être désinstallé.
-9. Créer le diagnostic depuis Maintenance et le joindre avec les résultats.
-
-Les interruptions sont d'abord couvertes par les tests synthétiques. Il n'est
-pas nécessaire de couper Windows brutalement pour les validations utilisateur.
-Le reset n'est pas requis pour mettre la version à jour. L'automatisation ne doit
-être activée qu'après les validations réelles des lancements et du deuxième passage.
+L'ESSAI NE QUALIFIE PAS LA VERSION 1.0
+Les tests synthétiques, le vrai processus Windows, la compilation de l'hôte et
+une session de jeu sont des preuves distinctes. Le service Windows, la migration
+des anciennes fiches/tâches, l'installateur, les pilotes, les mises à niveau et
+le retour à VibeShine demandent ensuite leurs validations propres.
+Le reset n'est pas nécessaire pour mettre le moteur à jour. Activer l'automatisation
+après validation des lancements réels et de la répétition sans doublons.
