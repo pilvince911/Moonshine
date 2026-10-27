@@ -9,7 +9,7 @@ try {
     $testUser=New-MoonshineCITestUser
     Grant-MoonshineCITestFolder $folder $testUser
     $result=Join-Path $folder 'result.json';$trace=Join-Path $folder 'startup.txt'
-    $code='$i=[Security.Principal.WindowsIdentity]::GetCurrent();$p=New-Object Security.Principal.WindowsPrincipal($i);[IO.File]::WriteAllText('''+$result.Replace("'","''")+''',(ConvertTo-Json @{system=$i.IsSystem;admin=$p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)}))'
+    $code='[IO.File]::WriteAllText('''+$trace.Replace("'","''")+''',''Script entered.'');$i=[Security.Principal.WindowsIdentity]::GetCurrent();$p=New-Object Security.Principal.WindowsPrincipal($i);[IO.File]::WriteAllText('''+$result.Replace("'","''")+''',(ConvertTo-Json @{system=$i.IsSystem;admin=$p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)}))'
     $script=Join-Path $folder 'probe.ps1'
     [IO.File]::WriteAllText($script,$code,(New-Object Text.UTF8Encoding($true)))
     $powershell=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -18,7 +18,7 @@ try {
     $child=[MoonshineTestUserProcess]::Start($command,$folder,$testUser.Name,$testUser.Password)
     if (-not $child.WaitForExit(120000)) {
         $processes=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+$child.Id+' OR ParentProcessId='+$child.Id) | Select-Object ProcessId,ParentProcessId,Name)
-        throw ('Standard-account fixture timed out: '+(ConvertTo-Json -InputObject $processes -Compress))
+        throw ('Standard-account fixture timed out: '+(ConvertTo-Json -InputObject $processes -Compress)+'; script reached='+[IO.File]::Exists($trace)+'; result exists='+[IO.File]::Exists($result))
     }
     if (-not (Test-Path -LiteralPath $result)) {
         $startup=if (Test-Path -LiteralPath $trace) { [IO.File]::ReadAllText($trace) } else { 'No startup output.' }
