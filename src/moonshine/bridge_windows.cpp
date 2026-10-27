@@ -76,6 +76,7 @@ namespace moonshine {
     std::deque<std::shared_ptr<record>> records;
     std::shared_ptr<record> active;
     std::thread ticker;
+    handle trial_shutdown;
     std::atomic<bool> stopping {false};
     std::condition_variable wake;
     std::mutex wake_mutex;
@@ -295,11 +296,25 @@ namespace moonshine {
   }
   void start() {
     std::lock_guard guard(manager_mutex);if (!configured || ticker.joinable()) return;stopping=false;
+    const auto user=host.user();
+    if (!user.trial_id.empty()) {
+      if (!policy::id(user.trial_id) || user.sid.empty() || !host.request_shutdown) throw std::runtime_error("Contexte d’essai invalide.");
+      PSECURITY_DESCRIPTOR security=nullptr;
+      const auto sddl=wide("D:P(A;;GA;;;SY)(A;;0x100002;;;"+user.sid+")");
+      if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.c_str(),SDDL_REVISION_1,&security,nullptr)) throw std::runtime_error("Protection de l’arrêt indisponible.");
+      SECURITY_ATTRIBUTES attributes {sizeof(SECURITY_ATTRIBUTES),security,FALSE};
+      SetLastError(ERROR_SUCCESS);
+      const auto event=CreateEventW(&attributes,TRUE,FALSE,wide("Global\\Moonshine.Trial.Stop."+user.trial_id).c_str());
+      const auto error=GetLastError();LocalFree(security);
+      if (!event || error==ERROR_ALREADY_EXISTS) {if(event)CloseHandle(event);throw std::runtime_error("Une instance de cet essai est déjà ouverte.");}
+      trial_shutdown.value=event;
+    }
     ticker=std::thread([]() {
       std::string previous_sid;auto next=std::chrono::steady_clock::now()+std::chrono::minutes(1);
       while (!stopping) {
         { std::unique_lock lock(wake_mutex);wake.wait_for(lock,std::chrono::seconds(2),[] {return stopping.load();}); }
         if (stopping) break;
+        if (trial_shutdown.value && WaitForSingleObject(trial_shutdown.value,0)==WAIT_OBJECT_0) {host.request_shutdown();break;}
         try {
           const auto user=host.user();bool busy;
           { std::lock_guard lock(manager_mutex);busy=busy_locked();
@@ -315,6 +330,7 @@ namespace moonshine {
   }
   void stop() {
     stopping=true;wake.notify_all();if (ticker.joinable()) ticker.join();
+    if (trial_shutdown.value) {CloseHandle(trial_shutdown.value);trial_shutdown.value=nullptr;}
     std::deque<std::shared_ptr<record>> owned;
     {std::lock_guard guard(manager_mutex);owned=records;}
     for (const auto &value:owned) {std::lock_guard guard(value->mutex);value->cancel_requested=true;if (value->cancellation.value) SetEvent(value->cancellation.value);if (value->state=="awaiting_confirmation" && value->input.value) {try {write_pipe(value->input.value,"{\"answer\":\"\"}");} catch (...) {}}}

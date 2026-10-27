@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function library(page: Page, idle = true) {
+async function library(page: Page, idle = true, isolated = false) {
   const id = 'a'.repeat(32), nonce = 'b'.repeat(32);
   const calls: { action?: string; nonce?: string; accept?: boolean; text?: string; csrf?: string }[] = [];
   let job: Record<string, unknown> | null = null;
@@ -17,7 +17,7 @@ async function library(page: Page, idle = true) {
       { uuid: 'desktop', name: 'Desktop', cmd: '' },
       { uuid: '706c6f73-7862-8830-81ec-2118ff82baaa', name: 'Jeu Steam existant', 'plos-xbox-owner': 'plos-xbox-sync/1', 'plos-xbox-key': 'steam:990080' },
     ] };
-    else if (path === '/api/moonshine/status') body = { available: true, automatic: false, session_idle: idle, brand: 'Moonshine', engine_version: '0.8.0', job, snapshot: null };
+    else if (path === '/api/moonshine/status') body = { available: true, automatic: false, session_idle: idle, brand: 'Moonshine', isolated, engine_version: '0.8.1', job, snapshot: null };
     else if (path === '/api/moonshine/jobs' && request.method() === 'POST') {
       const input = request.postDataJSON();calls.push({ action: input.action, csrf: request.headers()['x-csrf-token'] });
       const reset = input.action === 'reset';
@@ -75,4 +75,13 @@ test('an active stream retains mutation controls while allowing an analysis', as
   await expect(page.getByRole('button', { name: 'Analyser', exact: true })).toBeEnabled();
   await expect(page.getByText('Une session ou une application de streaming est active.', { exact: false })).toBeVisible();
   expect(calls).toEqual([]);
+});
+
+test('trial context and Moonshine branding are visible', async ({ page }) => {
+  await library(page, true, true);
+  await expect(page.getByText('Mode essai ·', { exact: false })).toBeVisible();
+  const mark = page.locator('img[src$="moonshine-mark.svg"]').first();
+  await expect(mark).toBeVisible();
+  await expect.poll(() => mark.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await page.screenshot({ path: 'test-results/moonshine-library-trial.png', fullPage: true });
 });

@@ -33,6 +33,7 @@ namespace moonshine {
     std::function<void(const std::string &)> revoke_token;
     std::function<std::pair<std::string,std::string>()> endpoint;
     std::function<bool()> idle;
+    std::function<void()> request_shutdown;
   };
   void configure(host_services services);
   std::string trial_id();

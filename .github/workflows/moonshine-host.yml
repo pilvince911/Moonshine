@@ -17,6 +17,9 @@ jobs:
       CMAKE_BUILD_PARALLEL_LEVEL: 3
       COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       BRANCH: ${{ github.head_ref || github.ref_name }}
+      CCACHE_DIR: ${{ github.workspace }}/.moonshine-ccache
+      CCACHE_MAXSIZE: 2G
+      CCACHE_COMPILERCHECK: content
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,6 +39,7 @@ jobs:
             git
             mingw-w64-ucrt-x86_64-boost
             mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ccache
             mingw-w64-ucrt-x86_64-cppwinrt
             mingw-w64-ucrt-x86_64-curl-winssl
             mingw-w64-ucrt-x86_64-gcc
@@ -51,6 +55,11 @@ jobs:
             mingw-w64-ucrt-x86_64-opus
             mingw-w64-ucrt-x86_64-sqlite3
             mingw-w64-ucrt-x86_64-tools
+      - uses: actions/cache/restore@v4
+        with:
+          path: .moonshine-ccache
+          key: moonshine-ucrt64-ccache-v1-${{ github.run_id }}
+          restore-keys: moonshine-ucrt64-ccache-v1-
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -65,6 +74,7 @@ jobs:
           set -euo pipefail
           export PATH="$(cygpath -u "$MOONSHINE_NODE_DIR"):$PATH"
           cmake -S . -B build -G Ninja \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=OFF -DBUILD_TESTS=OFF \
             -DMOONSHINE_BUILD_INSTALLER=OFF \
             -DSUNSHINE_ENABLE_WEBRTC=OFF -DSUNSHINE_ENABLE_PYROWAVE=OFF \
@@ -89,7 +99,11 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$(cygpath -u "$MOONSHINE_NODE_DIR"):$PATH"
-          cmake --build build --target sunshine --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
+          cmake --build build --target sunshine playnite-launcher sunshine_wgc_capture audio-info dxgi-info --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
+      - uses: actions/cache/save@v4
+        with:
+          path: .moonshine-ccache
+          key: moonshine-ucrt64-ccache-v1-${{ github.run_id }}
       - name: Record the build identity
         if: always()
         shell: pwsh
@@ -100,12 +114,25 @@ jobs:
           if (Test-Path build/CMakeCache.txt) { Copy-Item build/CMakeCache.txt build-evidence/ }
           if (Test-Path build/compile_commands.json) { Copy-Item build/compile_commands.json build-evidence/ }
           if (Test-Path build/CMakeFiles/CMakeConfigureLog.yaml) { Copy-Item build/CMakeFiles/CMakeConfigureLog.yaml build-evidence/ }
+      - name: Stage and inspect the portable trial
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          python tools/moonshine-dev/stage_trial.py --build build --runtime-bin "$(cygpath -w /ucrt64/bin)" --output trial-kit
+      - name: Exercise the complete host as a non-administrator
+        shell: powershell
+        run: ./tests/moonshine/Invoke-HostSmoke.ps1 -KitRoot trial-kit
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: moonshine-windows-build-evidence
           path: build-evidence
           retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Moonshine-Windows-Essai-0.8.1
+          path: trial-kit/
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: moonshine-windows-native-build

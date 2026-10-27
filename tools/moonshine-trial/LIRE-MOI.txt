@@ -1,0 +1,33 @@
+MOONSHINE · ESSAI WINDOWS 0.8.1
+Version de développement autonome, sans installateur.
+
+1. Extraire le ZIP complet dans un dossier local. Ne pas démarrer sunshine.exe directement.
+2. Double-cliquer Demarrer-Moonshine.cmd avec votre compte Windows normal, sans élévation administrateur.
+3. Facultatif : Sauvegarder VibeShine… puis sélectionner son dossier config contenant apps.json ou le fichier .conf. La copie reste privée sur votre PC; elle n'est jamais envoyée automatiquement.
+4. Terminer le stream en cours et arrêter temporairement l'hôte VibeShine/Sunshine existant dans Services. Ne pas le désinstaller ni modifier son type de démarrage.
+5. Démarrer l’essai, puis Ouvrir la bibliothèque. Adresse : https://localhost:48990/v2/library.
+   Le certificat local est propre à cet essai. Créer ses identifiants dans l'interface.
+6. Analyser, examiner les jeux Xbox PC / Steam / EA, puis tester un pilote de chaque plateforme présente. Confirmer seulement un plan que vous avez examiné.
+7. Relancer l'analyse et la synchronisation : contrôler qu'aucun doublon n'est créé et que les personnalisations sont conservées.
+8. Dans Moonlight Qt, ajouter un PC avec l’adresse IP locale du PC Windows suivie de :48989 (exemple : 192.168.1.50:48989), puis l’appairer à cet hôte. Garder l'ancien PC enregistré. Si Windows demande une autorisation de pare-feu, limiter l'accès au réseau privé.
+   Cet essai utilise des ports différents de l’hôte habituel. Aucune redirection Internet ou modification d’OPi5/Armbian n’est nécessaire.
+9. Vérifier le lancement réel, l'arrêt, le son, la manette, la fluidité et vos réglages DLSS / Frame Generation. L'essai ne modifie pas automatiquement les réglages graphiques des jeux.
+10. Exporter le diagnostic depuis la bibliothèque si nécessaire. Inspecter le contenu avant de le partager. Ne pas joindre la sauvegarde privée contenant identifiants et certificats.
+11. Arrêter l’essai avec sa fenêtre, puis relancer votre ancien service VibeShine. Ses fiches et sa configuration restent à leur emplacement initial.
+
+ISOLATION ET RÉPARATION
+Le paquet est vérifié avant chaque préparation. Les fichiers manquants ou modifiés de la copie privée sont restaurés depuis le ZIP extrait; les anciennes versions sont gardées dans Recovery.
+Si le paquet source est altéré, extraire à nouveau le ZIP complet; le démarrage est suspendu.
+Données de l'essai : %LOCALAPPDATA%\OPi5\Moonshine-Trial\<identifiant>\
+Le catalogue d’essai est neuf : il ne reprend pas les anciennes données ni les tâches automatiques OPi5.
+Rouvrir le même paquet retrouve le même essai. Un nouveau commit utilise un essai distinct.
+Le marqueur d'essai empêche de lancer accidentellement le binaire nu sur le profil habituel.
+
+SAUVEGARDE ET RESTAURATION
+Sauvegarde-Moonshine.ps1 contient Restore-MoonshineBackup. Cette fonction vérifie les empreintes et prépare les fichiers dans un nouveau dossier pour examen; elle n'écrase jamais la configuration active et ne change aucun service.
+Les sauvegardes locales restent privées. Ne pas les téléverser automatiquement.
+
+PÉRIMÈTRE
+Le streaming natif Moonlight est compilé. WebRTC et PyroWave sont désactivés dans ce build; aucun pilote n'est installé ou fourni par ce kit. Les pilotes existants restent nécessaires aux fonctions qui en dépendent. TrueHDR et les fonctions matérielles ne sont pas qualifiés ici.
+Une compilation et des tests automatisés ne remplacent pas les essais de jeux, du GPU et du streaming sur votre PC. Ce paquet ne constitue pas la version 1.0.
+Sources, licences et identité exacte du commit sont incluses.

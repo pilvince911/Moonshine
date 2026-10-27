@@ -36,6 +36,12 @@ jobs:
         working-directory: src_assets/common/assets/web
       - run: npx playwright test e2e/moonshine-library.spec.ts
         working-directory: src_assets/common/assets/web
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moonshine-interface-preview
+          path: src_assets/common/assets/web/test-results
+          retention-days: 14
   windows-engine:
     runs-on: windows-latest
     timeout-minutes: 15
@@ -44,6 +50,14 @@ jobs:
       - name: Windows PowerShell 5.1 regression suite
         shell: powershell
         run: ./tests/moonshine/Invoke-EngineTests.ps1
+      - name: Regression suite in an isolated trial context
+        shell: powershell
+        run: |
+          $env:MOONSHINE_TRIAL_ID=[guid]::NewGuid().ToString('N')
+          ./tests/moonshine/Invoke-EngineTests.ps1
+      - name: Trial window and reversible file workflows
+        shell: powershell
+        run: ./tests/moonshine/Invoke-TrialKitTests.ps1
   windows-bridge:
     runs-on: windows-latest
     timeout-minutes: 10

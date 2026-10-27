@@ -4,6 +4,7 @@
 #include "confighttp.h"
 #include "config.h"
 #include "file_handler.h"
+#include "globals.h"
 #include "network.h"
 #include "process.h"
 #include "rtsp.h"
@@ -86,6 +87,7 @@ namespace confighttp {
       return std::make_pair("https://127.0.0.1:"+std::to_string(net::map_port(PORT_HTTPS)),pin.str());
     };
     services.idle=[]() {return rtsp_stream::session_count_no_cleanup()==0 && webrtc_stream::active_session_count()==0 && proc::proc.current_app_id()<=0;};
+    services.request_shutdown=[]() {mail::man->event<bool>(mail::shutdown)->raise(true);};
     moonshine::configure(std::move(services));moonshine::start();
 #endif
   }

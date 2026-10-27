@@ -8,7 +8,7 @@ La branche de référence `upstream/v2.0.1` conserve la base VibeShine 2.0.1. Le
 |---|---|
 | `src/moonshine/` | Travaux en arrière-plan, processus dans la session Windows, canaux privés, confirmation et annulation |
 | `src/confighttp_moonshine.cpp` | Authentification/CSRF, autorisations locales temporaires et adaptation à VibeShine |
-| `tools/moonshine/` | Moteur 0.8.0 et reprise du synchroniseur 0.7.0 |
+| `tools/moonshine/` | Moteur 0.8.1 et reprise du synchroniseur 0.7.0 |
 | `src_assets/common/assets/web/views/MoonshineLibraryView.vue` | Bibliothèque et maintenance intégrées |
 | `tests/moonshine/` | Politique native, vrai transport Windows et régressions du moteur |
 | `tools/moonshine-dev/` | Contrôles de source et préparation de l'archive |
@@ -50,3 +50,11 @@ Les workflows amont de release/signature et tâches planifiées sont remplacés 
 Le protocole n'accepte pas de commande, script, chemin de travail ou mot de passe fourni par l'interface. Le worker provient du package de l'hôte et vérifie ses empreintes. La reprise d'OPi5 conserve les marqueurs historiques et ne crée pas de nouveaux UUID pour un jeu déjà géré.
 
 Les commandes de synchronisation vérifient la session, l'identité du jeu et le catalogue avant chaque écriture. Les opérations ambiguës restent suspendues. Réutiliser la même commande de récupération; ne pas effacer `state.json`, `undo-control.json` ou `reset-control.json` pour forcer une application.
+
+## Kit d’essai
+
+`tools/moonshine-trial` contient le lanceur WPF et ses opérations réversibles. La fenêtre refuse l’élévation et une seconde fenêtre; l’hôte exige les marqueurs d’identité du kit. La copie privée est réparée uniquement à partir d’un paquet vérifié; les fichiers modifiés sont conservés dans Recovery. Le profil de l’hôte est adjacent au binaire privé et le moteur utilise le même identifiant d’essai pour ses données. L’index des essais utilise un verrou de fichier et des écritures atomiques.
+
+`tests/moonshine/Invoke-TrialKitTests.ps1` construit la fenêtre WPF et vérifie sauvegarde, refus d’écrasement, corruption et réparation. `Invoke-HostSmoke.ps1` réduit le jeton du compte CI existant, sans créer de compte Windows. Son enfant démarre le vrai binaire, vérifie HTTPS, autorisations, aperçu du moteur, révocation du jeton, absence d’écriture dans le profil de production et arrêt via un événement local protégé. Il ne simule ni une session de streaming ni un GPU.
+
+Le workflow construit aussi `playnite-launcher`, `sunshine_wgc_capture`, `audio-info` et `dxgi-info`. Le helper de lancement reste une dépendance d’exécution partagée, même lorsque les importateurs de bibliothèque Steam et Playnite sont désactivés. Le stage inspecte les imports PE récursifs et exécute `--version` depuis le dossier du kit. Le cache de compilation ne remplace aucun contrôle.
