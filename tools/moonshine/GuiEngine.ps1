@@ -14,7 +14,8 @@ function Gui-Text([string]$Text) {
     return $Text
 }
 function Write-Host {
-    param([Parameter(ValueFromRemainingArguments=$true)]$Object,[ConsoleColor]$ForegroundColor,[ConsoleColor]$BackgroundColor,[switch]$NoNewline,[object]$Separator=' ')
+    [CmdletBinding(PositionalBinding=$false)]
+    param([Parameter(Position=0,ValueFromRemainingArguments=$true)][object[]]$Object,[ConsoleColor]$ForegroundColor,[ConsoleColor]$BackgroundColor,[switch]$NoNewline,[object]$Separator=' ')
     if ($script:SelfTestStatus -eq 'running') { return }
     $text=(@($Object | ForEach-Object { [string]$_ }) -join [string]$Separator).Trim()
     if ($text) { $script:GuiBridge.Publish('log',(Gui-Text $text),-1,$null) }
