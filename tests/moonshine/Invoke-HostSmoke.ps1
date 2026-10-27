@@ -1,6 +1,9 @@
 ﻿#Requires -Version 5.1
 param([Parameter(Mandatory=$true)][string]$KitRoot,[string]$Evidence='build-evidence\native-smoke.json')
 $ErrorActionPreference='Stop'
+$KitRoot=[IO.Path]::GetFullPath($KitRoot)
+. (Join-Path $KitRoot 'Trial-Setup.ps1')
+$null=Read-MoonshineTrialManifest $KitRoot
 Add-Type -Path (Join-Path $PSScriptRoot 'restricted_process.cs')
 $temporary=Join-Path $env:PUBLIC ('MoonshineCI-'+[guid]::NewGuid().ToString('N'));$child=$null
 try {
