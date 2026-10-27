@@ -18,7 +18,7 @@ namespace moonshine::policy {
     return value.size() == 32 && std::all_of(value.begin(), value.end(), [](unsigned char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
   }
   inline bool game_id(std::string_view value) {
-    if (value.size() != 36 || !value.starts_with("706c6f73-7862-8")) return false;
+    if (value.size() != 36 || !value.starts_with("706c6f73-7862-8") || value[19] != '8') return false;
     for (std::size_t i = 0; i < value.size(); ++i) {
       if (i == 8 || i == 13 || i == 18 || i == 23) { if (value[i] != '-') return false; }
       else if (!((value[i] >= '0' && value[i] <= '9') || (value[i] >= 'a' && value[i] <= 'f'))) return false;

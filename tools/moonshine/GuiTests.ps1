@@ -45,7 +45,7 @@ function Invoke-GuiSelfTests {
     Invoke-GuiBoundarySelfTests
     $preferences=Parse-GuiHostPreferences "# commentaire`ncapture = wgc`nencoder = nvenc`npassword = ne_pas_copier`napi_token = ne_pas_copier`nnvenc_preset = 3"
     Assert ($preferences.Count -eq 3 -and $preferences.capture -eq 'wgc' -and -not $preferences.ContainsKey('password')) 'Diagnostic limité aux préférences autorisées, sans identifiants du fichier de configuration'
-    $imageFolder=Join-Path $env:TEMP ('opi5-ui-image-'+[guid]::NewGuid().ToString('N'))
+    $imageFolder=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-ui-image-'+[guid]::NewGuid().ToString('N'))
     [IO.Directory]::CreateDirectory($imageFolder) | Out-Null
     try {
         $imagePath=Join-Path $imageFolder 'pochette [test].png'
@@ -83,7 +83,7 @@ function Invoke-GuiSelfTests {
 }
 function Invoke-GuiBoundarySelfTests {
     $savedData=$script:Data;$savedRuntime=$script:Runtime;$savedBridge=$script:GuiBridge;$savedRepairs=$script:Repairs
-    $temporary=Join-Path $env:TEMP ('opi5-ui-boundary-'+[guid]::NewGuid().ToString('N'))
+    $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-ui-boundary-'+[guid]::NewGuid().ToString('N'))
     $localBridge=New-Object OPi5GuiBridge
     function Session-Idle { }
     function Get-Apps { return Clone-Object @{apps=@($script:UiTestApps)} }

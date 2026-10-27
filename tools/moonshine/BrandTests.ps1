@@ -2,7 +2,7 @@
 function Invoke-BrandSelfTests {
     $savedData=$script:Data;$savedRepairs=$script:Repairs
     $script:Repairs=New-Object 'Collections.Generic.List[object]'
-    $temporary=Join-Path $env:TEMP ('opi5-brand-selftest-'+[guid]::NewGuid().ToString('N'))
+    $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-brand-selftest-'+[guid]::NewGuid().ToString('N'))
     function Task-Name { return 'OPi5-test' }
     function Legacy-TaskName { return 'ancienne-test' }
     function Legacy-DataRoot { return $script:BrandTestSource }

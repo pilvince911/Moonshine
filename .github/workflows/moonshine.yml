@@ -1,14 +1,12 @@
 name: Moonshine integration
 on:
-  push:
-    branches: [moonshine/windows-integration]
   pull_request:
     branches: [upstream/v2.0.1]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: moonshine-${{ github.head_ref || github.ref_name }}
+  group: moonshine-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   policy:

@@ -2,7 +2,7 @@
 function Invoke-RecoverySelfTests {
     $savedData=$script:Data;$savedRuntime=$script:Runtime;$savedProfiles=$script:StreamProfiles;$savedUnattended=$script:Unattended
     $savedConnection=$script:Connection;$savedAuthorization=$script:Authorization;$savedRepairs=$script:Repairs
-    $temporary=Join-Path $env:TEMP ('opi5-recovery-selftest-'+[guid]::NewGuid().ToString('N'))
+    $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-recovery-selftest-'+[guid]::NewGuid().ToString('N'))
     try {
         $script:Unattended=$false;$script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.0'
         $script:Repairs=New-Object 'Collections.Generic.List[object]'

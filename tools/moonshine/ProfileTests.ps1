@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 function Invoke-ProfileSelfTests {
     $savedData=$script:Data;$savedProfiles=$script:StreamProfiles
-    $temporary=Join-Path $env:TEMP ('opi5-profile-selftest-'+[guid]::NewGuid().ToString('N'))
+    $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-profile-selftest-'+[guid]::NewGuid().ToString('N'))
     try {
         $script:Data=$temporary
         $script:StreamProfiles=Load-StreamProfiles

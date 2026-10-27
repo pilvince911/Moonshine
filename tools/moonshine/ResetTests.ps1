@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 function Invoke-ResetSelfTests {
     $savedData=$script:Data;$savedRuntime=$script:Runtime;$savedRepairs=$script:Repairs
-    $temporary=Join-Path $env:TEMP ('opi5-reset-selftest-'+[guid]::NewGuid().ToString('N'))
+    $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-reset-selftest-'+[guid]::NewGuid().ToString('N'))
     function Get-Apps { return Clone-Object @{apps=@($script:ResetTestApps)} }
     function Session-Idle { if ($script:ResetTestBusy) { throw 'Session synthetique active.' } }
     function Pause-ResetAutomation {

@@ -51,21 +51,21 @@ async function run(action: SyncAction, extra: Record<string, string> = {}): Prom
 }
 async function answer(accept: boolean): Promise<void> {
   if (!job.value || !prompt.value || submitting.value) return;
-  const id = job.value.job_id, nonce = prompt.value.nonce;submitting.value = true;error.value = '';
+  const id = job.value.job_id, nonce = prompt.value.nonce;submitting.value = true;error.value = '';generation++;
   try { adopt(await confirmSyncJob(id, nonce, accept, confirmationText.value)); }
   catch (cause) { error.value = message(cause); }
   finally { submitting.value = false; }
 }
 async function cancel(): Promise<void> {
-  if (!job.value || submitting.value) return;submitting.value = true;
+  if (!job.value || submitting.value) return;submitting.value = true;generation++;
   try { adopt(await cancelSyncJob(job.value.job_id)); } catch (cause) { error.value = message(cause); }
   finally { submitting.value = false; }
 }
 async function poll(): Promise<void> {
   if (disposed || refreshing || document.hidden) return;
   if (job.value && !terminal(job.value.state)) {
-    refreshing = true;
-    try { const previous = job.value.state;adopt(await getSyncJob(job.value.job_id));if (terminal(job.value.state) && previous !== job.value.state) { refreshing = false;await refresh(); } }
+    refreshing = true;const current = generation, id = job.value.job_id;
+    try { const previous = job.value.state, next = await getSyncJob(id);if (disposed || current !== generation || id !== job.value?.job_id) return;adopt(next);if (terminal(next.state) && previous !== next.state) { refreshing = false;await refresh(); } }
     catch (cause) { error.value = message(cause); }
     finally { refreshing = false; }
   } else await refresh();

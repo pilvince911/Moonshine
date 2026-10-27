@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 function Invoke-AtomicWriteSelfTests {
-    $temporary=Join-Path $env:TEMP ('opi5-atomic-selftest-'+[guid]::NewGuid().ToString('N'))
+    $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-atomic-selftest-'+[guid]::NewGuid().ToString('N'))
     $savedMode=$script:AtomicTestMode;$savedCalls=$script:AtomicTestCalls
     function Invoke-AtomicFileOperation([string]$Source,[string]$Destination,[bool]$Replace,[string]$Backup) {
         $script:AtomicTestCalls++
@@ -76,7 +76,7 @@ function Invoke-AtomicWriteSelfTests {
 function Invoke-RepairSelfTests {
     $savedData=$script:Data;$savedRuntime=$script:Runtime
     $savedRepairs=$script:Repairs;$savedStateRepair=$script:StateNeedsRepair
-    $temporary=Join-Path $env:TEMP ('opi5-repair-selftest-'+[guid]::NewGuid().ToString('N'))
+    $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-repair-selftest-'+[guid]::NewGuid().ToString('N'))
     $script:Repairs=New-Object 'Collections.Generic.List[object]'
     function Get-Apps {
         # Model the real API envelope, sorted properties, generated ids and

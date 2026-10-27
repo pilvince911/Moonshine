@@ -98,11 +98,19 @@ namespace moonshine {
     }
     void write_pipe(HANDLE pipe, std::string text) {
       text+='\n'; std::size_t offset=0;
-      while (offset<text.size()) { DWORD count=0;
-        if (!WriteFile(pipe,text.data()+offset,static_cast<DWORD>(std::min<std::size_t>(text.size()-offset,65536)),&count,nullptr) || count==0) throw std::runtime_error("Communication interne interrompue.");
+      handle ready(CreateEventW(nullptr,TRUE,FALSE,nullptr));if (!ready.value) throw std::runtime_error("Événement de communication indisponible.");
+      while (offset<text.size()) { DWORD count=0;OVERLAPPED operation {};operation.hEvent=ready.value;ResetEvent(ready.value);
+        if (!WriteFile(pipe,text.data()+offset,static_cast<DWORD>(std::min<std::size_t>(text.size()-offset,65536)),&count,&operation) && GetLastError()!=ERROR_IO_PENDING) throw std::runtime_error("Communication interne interrompue.");
+        if (!GetOverlappedResult(pipe,&operation,&count,TRUE) || count==0) throw std::runtime_error("Communication interne interrompue.");
         offset+=count;
       }
       SecureZeroMemory(text.data(),text.size());
+    }
+    bool read_pipe(HANDLE pipe, char *buffer, DWORD size, DWORD &count) {
+      handle ready(CreateEventW(nullptr,TRUE,FALSE,nullptr));if (!ready.value) throw std::runtime_error("Événement de lecture indisponible.");
+      OVERLAPPED operation {};operation.hEvent=ready.value;
+      if (!ReadFile(pipe,buffer,size,&count,&operation) && GetLastError()!=ERROR_IO_PENDING) return false;
+      return GetOverlappedResult(pipe,&operation,&count,TRUE)!=FALSE;
     }
     void apply_frame(const std::shared_ptr<record> &value, const std::string &line) {
       const auto frame=json::parse(line); const std::string type=frame.value("type","");
@@ -150,7 +158,7 @@ namespace moonshine {
         const auto pipe_sddl=wide("D:P(A;;GA;;;SY)(A;;GRGW;;;"+user.sid+")");
         if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(pipe_sddl.c_str(),SDDL_REVISION_1,&security,nullptr)) throw std::runtime_error("Protection du canal indisponible.");
         SECURITY_ATTRIBUTES pipe_sa {sizeof(SECURITY_ATTRIBUTES),security,FALSE};
-        HANDLE pipe=CreateNamedPipeW(pipe_path.c_str(),PIPE_ACCESS_DUPLEX|FILE_FLAG_FIRST_PIPE_INSTANCE,PIPE_TYPE_BYTE|PIPE_READMODE_BYTE|PIPE_NOWAIT|PIPE_REJECT_REMOTE_CLIENTS,1,65536,65536,30000,&pipe_sa);
+        HANDLE pipe=CreateNamedPipeW(pipe_path.c_str(),PIPE_ACCESS_DUPLEX|FILE_FLAG_FIRST_PIPE_INSTANCE|FILE_FLAG_OVERLAPPED,PIPE_TYPE_BYTE|PIPE_READMODE_BYTE|PIPE_WAIT|PIPE_REJECT_REMOTE_CLIENTS,1,65536,65536,30000,&pipe_sa);
         LocalFree(security);
         if (pipe==INVALID_HANDLE_VALUE) throw std::runtime_error("Canal local protégé indisponible.");
         {std::lock_guard guard(value->mutex);value->input.value=pipe;}
@@ -163,22 +171,25 @@ namespace moonshine {
         PROCESS_INFORMATION process {};std::string error_message;
         if (!host.launch(command,host.package.wstring(),startup,process,error_message)) throw std::runtime_error("Démarrage dans le compte Windows impossible. "+policy::bounded(error_message,200));
         process_handle.value=process.hProcess;handle process_thread(process.hThread);
-        const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(30);
-        while (!ConnectNamedPipe(pipe,nullptr)) {
-          const auto error=GetLastError();if (error==ERROR_PIPE_CONNECTED) break;
-          if (error!=ERROR_PIPE_LISTENING || std::chrono::steady_clock::now()>=deadline || WaitForSingleObject(process_handle.value,0)==WAIT_OBJECT_0 || WaitForSingleObject(event,0)==WAIT_OBJECT_0) throw std::runtime_error("Connexion du moteur local interrompue.");
-          std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        handle connected(CreateEventW(nullptr,TRUE,FALSE,nullptr));if (!connected.value) throw std::runtime_error("Événement de connexion indisponible.");
+        OVERLAPPED connection {};connection.hEvent=connected.value;
+        if (!ConnectNamedPipe(pipe,&connection)) {
+          const auto error=GetLastError();
+          if (error==ERROR_IO_PENDING) {
+            HANDLE waits[]={connected.value,process_handle.value,event};DWORD count=0;
+            if (WaitForMultipleObjects(3,waits,FALSE,30000)!=WAIT_OBJECT_0 || !GetOverlappedResult(pipe,&connection,&count,TRUE)) {
+              CancelIoEx(pipe,&connection);GetOverlappedResult(pipe,&connection,&count,TRUE);throw std::runtime_error("Connexion du moteur local interrompue.");
+            }
+          } else if (error!=ERROR_PIPE_CONNECTED) throw std::runtime_error("Connexion du moteur local impossible.");
         }
         ULONG client_pid=0;
         if (!GetNamedPipeClientProcessId(pipe,&client_pid) || client_pid!=process.dwProcessId) throw std::runtime_error("Identité du moteur local incorrecte.");
-        DWORD pipe_mode=PIPE_READMODE_BYTE|PIPE_WAIT;
-        if (!SetNamedPipeHandleState(pipe,&pipe_mode,nullptr,nullptr)) throw std::runtime_error("Communication du moteur indisponible.");
         auto boot=value->parameters;boot["protocol"]="moonshine-worker/1";boot["url"]=url;boot["pin"]=pin;boot["token"]=secret;
         boot["user_sid"]=user.sid;boot["cancel_event"]=utf8(event_name);
         { std::lock_guard guard(value->mutex);value->state="running";write_pipe(value->input.value,boot.dump()); }
         boot["token"]=nullptr;SecureZeroMemory(secret.data(),secret.size());secret.clear();
         char buffer[4096];std::string pending;DWORD count=0;
-        while (ReadFile(pipe,buffer,sizeof(buffer),&count,nullptr) && count) {
+        while (read_pipe(pipe,buffer,sizeof(buffer),count) && count) {
           pending.append(buffer,count);if (pending.size()>8388608) throw std::runtime_error("Réponse interne trop volumineuse.");
           std::size_t newline;
           while ((newline=pending.find('\n'))!=std::string::npos) {
