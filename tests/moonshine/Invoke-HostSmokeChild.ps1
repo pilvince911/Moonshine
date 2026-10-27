@@ -21,11 +21,7 @@ try {
     [IO.File]::WriteAllText($sentinel,'{"production":"must stay unchanged"}')
     $before=@{};foreach ($file in @(Get-ChildItem -LiteralPath $production -Recurse -File)) { $before[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash }
     $user='moonshine-smoke';$password=[guid]::NewGuid().ToString('N')+[guid]::NewGuid().ToString('N')
-    $initialize=New-Object Diagnostics.ProcessStartInfo
-    $initialize.FileName=Join-Path $Package 'sunshine.exe';$initialize.Arguments='"'+$config+'" --creds '+$user+' '+$password;$initialize.WorkingDirectory=$Package;$initialize.UseShellExecute=$false;$initialize.CreateNoWindow=$true
-    $created=[Diagnostics.Process]::Start($initialize)
-    Check ($created.WaitForExit(30000) -and $created.ExitCode -eq 0) 'Synthetic host credential initialization failed.'
-    $start=New-Object Diagnostics.ProcessStartInfo;$start.FileName=$initialize.FileName;$start.Arguments='"'+$config+'"';$start.WorkingDirectory=$Package;$start.UseShellExecute=$false;$start.CreateNoWindow=$true
+    $start=New-Object Diagnostics.ProcessStartInfo;$start.FileName=Join-Path $Package 'sunshine.exe';$start.Arguments='"'+$config+'"';$start.WorkingDirectory=$Package;$start.UseShellExecute=$false;$start.CreateNoWindow=$true
     $hostProcess=[Diagnostics.Process]::Start($start)
     . (Join-Path $Package 'tools\moonshine\Core.ps1');Init-Native
     $base='https://127.0.0.1:48990';$pin='';$ready=$false
@@ -40,6 +36,8 @@ try {
         if ($null -ne $Body) { $text=ConvertTo-Json -InputObject $Body -Depth 30 -Compress }
         return [OPi5Native]::Send($base+$Path,$Method,$Auth,$text,$pin)
     }
+    $reply=Request 'POST' '/api/password' '' @{currentUsername='';currentPassword='';newUsername=$user;newPassword=$password;confirmNewPassword=$password}
+    Check ($reply.Status -eq 200 -and (ConvertFrom-Json -InputObject $reply.Body).status -eq $true) 'First-run credentials could not be created through HTTPS.'
     $reply=Request 'GET' '/api/moonshine/status';Check ($reply.Status -in @(401,403)) 'Unauthenticated library access was allowed.'
     $reply=Request 'POST' '/api/auth/login' '' @{username=$user;password=$password;remember_me=$false};Check ($reply.Status -eq 200) 'Synthetic login failed.'
     $login=ConvertFrom-Json -InputObject $reply.Body;$authorization='Session '+$login.token;Check (-not [string]::IsNullOrWhiteSpace($login.token)) 'Login did not issue a session.'
