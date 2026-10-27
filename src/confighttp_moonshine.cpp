@@ -18,6 +18,7 @@
 #include "platform/windows/misc.h"
 #include <sddl.h>
 #include <shlobj.h>
+#include <userenv.h>
 #endif
 
 namespace confighttp {
@@ -60,11 +61,26 @@ namespace confighttp {
       PWSTR local=nullptr;if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData,0,token,&local)) || !local) return moonshine::user_context {};
       result.local_data=result.trial_id.empty() ? std::filesystem::path(local)/L"OPi5/VibeShine-Xbox" : std::filesystem::path(local)/L"OPi5/Moonshine-Trial"/std::filesystem::path(result.trial_id)/L"Sync";CoTaskMemFree(local);return result;
     };
-    services.launch=[](const std::string &command,const std::wstring &directory,STARTUPINFOEXW &startup,PROCESS_INFORMATION &process,std::string &error) {
+    services.launch=[user_context=services.user](const std::string &command,const std::wstring &directory,STARTUPINFOEXW &startup,PROCESS_INFORMATION &process,std::string &error) {
       std::error_code ec;
-      const bool success=platf::is_running_as_system()
-        ? platf::launch_process_with_impersonation(false,command,directory,CREATE_NO_WINDOW|CREATE_UNICODE_ENVIRONMENT,startup,process,ec)
-        : platf::launch_process_without_impersonation(command,directory,CREATE_NO_WINDOW,startup,process,ec);
+      if (platf::is_running_as_system()) {
+        // The worker is an explicit packaged executable, not a shell/URL launch.
+        // Keep the service's caller privileges while assigning the normal user's
+        // primary token; do not impersonate around CreateProcessAsUserW.
+        const auto user=user_context();
+        if (!user.token || user.sid.empty()) { error="Session Windows sélectionnée indisponible.";return false; }
+        void *environment=nullptr;
+        if (!CreateEnvironmentBlock(&environment,static_cast<HANDLE>(user.token.get()),FALSE)) {error="CreateEnvironmentBlock Windows "+std::to_string(GetLastError());return false;}
+        const int count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,command.data(),static_cast<int>(command.size()),nullptr,0);
+        if (!count) {const auto code=GetLastError();DestroyEnvironmentBlock(environment);error="Commande interne Windows "+std::to_string(code);return false;}
+        std::vector<wchar_t> text(static_cast<std::size_t>(count)+1,L'\0');MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,command.data(),static_cast<int>(command.size()),text.data(),count);
+        startup.StartupInfo.lpDesktop=const_cast<wchar_t *>(L"winsta0\\default");
+        const DWORD flags=CREATE_NO_WINDOW|CREATE_UNICODE_ENVIRONMENT|(startup.lpAttributeList?EXTENDED_STARTUPINFO_PRESENT:0);
+        const bool success=CreateProcessAsUserW(static_cast<HANDLE>(user.token.get()),nullptr,text.data(),nullptr,nullptr,FALSE,flags,environment,directory.c_str(),reinterpret_cast<LPSTARTUPINFOW>(&startup),&process)!=FALSE;
+        const auto code=success?ERROR_SUCCESS:GetLastError();DestroyEnvironmentBlock(environment);
+        if (!success) error="CreateProcessAsUserW Windows "+std::to_string(code);return success;
+      }
+      const bool success=platf::launch_process_without_impersonation(command,directory,CREATE_NO_WINDOW,startup,process,ec);
       if (!success) error="Windows "+std::to_string(ec.value());return success;
     };
     services.issue_token=[](const std::string &owner) {
