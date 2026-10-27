@@ -57,6 +57,54 @@ try {
     }
     Check ($job.state -eq 'completed') ('Real embedded worker failed: '+$job.message)
     Check ($job.snapshot.schema -eq 'moonshine-snapshot/1' -and $job.snapshot.tests -ge 427) 'Real worker did not publish its tested snapshot.'
+    function Complete-NativeJob([string]$Action,[string]$Expected='') {
+        $reply=Request 'POST' '/api/moonshine/jobs' $authorization @{action=$Action;scope='all'}
+        Check ($reply.Status -eq 200) ('Native '+$Action+' job was not created.')
+        $current=ConvertFrom-Json -InputObject $reply.Body;$answered=$false
+        for ($n=0;$n -lt 240;$n++) {
+            $reply=Request 'GET' ('/api/moonshine/jobs/'+$current.job_id) $authorization
+            Check ($reply.Status -eq 200) ('Polling '+$Action+' failed.')
+            $current=ConvertFrom-Json -InputObject $reply.Body
+            if ($current.state -eq 'awaiting_confirmation') {
+                Check (-not $answered -and $Expected -and $current.prompt.expected -ceq $Expected) ('Unexpected confirmation for '+$Action)
+                Check (@($current.prompt.rows | Where-Object { $_.title -eq 'CI personal entry' }).Count -eq 0) 'The plan included a personal entry.'
+                $reply=Request 'POST' ('/api/moonshine/jobs/'+$current.job_id+'/confirm') $authorization @{nonce=$current.prompt.nonce;accept=$true;text=$Expected}
+                Check ($reply.Status -eq 200) ('Confirmation '+$Action+' failed.');$answered=$true
+            }
+            if ($current.state -in @('completed','failed','cancelled')) { break }
+            Start-Sleep -Milliseconds 500
+        }
+        Check ($current.state -eq 'completed') ('Native '+$Action+' failed: '+$current.message)
+        if ($Expected) { Check $answered ('No confirmation was shown for '+$Action) }
+        return $current
+    }
+    function Read-NativeApps {
+        $reply=Request 'GET' '/api/apps' $authorization;Check ($reply.Status -eq 200) 'Native app catalogue readback failed.'
+        return @((ConvertFrom-Json -InputObject $reply.Body).apps)
+    }
+    $personalId=[guid]::NewGuid().ToString();$key='steam:777777';$managedId=Stable-Id $key
+    $personal=@{uuid=$personalId;name='CI personal entry';cmd='';detached=@();'prep-cmd'=@();'ci-preference'='keep personal'}
+    $managedFixture=@{uuid=$managedId;name='CI historical managed entry';cmd='';detached=@();'prep-cmd'=@();'ci-preference'='keep historical';'plos-xbox-owner'='plos-xbox-sync/1';'plos-xbox-key'=$key}
+    foreach ($fixture in @($personal,$managedFixture,$managedFixture)) {
+        $reply=Request 'POST' '/api/apps' $authorization $fixture
+        Check ($reply.Status -eq 200 -and (ConvertFrom-Json -InputObject $reply.Body).status -eq $true) 'Native app fixture persistence failed.'
+    }
+    $beforeApps=@(Read-NativeApps)
+    Check (@($beforeApps | Where-Object { $_.uuid -eq $managedId }).Count -eq 1) 'Repeated UUID persistence created a duplicate.'
+    Check (@($beforeApps | Where-Object { $_.uuid -eq $managedId -and $_.'plos-xbox-key' -eq $key }).Count -eq 1) 'The host discarded historical ownership fields.'
+    $job=Complete-NativeJob 'reset' 'REINITIALISER'
+    $afterReset=@(Read-NativeApps)
+    Check (@($afterReset | Where-Object { $_.uuid -eq $managedId }).Count -eq 0) 'The confirmed reset did not remove its managed fixture.'
+    Check ((($afterReset.uuid | Sort-Object) -join ',') -ceq ((($beforeApps | Where-Object { $_.uuid -ne $managedId }).uuid | Sort-Object) -join ',')) 'The reset changed other app identities.'
+    Check (@($afterReset | Where-Object { $_.uuid -eq $personalId -and $_.'ci-preference' -eq 'keep personal' }).Count -eq 1) 'The reset changed a personal preference.'
+    $job=Complete-NativeJob 'reset'
+    Check (@(Read-NativeApps).Count -eq $afterReset.Count) 'Repeating reset changed the remaining catalogue.'
+    $job=Complete-NativeJob 'restore' 'RESTAURER'
+    $restored=@(Read-NativeApps)
+    Check ((($restored.uuid | Sort-Object) -join ',') -ceq (($beforeApps.uuid | Sort-Object) -join ',')) 'Restoration did not recover the original identities.'
+    Check (@($restored | Where-Object { $_.uuid -eq $managedId -and $_.'ci-preference' -eq 'keep historical' }).Count -eq 1) 'Restoration lost a historical customization.'
+    Check (@($restored | Where-Object { $_.uuid -eq $personalId -and $_.'ci-preference' -eq 'keep personal' }).Count -eq 1) 'Restoration changed a personal entry.'
+    Check ($job.snapshot.reset.status -eq 'restored') 'The restored recovery journal was not published.'
     $reply=Request 'GET' '/api/tokens' $authorization;Check ($reply.Status -eq 200) 'Token lifecycle readback failed.'
     $tokens=ConvertFrom-Json -InputObject $reply.Body
     if ($tokens -is [array]) { $items=@($tokens) } elseif ($tokens.tokens -is [array]) { $items=@($tokens.tokens) } else { throw 'Token list shape is unknown.' }
@@ -66,7 +114,7 @@ try {
     $event=[Threading.EventWaitHandle]::OpenExisting(('Global\Moonshine.Trial.Stop.'+$id),[Security.AccessControl.EventWaitHandleRights]::Modify)
     try { $null=$event.Set() } finally { $event.Dispose() }
     Check ($hostProcess.WaitForExit(30000) -and $hostProcess.ExitCode -eq 0) 'The complete native host did not shut down cleanly.'
-    $record=@{status='passed';id=$id;non_administrator=$true;checks=$checks;engine_tests=$job.snapshot.tests;job_state=$job.state;isolated=$status.isolated;production_unchanged=$true;shutdown_exit_code=$hostProcess.ExitCode}
+    $record=@{status='passed';id=$id;non_administrator=$true;checks=$checks;engine_tests=$job.snapshot.tests;job_state=$job.state;isolated=$status.isolated;production_unchanged=$true;native_reset_restore=$true;personal_entries_preserved=$true;shutdown_exit_code=$hostProcess.ExitCode}
     Remove-Item -LiteralPath $sentinel -Force
     if (-not $wasPresent -and @(Get-ChildItem -LiteralPath $production -Force).Count -eq 0) { Remove-Item -LiteralPath $production }
 } catch { $record=@{status='failed';id=$id;checks=$checks;error=$_.Exception.Message;stack=$_.ScriptStackTrace} }

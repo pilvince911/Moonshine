@@ -16,13 +16,13 @@ try {
     $result=Join-Path $temporary 'result.json';$powershell=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $command='"'+$powershell+'" -NoLogo -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File "'+$script+'" -Package "'+$package+'" -Output "'+$result+'"'
     $child=[MoonshineRestrictedProcess]::Start($command,$temporary)
-    if (-not $child.WaitForExit(300000)) { throw 'Non-administrator native smoke timed out.' }
+    if (-not $child.WaitForExit(420000)) { throw 'Non-administrator native smoke timed out.' }
     if (-not (Test-Path -LiteralPath $result)) { throw 'Non-administrator native smoke did not return a result.' }
     $data=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($result))
     [IO.Directory]::CreateDirectory((Split-Path -Parent ([IO.Path]::GetFullPath($Evidence)))) | Out-Null
     Copy-Item -LiteralPath $result -Destination $Evidence -Force
     if ($child.ExitCode -ne 0 -or $data.status -ne 'passed') { throw ('Native smoke failed: '+$data.error+'; '+$data.stack) }
-    Write-Output ('Complete Moonshine host: non-admin HTTPS/auth/scoped token/real PowerShell worker/isolation/clean shutdown passed; '+$data.engine_tests+' embedded engine tests.')
+    Write-Output ('Complete Moonshine host: non-admin HTTPS/auth/scoped token/real PowerShell worker/confirmed reset/restore/personal-entry preservation/isolation/clean shutdown passed; '+$data.engine_tests+' embedded engine tests.')
 } finally {
     if (-not $child -or $child.HasExited) { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue } }
 }
