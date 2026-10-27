@@ -44,6 +44,8 @@ namespace confighttp {
     services.package=std::filesystem::path(executable).parent_path()/L"tools/moonshine";
     services.user=[]() {
       moonshine::user_context result;
+      result.trial_id=moonshine::trial_id();
+      if (!result.trial_id.empty() && platf::is_running_as_system()) throw std::runtime_error("L’essai Moonshine doit utiliser une session Windows normale.");
       HANDLE token=nullptr;
       if (platf::is_running_as_system()) token=platf::retrieve_users_token(false);
       else if (!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY|TOKEN_DUPLICATE|TOKEN_IMPERSONATE,&token)) return result;
@@ -54,7 +56,7 @@ namespace confighttp {
       LPWSTR sid=nullptr;if (!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER *>(storage.data())->User.Sid,&sid)) return moonshine::user_context {};
       for (const wchar_t *p=sid;*p;++p) result.sid.push_back(static_cast<char>(*p));LocalFree(sid);
       PWSTR local=nullptr;if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData,0,token,&local)) || !local) return moonshine::user_context {};
-      result.local_data=std::filesystem::path(local)/L"OPi5/VibeShine-Xbox";CoTaskMemFree(local);return result;
+      result.local_data=result.trial_id.empty() ? std::filesystem::path(local)/L"OPi5/VibeShine-Xbox" : std::filesystem::path(local)/L"OPi5/Moonshine-Trial"/std::filesystem::path(result.trial_id)/L"Sync";CoTaskMemFree(local);return result;
     };
     services.launch=[](const std::string &command,const std::wstring &directory,STARTUPINFOEXW &startup,PROCESS_INFORMATION &process,std::string &error) {
       std::error_code ec;
@@ -74,6 +76,7 @@ namespace confighttp {
       for (const auto &item:api_token_manager.get_api_tokens_list()) if (item.value("username","")==owner) api_token_manager.revoke_api_token_by_hash(item.value("hash",""));
     };
     services.endpoint=[]() {
+      if (!moonshine::trial_id().empty() && net::map_port(PORT_HTTPS)!=48990) throw std::runtime_error("Cet essai utilise le port HTTPS 48990.");
       const auto pem=file_handler::read_file(config::nvhttp.cert.c_str());
       const std::unique_ptr<BIO,decltype(&BIO_free)> input(BIO_new_mem_buf(pem.data(),static_cast<int>(pem.size())),BIO_free);
       const std::unique_ptr<X509,decltype(&X509_free)> cert(input?PEM_read_bio_X509(input.get(),nullptr,nullptr,nullptr):nullptr,X509_free);

@@ -333,6 +333,8 @@ int main(int argc, char *argv[]) {
   SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
 
   setlocale(LC_ALL, "C");
+  try { moonshine::validate_startup(); }
+  catch (const std::exception &error) { std::fprintf(stderr,"Moonshine: %s\n",error.what());return 1; }
 #endif
 
 #pragma GCC diagnostic push
@@ -565,9 +567,6 @@ int main(int argc, char *argv[]) {
     // Arm the owned deadline before any potentially unbounded join so that a
     // pathological message loop cannot hang process teardown indefinitely.
     shutdown_deadline.arm();
-#ifdef _WIN32
-  moonshine::stop();moonshine_guard.disable();
-#endif
 
     auto request_session_monitor_shutdown = [&](bool force_quit_only) {
       if (!force_quit_only) {
@@ -1032,6 +1031,9 @@ int main(int argc, char *argv[]) {
   // The signal handler only wakes main; start the owned watchdog here so it
   // never constructs threads or queues work from signal context.
   shutdown_deadline.arm();
+#ifdef _WIN32
+  moonshine::stop();moonshine_guard.disable();
+#endif
 
 #ifdef WIN32
   // Join the hidden shutdown-notification window while the deadline watchdog

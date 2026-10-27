@@ -79,6 +79,7 @@ function Read-Host([string]$Prompt,[switch]$AsSecureString) {
     return $expected
 }
 function Takeover-MoonshineAutomation {
+    if (Get-MoonshineTrialId) { return }
     $marker=Join-Path $script:Data 'moonshine-takeover.json'
     $existing=Read-Json $marker
     if ($existing) {
@@ -119,6 +120,7 @@ try {
     $script:EmbeddedCancel=[Threading.EventWaitHandle]::OpenExisting([string]$script:MoonshineBoot.cancel_event)
     . (Join-Path $PSScriptRoot 'VibeShine-Xbox.ps1') -FunctionsOnly
     . (Join-Path $PSScriptRoot 'Bootstrap.ps1') -FunctionsOnly
+    if ([string]$script:MoonshineBoot.trial_id -cne [string](Get-MoonshineTrialId)) { throw 'Le moteur ne correspond pas au contexte d essai selectionne.' }
     $script:Unattended=$script:MoonshineBoot.action -eq 'auto'
     Validate-Connection @{url=$script:MoonshineBoot.url;pin=$script:MoonshineBoot.pin}
     if ([string]$script:MoonshineBoot.token -match '[\r\n\x00]' -or ([string]$script:MoonshineBoot.token).Length -lt 16 -or ([string]$script:MoonshineBoot.token).Length -gt 512) { throw 'Jeton interne invalide.' }
@@ -132,6 +134,8 @@ try {
         $hashes=Package-Hashes $PSScriptRoot
         $null=Repair-PackageTree $PSScriptRoot $script:Runtime $hashes (Join-Path $script:Data 'Recovery')
         $null=Repair-PackageTree $PSScriptRoot (Join-Path (Join-Path $script:Data 'Packages') $script:Version) $hashes (Join-Path $script:Data 'Recovery')
+        Set-MoonshineTrialMarkers $script:Runtime
+        Set-MoonshineTrialMarkers (Join-Path (Join-Path $script:Data 'Packages') $script:Version)
     } finally { $bootstrapLock.Dispose() }
     $script:MoonshineLock=[IO.File]::Open((Join-Path $script:Data 'sync.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     if (Test-Path -LiteralPath (Legacy-DataRoot)) { $script:MoonshineOldLock=[IO.File]::Open((Join-Path (Legacy-DataRoot) 'sync.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None) }

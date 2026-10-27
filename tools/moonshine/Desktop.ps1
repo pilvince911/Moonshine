@@ -1,5 +1,7 @@
 ﻿#Requires -Version 5.1
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Trial.ps1')
+if (Get-MoonshineTrialId) { throw 'Utiliser la bibliotheque Web de Moonshine pour cet essai isole.' }
 if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitProcess -or
     [Threading.Thread]::CurrentThread.ApartmentState -ne [Threading.ApartmentState]::STA) { throw 'Lancer Demarrer.cmd dans une session Windows normale.' }
 . (Join-Path $PSScriptRoot 'GuiTests.ps1')

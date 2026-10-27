@@ -23,6 +23,7 @@ namespace moonshine {
     std::shared_ptr<void> token;
     std::string sid;
     std::filesystem::path local_data;
+    std::string trial_id;
   };
   struct host_services {
     std::filesystem::path package;
@@ -34,6 +35,8 @@ namespace moonshine {
     std::function<bool()> idle;
   };
   void configure(host_services services);
+  std::string trial_id();
+  void validate_startup();
 #endif
   void start();
   void stop();

@@ -11,7 +11,7 @@ try {
         if ($parseErrors.Count) { throw ($file.Name+': '+(($parseErrors | ForEach-Object { 'line '+$_.Extent.StartLineNumber+': '+$_.Message }) -join '; ')) }
     }
     . (Join-Path $engine 'VibeShine-Xbox.ps1') -FunctionsOnly
-    $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.0'
+    $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.1'
     $script:GuiBridge=$null;$script:EmbeddedCancel=$null;$script:SelfTestStatus='running'
     $count=Invoke-SelfTests
     $script:SelfTestStatus='passed'

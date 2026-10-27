@@ -15,6 +15,8 @@ jobs:
     env:
       BUILD_VERSION: 0.8.1
       CMAKE_BUILD_PARALLEL_LEVEL: 3
+      COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      BRANCH: ${{ github.head_ref || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,6 +78,12 @@ jobs:
             -DSUNSHINE_PUBLISHER_WEBSITE=https://github.com/pilvince911/Moonshine \
             -DSUNSHINE_PUBLISHER_ISSUE_URL=https://github.com/pilvince911/Moonshine/issues \
             -DSUNSHINE_NPM_EXECUTABLE="$(cygpath -m "$MOONSHINE_NPM")"
+      - name: Compile the integration translation units first
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          export PATH="$(cygpath -u "$MOONSHINE_NODE_DIR"):$PATH"
+          cmake --build build --target CMakeFiles/sunshine.dir/src/main.cpp.obj CMakeFiles/sunshine.dir/src/confighttp_moonshine.cpp.obj CMakeFiles/sunshine.dir/src/moonshine/bridge_windows.cpp.obj --parallel "$CMAKE_BUILD_PARALLEL_LEVEL"
       - name: Compile the host and its runtime helpers
         shell: msys2 {0}
         run: |

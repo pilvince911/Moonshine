@@ -1,4 +1,4 @@
-﻿MOONSHINE — moteur embarqué 0.8.0 (prototype source)
+﻿MOONSHINE — moteur embarqué 0.8.1 (prototype source)
 
 Le point d'entrée intégré est la page Bibliothèque de Moonshine. L'hôte gère la
 connexion locale temporaire, les travaux et l'automatisation. Les instructions
@@ -9,9 +9,9 @@ Aucun installateur de l'hôte ni essai réel de streaming n'est qualifié ici.
 DOCUMENTATION DU MODE DE SECOURS
 
 OPi5 — VibeShine / bibliothèque Xbox PC
-Version 0.8.0 — consolidation avant la candidate 1.0
+Version 0.8.1 — consolidation avant la candidate 1.0
 
-NOUVEAUTÉS 0.8.0
+NOUVEAUTÉS 0.8.1
 
 - Recherche par titre, plateforme ou identifiant; filtres par plateforme et état;
   compte des jeux affichés et remise à zéro des filtres.
@@ -48,8 +48,8 @@ celle-ci est déjà disponible. Le programme utilise Windows PowerShell 5.1 x64
 et les composants WPF de .NET Framework sur le PC Windows compatible.
 
 Les données restent dans %LOCALAPPDATA%\OPi5\VibeShine-Xbox\.
-Le programme et sa copie saine sont installés dans versions\0.8.0 et
-Packages\0.8.0. La connexion chiffrée, les UUID historiques, les images, les profils
+Le programme et sa copie saine sont installés dans versions\0.8.1 et
+Packages\0.8.1. La connexion chiffrée, les UUID historiques, les images, les profils
 et les sauvegardes existants sont repris. Les anciens lanceurs sont conservés
 pour le retour arrière. Les alias historiques restent regroupés dans Brand.ps1.
 Une entrée utilisant l'ancien lanceur reçoit normalement une mise à jour

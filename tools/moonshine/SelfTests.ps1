@@ -1,5 +1,8 @@
 ﻿#Requires -Version 5.1
 function Invoke-SelfTests {
+    # The baseline fixtures model legacy production data in temporary folders.
+    # Trial policy is exercised by its own nested suite with the real functions.
+    function Get-MoonshineTrialId { return '' }
     function Assert([bool]$Condition,[string]$Message) {
         Operation-Checkpoint
         if ($script:GuiBridge) { $script:GuiBridge.Publish('progress',('Vérification du programme · étape '+($script:SelfTestCount+1)),-1,$null) }
@@ -430,5 +433,6 @@ function Invoke-SelfTests {
     Invoke-ProfileSelfTests
     Invoke-RecoverySelfTests
     Invoke-GuiSelfTests
+    Invoke-MoonshineTrialSelfTests
     return $script:SelfTestCount
 }

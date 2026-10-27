@@ -50,6 +50,7 @@ function Get-ResetTargets($Apps) {
     }
 }
 function Pause-ResetAutomation {
+    if (Get-MoonshineTrialId) { return @{present=$false;was_enabled=$false} }
     $name=Task-Name
     $task=@(Get-ScheduledTask -TaskPath '\' -ErrorAction Stop | Where-Object { $_.TaskName -eq $name })
     if ($task.Count -gt 1) { throw 'Plusieurs taches OPi5 correspondantes; aucun retrait.' }

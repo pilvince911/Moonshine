@@ -7,8 +7,8 @@ param(
     [switch]$FunctionsOnly
 )
 $ErrorActionPreference='Stop'
-foreach ($module in @('Core.ps1','Repair.ps1','EA.ps1','Inventory.ps1','Api.ps1','Artwork.ps1','Profiles.ps1','Sync.ps1','Reset.ps1','Recovery.ps1','RecoveryTests.ps1','RepairTests.ps1','ResetTests.ps1','BrandTests.ps1','ProfileTests.ps1','GuiTests.ps1','SelfTests.ps1')) { . (Join-Path $PSScriptRoot $module) }
-$script:Data=Join-Path $env:LOCALAPPDATA 'OPi5\VibeShine-Xbox'
+foreach ($module in @('Core.ps1','Repair.ps1','EA.ps1','Inventory.ps1','Api.ps1','Artwork.ps1','Profiles.ps1','Sync.ps1','Reset.ps1','Recovery.ps1','RecoveryTests.ps1','RepairTests.ps1','ResetTests.ps1','BrandTests.ps1','ProfileTests.ps1','GuiTests.ps1','TrialTests.ps1','SelfTests.ps1')) { . (Join-Path $PSScriptRoot $module) }
+$script:Data=Get-MoonshineDataRoot
 $script:Runtime=Join-Path (Join-Path $script:Data 'versions') $script:Version
 $script:Connection=$null;$script:Authorization=''
 $script:LastInventory=$null;$script:LastPlan=@()
@@ -30,10 +30,11 @@ function Install-Tool {
     [IO.Directory]::CreateDirectory($script:Data) | Out-Null
     [IO.Directory]::CreateDirectory($script:Runtime) | Out-Null
     if ([IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\') -ine [IO.Path]::GetFullPath($script:Runtime).TrimEnd('\')) {
-        foreach ($file in @('Moonshine-Worker.ps1','Recovery.ps1','RecoveryTests.ps1','Desktop.ps1','Desktop.xaml','DesktopView.cs','GuiBridge.cs','GuiEngine.ps1','GuiDiagnostics.ps1','GuiTests.ps1','Mode-console.cmd','Brand.ps1','BrandTests.ps1','Profiles.ps1','ProfileTests.ps1','Atomic.ps1','Bootstrap.ps1','Repair.ps1','RepairTests.ps1','Reset.ps1','ResetTests.ps1','SHA256.txt','Core.ps1','EA.ps1','Inventory.ps1','Api.ps1','Artwork.ps1','Artwork.cs','Sync.ps1','SelfTests.ps1','TransportTests.cs','Transport-Test.pfx','Native.cs','Launch-Game.ps1','VibeShine-Xbox.ps1','Demarrer.cmd','Exporter-retour.cmd','LIRE-MOI.txt','VALIDATION.txt','SOURCES.txt')) {
+        foreach ($file in @('Trial.ps1','TrialTests.ps1','Moonshine-Worker.ps1','Recovery.ps1','RecoveryTests.ps1','Desktop.ps1','Desktop.xaml','DesktopView.cs','GuiBridge.cs','GuiEngine.ps1','GuiDiagnostics.ps1','GuiTests.ps1','Mode-console.cmd','Brand.ps1','BrandTests.ps1','Profiles.ps1','ProfileTests.ps1','Atomic.ps1','Bootstrap.ps1','Repair.ps1','RepairTests.ps1','Reset.ps1','ResetTests.ps1','SHA256.txt','Core.ps1','EA.ps1','Inventory.ps1','Api.ps1','Artwork.ps1','Artwork.cs','Sync.ps1','SelfTests.ps1','TransportTests.cs','Transport-Test.pfx','Native.cs','Launch-Game.ps1','VibeShine-Xbox.ps1','Demarrer.cmd','Exporter-retour.cmd','LIRE-MOI.txt','VALIDATION.txt','SOURCES.txt')) {
             Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination (Join-Path $script:Runtime $file) -Force
         }
     }
+    Set-MoonshineTrialMarkers $script:Runtime
 }
 function Record-Error([Management.Automation.ErrorRecord]$Record) {
     if ($script:SelfTestStatus -eq 'running') { $script:SelfTestStatus='failed' }
@@ -260,9 +261,12 @@ function Sync-Games([bool]$Pilot,[bool]$EaPilot=$false,[bool]$EaOnly=$false) {
     Save-Report
 }
 function Task-Name {
+    $trialId=Get-MoonshineTrialId
+    if ($trialId) { return 'Moonshine-Trial-'+$trialId }
     return 'OPi5-VibeShine-Xbox-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 }
 function Repair-AutomationRuntime {
+    if (Get-MoonshineTrialId) { return }
     $task=Get-ScheduledTask -TaskName (Task-Name) -TaskPath '\' -ErrorAction SilentlyContinue
     if (-not $task) { return }
     $actions=@($task.Actions)
@@ -282,6 +286,7 @@ function Repair-AutomationRuntime {
     Repair-Event 'schedule' 'version_updated' ('Tache existante dirigee vers '+$script:Version+'; activation et declencheurs conserves.')
 }
 function Enable-Automation {
+    if (Get-MoonshineTrialId) { throw 'Activer l automatisation depuis la bibliotheque Moonshine de cet essai.' }
     if (-not $script:Authorization) { throw 'Connecter VibeShine avant d activer la tache.' }
     $null=Test-UndoAllowsSync $false
     if (-not (Test-ResetAllowsSync $true)) { throw 'Reset en pause : faire le choix 4 et valider le reimport avant de reactiver la tache.' }

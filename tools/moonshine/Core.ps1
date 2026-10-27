@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 . (Join-Path $PSScriptRoot 'Atomic.ps1')
 . (Join-Path $PSScriptRoot 'Brand.ps1')
-$script:Version = '0.8.0'
+$script:Version = '0.8.1'
 $script:Owner = 'opi5-xbox-sync/1'
 $script:TransientFields = @('id','index','image-version','playnite-icon-version','remote-session')
 function Operation-Checkpoint {

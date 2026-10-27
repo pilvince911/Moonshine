@@ -184,7 +184,7 @@ namespace moonshine {
         }
         ULONG client_pid=0;
         if (!GetNamedPipeClientProcessId(pipe,&client_pid) || client_pid!=process.dwProcessId) throw std::runtime_error("Identité du moteur local incorrecte.");
-        auto boot=value->parameters;boot["protocol"]="moonshine-worker/1";boot["url"]=url;boot["pin"]=pin;boot["token"]=secret;
+        auto boot=value->parameters;boot["protocol"]="moonshine-worker/1";boot["url"]=url;boot["pin"]=pin;boot["token"]=secret;boot["trial_id"]=user.trial_id;
         boot["user_sid"]=user.sid;boot["cancel_event"]=utf8(event_name);
         { std::lock_guard guard(value->mutex);value->state="running";write_pipe(value->input.value,boot.dump()); }
         boot["token"]=nullptr;SecureZeroMemory(secret.data(),secret.size());secret.clear();
@@ -237,6 +237,26 @@ namespace moonshine {
     }
   }
   void configure(host_services services) { std::lock_guard guard(manager_mutex);if (configured) return;host=std::move(services);configured=true; }
+  std::string trial_id() {
+    wchar_t value[34] {};const auto size=GetEnvironmentVariableW(L"MOONSHINE_TRIAL_ID",value,34);
+    if (!size) return {};
+    if (size!=32) throw std::runtime_error("Identifiant d’essai Moonshine invalide.");
+    std::string result;for (DWORD n=0;n<size;++n) {if (value[n]>127) throw std::runtime_error("Identifiant d’essai Moonshine invalide.");result.push_back(static_cast<char>(value[n]));}
+    if (!policy::id(result)) throw std::runtime_error("Identifiant d’essai Moonshine invalide.");return result;
+  }
+  void validate_startup() {
+    const auto id=trial_id();std::wstring name(32768,L'\0');const auto size=GetModuleFileNameW(nullptr,name.data(),static_cast<DWORD>(name.size()));
+    if (!size || size>=name.size()) throw std::runtime_error("Chemin du programme indisponible.");name.resize(size);
+    const auto root=std::filesystem::path(name).parent_path();
+    const bool isolated=std::filesystem::is_regular_file(root/L"moonshine-trial-only.txt");
+    if (isolated && id.empty()) throw std::runtime_error("Ouvrir cet essai avec Demarrer-Moonshine.cmd.");
+    if (!id.empty()) {
+      if (!isolated) throw std::runtime_error("Ce programme n’est pas préparé comme essai isolé.");
+      std::ifstream input(root/L"moonshine-trial-id.txt",std::ios::binary);std::string marker(128,'\0');input.read(marker.data(),static_cast<std::streamsize>(marker.size()));marker.resize(static_cast<std::size_t>(input.gcount()));
+      while (!marker.empty() && (marker.back()=='\r' || marker.back()=='\n')) marker.pop_back();
+      if (marker!=id) throw std::runtime_error("Le programme appartient à un autre essai Moonshine.");
+    }
+  }
   json submit(const json &request) { return submit_impl(request,false); }
   json job(const std::string &id) { const auto user=host.user();std::lock_guard guard(manager_mutex);return public_record(find_locked(id,user.sid)); }
   json confirm(const std::string &id,const json &request) {
@@ -264,10 +284,10 @@ namespace moonshine {
     return public_record(value);
   }
   json status() {
-    json out={{"status",true},{"brand","Moonshine"},{"engine_version","0.8.0"},{"available",false},{"automatic",false},{"session_idle",false},{"job",nullptr},{"snapshot",nullptr}};
+    json out={{"status",true},{"brand","Moonshine"},{"engine_version","0.8.1"},{"isolated",false},{"available",false},{"automatic",false},{"session_idle",false},{"job",nullptr},{"snapshot",nullptr}};
     if (!configured) return out;
     const auto user=host.user();if (user.sid.empty()) return out;
-    out["available"]=true;out["automatic"]=auto_enabled(user);out["session_idle"]=host.idle();
+    out["available"]=true;out["isolated"]=!user.trial_id.empty();out["automatic"]=auto_enabled(user);out["session_idle"]=host.idle();
     { std::lock_guard guard(manager_mutex);for (auto it=records.rbegin();it!=records.rend();++it) { if ((*it)->owner==user.sid) {out["job"]=public_record(*it);break;} } }
     auto snapshot=read_user_json(user,"moonshine-snapshot.json",8388608);
     if (snapshot.is_object() && snapshot.value("schema","")=="moonshine-snapshot/1" && snapshot.contains("games") && snapshot["games"].is_array()) {snapshot["cached"]=true;out["snapshot"]=std::move(snapshot);}

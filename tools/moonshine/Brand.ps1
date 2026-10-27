@@ -1,13 +1,18 @@
 ﻿#Requires -Version 5.1
 # Compatibility names are intentionally confined here. Stable UUIDs stay unchanged.
+. (Join-Path $PSScriptRoot 'Trial.ps1')
 $script:LegacyBrand='plOS'
 $script:LegacyOwner='plos-xbox-sync/1'
 $script:LegacyStateSchema='plos-xbox-state/1'
 $script:LegacyTransactionSchema='plos-xbox-transaction/1'
 $script:LegacyFields=@{'opi5-xbox-owner'='plos-xbox-owner';'opi5-xbox-key'='plos-xbox-key'}
-function Legacy-DataRoot { return Join-Path $env:LOCALAPPDATA ($script:LegacyBrand+'\VibeShine-Xbox') }
+function Legacy-DataRoot {
+    if (Get-MoonshineTrialId) { return Join-Path (Get-MoonshineDataRoot) 'Legacy-Disabled' }
+    return Join-Path $env:LOCALAPPDATA ($script:LegacyBrand+'\VibeShine-Xbox')
+}
 function Legacy-TaskName { return $script:LegacyBrand+'-VibeShine-Xbox-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value }
 function Import-LegacyData([string]$Destination,[string]$Source) {
+    if (Get-MoonshineTrialId) { return }
     $marker=Join-Path $Destination 'brand-migration.json'
     if (-not (Test-Path -LiteralPath $Source -PathType Container) -or (Test-Path -LiteralPath $marker)) { return }
     $locks=@()
@@ -37,6 +42,7 @@ function Import-LegacyData([string]$Destination,[string]$Source) {
     } finally { foreach ($held in $locks) { $held.Dispose() } }
 }
 function Migrate-LegacyAutomation {
+    if (Get-MoonshineTrialId) { return }
     $current=Get-ScheduledTask -TaskName (Task-Name) -TaskPath '\' -ErrorAction SilentlyContinue
     $old=Get-ScheduledTask -TaskName (Legacy-TaskName) -TaskPath '\' -ErrorAction SilentlyContinue
     if (-not $old) { return }

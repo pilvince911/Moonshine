@@ -5,7 +5,7 @@ automatiques, le build de l'hôte, le service Windows et les essais de jeu. La
 procédure ci-dessous concerne le mode de secours OPi5, conservé pour récupération.
 Le rapport du commit GitHub exact fait foi pour les tests exécutés.
 
-OPi5 / VibeShine Xbox Sync 0.8.0 — consolidation avant la candidate 1.0
+OPi5 / VibeShine Xbox Sync 0.8.1 — consolidation avant la candidate 1.0
 
 PÉRIMÈTRE
 
@@ -80,12 +80,12 @@ LIMITES RÉELLES
 Windows PowerShell 5.1 et WPF ne peuvent pas être exécutés dans l'environnement de
 préparation. Le rendu natif, les clics et les nouveaux autotests Windows ne sont
 donc PAS déclarés vérifiés ici. Aucun nouveau total de tests réussis, lancement
-réel ou résultat de synchronisation 0.8.0 n'est annoncé. Le dernier diagnostic
+réel ou résultat de synchronisation 0.8.1 n'est annoncé. Le dernier diagnostic
 reçu reste 0.4.1 avec 197 tests puis un échec corrigé dans les versions suivantes.
 
 Les contrôles de démarrage s'exécutent sur le PC avant les actions. Confirmer la
 fenêtre sous Windows, les neuf jeux, les profils et l'automatisation avant 1.0.
-La version 0.8.0 est une livraison fonctionnelle à valider, pas une certification
+La version 0.8.1 est une livraison fonctionnelle à valider, pas une certification
 universelle des réglages RTX 4080/client/téléviseur.
 
 PARCOURS DE VALIDATION AU RETOUR DE PL

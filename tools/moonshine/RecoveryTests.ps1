@@ -4,7 +4,7 @@ function Invoke-RecoverySelfTests {
     $savedConnection=$script:Connection;$savedAuthorization=$script:Authorization;$savedRepairs=$script:Repairs
     $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('opi5-recovery-selftest-'+[guid]::NewGuid().ToString('N'))
     try {
-        $script:Unattended=$false;$script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.0'
+        $script:Unattended=$false;$script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.1'
         $script:Repairs=New-Object 'Collections.Generic.List[object]'
         [IO.Directory]::CreateDirectory($temporary) | Out-Null
         foreach ($value in @(@(),@(1),@(1,2),$false,0,'')) {
@@ -27,13 +27,13 @@ function Invoke-RecoverySelfTests {
         $null=Save-Connection $endpoint 'synthetic-token-one';Load-Connection
         Invoke-ConnectionFailureSelfTests
         $cachePath=Join-Path $temporary 'last-inventory.json'
-        foreach ($badCache in @(@{ready='incorrect';pending=@();created='';version='0.8.0'},@{ready=@(@{uuid='incorrect';key='steam:1';kind='steam';title='Test'});pending=@();created='';version='0.8.0'})) {
+        foreach ($badCache in @(@{ready='incorrect';pending=@();created='';version='0.8.1'},@{ready=@(@{uuid='incorrect';key='steam:1';kind='steam';title='Test'});pending=@();created='';version='0.8.1'})) {
             Write-Json $cachePath $badCache
             Assert ($null -eq (Read-InventoryCache)) 'Cache JSON lisible mais incohérent écarté sans toucher au catalogue'
             Assert ($null -eq (Read-Json $cachePath)) 'Cache invalide remplacé par null après conservation de son original'
         }
         Assert (@(Get-ChildItem -LiteralPath (Join-Path $temporary 'Recovery') -Filter '*last-inventory.json').Count -eq 2) 'Deux caches endommagés conservés pour diagnostic privé'
-        $validCache=@{ready=@();pending=@();created=(Get-Date).ToString('o');version='0.8.0'}
+        $validCache=@{ready=@();pending=@();created=(Get-Date).ToString('o');version='0.8.1'}
         Write-Json $cachePath $validCache
         Assert (Same (Read-InventoryCache) $validCache) 'Cache vide valide conservé sans réparation inutile'
         Invoke-SingleJournalSelfTests

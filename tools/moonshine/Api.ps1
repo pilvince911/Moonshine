@@ -5,6 +5,7 @@ function Plain-Secret([Security.SecureString]$Secret) {
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 }
 function Api-Call([string]$Method,[string]$Path,$Body=$null,[string]$Authorization='') {
+    if ($script:Connection) { Assert-MoonshineTrialEndpoint $script:Connection.url }
     Init-Native
     if ($Path -notmatch '^/api/[A-Za-z0-9/_-]+$') { throw 'Chemin API invalide.' }
     if (-not $script:Connection) { throw 'Connecter VibeShine avec le choix 2 du menu.' }
@@ -33,9 +34,11 @@ function Api-Call([string]$Method,[string]$Path,$Body=$null,[string]$Authorizati
     return $result
 }
 function Probe-Connection([string]$Url,[string]$Pin) {
+    Assert-MoonshineTrialEndpoint $Url
     return [OPi5Native]::Send($Url+'/api/csrf-token','GET','',[System.Management.Automation.Language.NullString]::Value,$Pin)
 }
 function Validate-Connection($Connection) {
+    Assert-MoonshineTrialEndpoint ([string](Field $Connection 'url'))
     if ((Field $Connection 'url') -isnot [string] -or $Connection.url -notmatch '^https://127\.0\.0\.1:\d{1,5}$' -or
         (Field $Connection 'pin') -isnot [string] -or $Connection.pin -notmatch '^[A-Fa-f0-9]{64}$') { throw 'Configuration de connexion invalide.' }
     $null=Parse-Port ($Connection.url.Split(':')[-1])

@@ -5,8 +5,8 @@ param(
     [switch]$Unattended,
     [switch]$FunctionsOnly
 )
-$script:BootstrapVersion='0.8.0'
-$script:BootstrapFiles=@('Moonshine-Worker.ps1','Recovery.ps1','RecoveryTests.ps1','Desktop.ps1','Desktop.xaml','DesktopView.cs','GuiBridge.cs','GuiEngine.ps1','GuiDiagnostics.ps1','GuiTests.ps1','Mode-console.cmd','Brand.ps1','BrandTests.ps1','Profiles.ps1','ProfileTests.ps1','Atomic.ps1','Bootstrap.ps1','Repair.ps1','RepairTests.ps1','Reset.ps1','ResetTests.ps1','Core.ps1','EA.ps1','Inventory.ps1','Api.ps1','Artwork.ps1','Artwork.cs','Sync.ps1','SelfTests.ps1','TransportTests.cs','Transport-Test.pfx','Native.cs','Launch-Game.ps1','VibeShine-Xbox.ps1','Demarrer.cmd','Exporter-retour.cmd','LIRE-MOI.txt','VALIDATION.txt','SOURCES.txt')
+$script:BootstrapVersion='0.8.1'
+$script:BootstrapFiles=@('Trial.ps1','TrialTests.ps1','Moonshine-Worker.ps1','Recovery.ps1','RecoveryTests.ps1','Desktop.ps1','Desktop.xaml','DesktopView.cs','GuiBridge.cs','GuiEngine.ps1','GuiDiagnostics.ps1','GuiTests.ps1','Mode-console.cmd','Brand.ps1','BrandTests.ps1','Profiles.ps1','ProfileTests.ps1','Atomic.ps1','Bootstrap.ps1','Repair.ps1','RepairTests.ps1','Reset.ps1','ResetTests.ps1','Core.ps1','EA.ps1','Inventory.ps1','Api.ps1','Artwork.ps1','Artwork.cs','Sync.ps1','SelfTests.ps1','TransportTests.cs','Transport-Test.pfx','Native.cs','Launch-Game.ps1','VibeShine-Xbox.ps1','Demarrer.cmd','Exporter-retour.cmd','LIRE-MOI.txt','VALIDATION.txt','SOURCES.txt')
 function Package-Hashes([string]$Folder,$Expected=$script:BootstrapFiles) {
     $manifest=Join-Path $Folder 'SHA256.txt'
     if (-not (Test-Path -LiteralPath $manifest -PathType Leaf) -or (Get-Item -LiteralPath $manifest).Length -gt 65536) { throw 'Liste des empreintes absente ou invalide.' }
@@ -63,7 +63,8 @@ try {
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
     $principal=New-Object Security.Principal.WindowsPrincipal($identity)
     if ($identity.IsSystem -or $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Lancer normalement, sans administrateur.' }
-    $data=Join-Path $env:LOCALAPPDATA 'OPi5\VibeShine-Xbox'
+    . (Join-Path $PSScriptRoot 'Trial.ps1')
+    $data=Get-MoonshineDataRoot
     [IO.Directory]::CreateDirectory($data) | Out-Null
     $bootstrapLock=[IO.File]::Open((Join-Path $data 'bootstrap.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     $runtime=Join-Path (Join-Path $data 'versions') $script:BootstrapVersion
@@ -72,7 +73,7 @@ try {
     foreach ($candidate in @($PSScriptRoot,$mirror,$runtime)) {
         if (Package-Valid $candidate) { $source=$candidate;break }
     }
-    if (-not $source) { throw 'Aucune copie complete et verifiable du programme. Reextraire le ZIP 0.8.0; donnees et jeux conserves.' }
+    if (-not $source) { throw 'Aucune copie complete et verifiable du programme. Reextraire le ZIP 0.8.1; donnees et jeux conserves.' }
     $hashes=Package-Hashes $source
     # Only load the writer after the complete source package has been verified.
     . (Join-Path $source 'Atomic.ps1')
@@ -81,6 +82,8 @@ try {
     $events=@(Repair-PackageTree $source $runtime $hashes (Join-Path $data 'Recovery'))
     if (-not (Package-Valid $runtime)) { throw 'Verification du programme apres reparation impossible.' }
     $mirrorEvents=@(Repair-PackageTree $runtime $mirror $hashes (Join-Path $data 'Recovery'))
+    Set-MoonshineTrialMarkers $runtime
+    Set-MoonshineTrialMarkers $mirror
     if (-not (Package-Valid $mirror)) { throw 'Verification de la copie de secours impossible.' }
     $health=@{version=$script:BootstrapVersion;time=(Get-Date).ToString('o');verified_files=$hashes.Count;runtime=$events;backup=$mirrorEvents;file_writes=@($script:AtomicWriteEvents.ToArray())}
     $path=Join-Path $data 'bootstrap-health.json'

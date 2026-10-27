@@ -14,6 +14,7 @@ function Launch-Log([string]$Event,$Details=$null) {
     [IO.File]::AppendAllText($log,((ConvertTo-Json -InputObject $r -Depth 8 -Compress)+[Environment]::NewLine),(New-Object Text.UTF8Encoding($false)))
 }
 try {
+    if ((Get-MoonshineTrialId) -and [IO.Path]::GetFullPath($DataRoot).TrimEnd('\') -ine [IO.Path]::GetFullPath((Get-MoonshineDataRoot)).TrimEnd('\')) { throw 'Ce lanceur est reserve aux donnees de cet essai Moonshine.' }
     if (-not (Local-Path $DataRoot)) { throw 'Dossier local invalide.' }
     $logDir=Join-Path $DataRoot 'Logs'
     [IO.Directory]::CreateDirectory($logDir) | Out-Null
