@@ -21,10 +21,27 @@ const recovery = computed(() => {
 const blocked = computed(() => !!snapshot.value?.rollback && ['undoing', 'invalid'].includes(snapshot.value.rollback.status) || !!snapshot.value?.reset && ['resetting', 'restoring', 'invalid'].includes(snapshot.value.reset.status));
 const writable = computed(() => status.value?.available && status.value.session_idle && !busy.value);
 function owned(app: AppRecord): boolean { return typeof (app['opi5-xbox-key'] ?? app['plos-xbox-key']) === 'string' && ['opi5-xbox-sync/1', 'plos-xbox-sync/1'].includes(String(app['opi5-xbox-owner'] ?? app['plos-xbox-owner'])); }
-const allGames = computed<SyncGame[]>(() => snapshot.value?.games ?? apps.value.filter(owned).map((app) => {
-  const key = String(app['opi5-xbox-key'] ?? app['plos-xbox-key']);
-  return { uuid: appUuid(app), key, title: appName(app), platform: key.split(':')[0] ?? '', action: 'unknown', reason: 'Entrée existante; analyser les installations pour vérifier son état.', changed_fields: [], managed: true, profile: 'unmanaged' };
-}));
+const allGames = computed<SyncGame[]>(() => {
+  const scanned = (snapshot.value?.games ?? []).map((game) => ({ ...game }));
+  const byKey = new Map(scanned.map((game) => [game.key, game]));
+  for (const app of apps.value.filter(owned)) {
+    const key = String(app['opi5-xbox-key'] ?? app['plos-xbox-key']), existing = byKey.get(key);
+    if (existing) {
+      // Pending discovery can still refer to an entry already in the host.
+      if (!existing.uuid) { existing.uuid = appUuid(app);existing.managed = true; }
+      continue;
+    }
+    const historical: SyncGame = {
+      uuid: appUuid(app), key, title: appName(app), platform: key.split(':')[0] ?? '', action: 'unknown',
+      reason: snapshot.value
+        ? 'Entrée conservée dans l’hôte; installation non retrouvée dans cette analyse. Aucune suppression automatique.'
+        : 'Entrée existante; analyser les installations pour vérifier son état.',
+      changed_fields: [], managed: true, profile: 'unmanaged',
+    };
+    scanned.push(historical);byKey.set(key, historical);
+  }
+  return scanned;
+});
 const games = computed(() => allGames.value.filter((game) => matchesGame(game, query.value, platform.value, state.value)));
 const otherApps = computed(() => apps.value.filter((app) => !owned(app)));
 const changes = computed(() => allGames.value.filter((game) => ['add', 'update'].includes(game.action)).length);

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function library(page: Page, idle = true, isolated = false) {
+async function library(page: Page, idle = true, isolated = false, emptyScan = false) {
   const id = 'a'.repeat(32), nonce = 'b'.repeat(32);
   const calls: { action?: string; nonce?: string; accept?: boolean; text?: string; csrf?: string }[] = [];
   let job: Record<string, unknown> | null = null;
@@ -21,7 +21,7 @@ async function library(page: Page, idle = true, isolated = false) {
       { uuid: 'desktop', name: 'Desktop', cmd: '' },
       { uuid: '706c6f73-7862-8830-81ec-2118ff82baaa', name: 'Jeu Steam existant', 'plos-xbox-owner': 'plos-xbox-sync/1', 'plos-xbox-key': 'steam:990080' },
     ] };
-    else if (path === '/api/moonshine/status') body = { available: true, automatic: false, session_idle: idle, brand: 'Moonshine', isolated, engine_version: '0.8.1', job, snapshot: null };
+    else if (path === '/api/moonshine/status') body = { available: true, automatic: false, session_idle: idle, brand: 'Moonshine', isolated, engine_version: '0.8.1', job, snapshot: emptyScan ? { schema: 'moonshine-snapshot/1', version: '0.8.1', games: [], tests: 444 } : null };
     else if (path === '/api/moonshine/jobs' && request.method() === 'POST') {
       const input = request.postDataJSON();calls.push({ action: input.action, csrf: request.headers()['x-csrf-token'] });
       const reset = input.action === 'reset';
@@ -109,4 +109,12 @@ test('trial context and Moonshine branding are visible', async ({ page }) => {
     for (const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(4.5);
   }
   await page.screenshot({ path: 'test-results/moonshine-library-trial.png', fullPage: true });
+});
+
+test('a missing installation in a fresh scan keeps the historical entry visible', async ({ page }) => {
+  const calls = await library(page, true, true, true);
+  await expect(page.getByRole('heading', { name: 'Jeu Steam existant' })).toBeVisible();
+  await expect(page.getByText('Entrée conservée dans l’hôte; installation non retrouvée dans cette analyse. Aucune suppression automatique.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Tous les réglages de l’entrée ↗' })).toHaveAttribute('href', /706c6f73-7862-8830-81ec-2118ff82baaa/);
+  expect(calls).toEqual([]);
 });
