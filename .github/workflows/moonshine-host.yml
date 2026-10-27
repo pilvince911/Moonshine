@@ -68,6 +68,7 @@ jobs:
         run: |
           'MOONSHINE_NODE_DIR=' + (Split-Path (Get-Command node).Source -Parent) >> $env:GITHUB_ENV
           'MOONSHINE_NPM=' + (Get-Command npm.cmd).Source >> $env:GITHUB_ENV
+          'MOONSHINE_PYTHON=' + (Get-Command python.exe).Source >> $env:GITHUB_ENV
       - name: Configure the complete Windows host
         shell: msys2 {0}
         run: |
@@ -118,7 +119,7 @@ jobs:
         shell: msys2 {0}
         run: |
           set -euo pipefail
-          python tools/moonshine-dev/stage_trial.py --build build --runtime-bin "$(cygpath -w /ucrt64/bin)" --output trial-kit
+          "$(cygpath -u "$MOONSHINE_PYTHON")" tools/moonshine-dev/stage_trial.py --build build --runtime-bin "$(cygpath -w /ucrt64/bin)" --output trial-kit
       - name: Exercise the complete host as a non-administrator
         shell: powershell
         run: ./tests/moonshine/Invoke-HostSmoke.ps1 -KitRoot trial-kit
