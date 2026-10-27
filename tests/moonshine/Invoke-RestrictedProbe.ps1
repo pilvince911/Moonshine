@@ -10,9 +10,11 @@ try {
     Grant-MoonshineCITestFolder $folder $testUser
     $result=Join-Path $folder 'result.json';$trace=Join-Path $folder 'startup.txt'
     $code='$i=[Security.Principal.WindowsIdentity]::GetCurrent();$p=New-Object Security.Principal.WindowsPrincipal($i);[IO.File]::WriteAllText('''+$result.Replace("'","''")+''',(ConvertTo-Json @{system=$i.IsSystem;admin=$p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)}))'
-    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code))
+    $script=Join-Path $folder 'probe.ps1'
+    [IO.File]::WriteAllText($script,$code,(New-Object Text.UTF8Encoding($true)))
     $powershell=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $command='"'+$env:ComSpec+'" /d /s /c ""'+$powershell+'" -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -EncodedCommand '+$encoded+' > "'+$trace+'" 2>&1"'
+    $command='"'+$env:ComSpec+'" /d /s /c ""'+$powershell+'" -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File "'+$script+'" > "'+$trace+'" 2>&1"'
+    Write-Output ('CI caller SYSTEM: '+[Security.Principal.WindowsIdentity]::GetCurrent().IsSystem+'; startup command length: '+$command.Length)
     $child=[MoonshineTestUserProcess]::Start($command,$folder,$testUser.Name,$testUser.Password)
     if (-not $child.WaitForExit(30000)) { throw 'Restricted-token fixture timed out.' }
     if (-not (Test-Path -LiteralPath $result)) {

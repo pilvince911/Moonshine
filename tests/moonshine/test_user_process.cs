@@ -25,14 +25,15 @@ public static class MoonshineTestUserProcess {
     // CI-only. No inherited CI-agent handles or CREATE_NO_WINDOW flag are
     // forwarded to the separate logon. Windows supplies the user's environment.
     public static Child Start(string command,string directory,string user,SecureString password) {
+        if(command.Length>=1024)throw new ArgumentException("The CI logon command must be shorter than 1024 characters; use a script file.");
         if(command.Length<3 || command[0]!='"')throw new ArgumentException("Quoted executable required.");
         var end=command.IndexOf('"',1);if(end<0)throw new ArgumentException("Invalid executable.");
         var startup=new StartupInfo();startup.cb=Marshal.SizeOf(typeof(StartupInfo));startup.flags=1;startup.show=0;
         var secret=Marshal.SecureStringToGlobalAllocUnicode(password);IntPtr token=IntPtr.Zero;
         try {
             ProcessInfo info;
-            if(!LogonUserW(user,Environment.MachineName,secret,2,0,out token))throw new Win32Exception();
-            if(!CreateProcessWithTokenW(token,1,command.Substring(1,end-1),new StringBuilder(command),0x400,IntPtr.Zero,directory,ref startup,out info))throw new Win32Exception();
+            if(!LogonUserW(user,Environment.MachineName,secret,2,0,out token)){var code=Marshal.GetLastWin32Error();throw new Win32Exception(code,"CI LogonUserW failed: "+code);}
+            if(!CreateProcessWithTokenW(token,1,command.Substring(1,end-1),new StringBuilder(command),0x400,IntPtr.Zero,directory,ref startup,out info)){var code=Marshal.GetLastWin32Error();throw new Win32Exception(code,"CI CreateProcessWithTokenW failed: "+code);}
             CloseHandle(info.thread);return new Child(info.process,info.processId);
         } finally {if(token!=IntPtr.Zero)CloseHandle(token);Marshal.ZeroFreeGlobalAllocUnicode(secret);}
     }
