@@ -27,6 +27,41 @@ namespace confighttp {
   bool check_content_type(resp_https_t response,req_https_t request,const std::string_view &type);
 
   namespace {
+#ifdef _WIN32
+    std::shared_ptr<void> normal_console_token() {
+      const auto own=[](HANDLE value) { return std::shared_ptr<void>(value,[](void *p) {if (p) CloseHandle(static_cast<HANDLE>(p));}); };
+      auto token=own(platf::retrieve_users_token(false));if (!token) return {};
+      DWORD bytes=0;TOKEN_ELEVATION_TYPE type;
+      if (!GetTokenInformation(token.get(),TokenElevationType,&type,sizeof(type),&bytes)) return {};
+      if (type==TokenElevationTypeFull) {
+        TOKEN_LINKED_TOKEN linked {};
+        if (!GetTokenInformation(token.get(),TokenLinkedToken,&linked,sizeof(linked),&bytes)) return {};
+        token=own(linked.LinkedToken);
+      }
+      TOKEN_ELEVATION elevation {};
+      if (!GetTokenInformation(token.get(),TokenElevation,&elevation,sizeof(elevation),&bytes)) return {};
+      if (elevation.TokenIsElevated) {
+        // With UAC disabled there is no linked limited token. Build a normal
+        // user token without administrator groups or administrative privileges.
+        DWORD admin[SECURITY_MAX_SID_SIZE/sizeof(DWORD)] {};DWORD size=sizeof(admin);
+        if (!CreateWellKnownSid(WinBuiltinAdministratorsSid,nullptr,admin,&size)) return {};
+        SID_AND_ATTRIBUTES disabled {admin,0};HANDLE limited=nullptr;
+        if (!CreateRestrictedToken(token.get(),DISABLE_MAX_PRIVILEGE|LUA_TOKEN,1,&disabled,0,nullptr,0,nullptr,&limited)) return {};
+        token=own(limited);
+        PSID medium=nullptr;if (!ConvertStringSidToSidW(L"S-1-16-8192",&medium)) return {};
+        TOKEN_MANDATORY_LABEL label {{medium,SE_GROUP_INTEGRITY}};
+        const bool lowered=SetTokenInformation(token.get(),TokenIntegrityLevel,&label,sizeof(label)+GetLengthSid(medium))!=FALSE;
+        LocalFree(medium);if (!lowered) return {};
+      }
+      // Refuse any token that still carries effective administrator membership.
+      HANDLE impersonation=nullptr;
+      if (!DuplicateToken(token.get(),SecurityIdentification,&impersonation)) return {};
+      const auto duplicate=own(impersonation);
+      DWORD admin[SECURITY_MAX_SID_SIZE/sizeof(DWORD)] {};DWORD size=sizeof(admin);BOOL member=TRUE;
+      if (!CreateWellKnownSid(WinBuiltinAdministratorsSid,nullptr,admin,&size) || !CheckTokenMembership(duplicate.get(),admin,&member) || member) return {};
+      return token;
+    }
+#endif
     nlohmann::json body(req_https_t request) {
       if (request->content.size()>65536) throw std::runtime_error("Requête Moonshine trop volumineuse.");
       std::stringstream text;text<<request->content.rdbuf();
@@ -49,10 +84,9 @@ namespace confighttp {
       result.trial_id=moonshine::trial_id();
       if (!result.trial_id.empty() && platf::is_running_as_system() && !moonshine::service_preview()) throw std::runtime_error("L’essai Moonshine doit utiliser une session Windows normale.");
       HANDLE token=nullptr;
-      if (platf::is_running_as_system()) token=platf::retrieve_users_token(false);
-      else if (!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY|TOKEN_DUPLICATE|TOKEN_IMPERSONATE,&token)) return result;
+      if (platf::is_running_as_system()) {result.token=normal_console_token();token=static_cast<HANDLE>(result.token.get());}
+      else if (OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY|TOKEN_DUPLICATE|TOKEN_IMPERSONATE,&token)) result.token=std::shared_ptr<void>(token,[](void *v) {CloseHandle(static_cast<HANDLE>(v));});
       if (!token) return result;
-      result.token=std::shared_ptr<void>(token,[](void *v) {CloseHandle(static_cast<HANDLE>(v));});
       DWORD size=0;GetTokenInformation(token,TokenUser,nullptr,0,&size);std::vector<unsigned char> storage(size);
       if (!size || !GetTokenInformation(token,TokenUser,storage.data(),size,&size)) return moonshine::user_context {};
       LPWSTR sid=nullptr;if (!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER *>(storage.data())->User.Sid,&sid)) return moonshine::user_context {};

@@ -81,12 +81,20 @@ try {
         if (-not $observedUser) {
             foreach ($worker in @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -like '*Moonshine-Worker.ps1*' -and $_.ParentProcessId -eq $serviceHostPid })) {
                 $workerOwner=Invoke-CimMethod -InputObject $worker -MethodName GetOwnerSid
-                Check ($workerOwner.Sid -ceq $owner -and $workerOwner.Sid -cne 'S-1-5-18') 'Worker escaped the selected normal account.';$observedUser=$true
+                # A short-lived rejected worker may exit between the process
+                # snapshot and GetOwnerSid. Do not mistake an absent SID for a
+                # different owner; completion and a real SID remain required.
+                $record.worker_owner_query=[int]$workerOwner.ReturnValue
+                $record.worker_sid=[string]$workerOwner.Sid;$record.expected_sid=$owner
+                if ($workerOwner.ReturnValue -eq 0 -and $workerOwner.Sid) {
+                    Check ($workerOwner.Sid -ceq $owner -and $workerOwner.Sid -cne 'S-1-5-18') 'Worker escaped the selected normal account.';$observedUser=$true
+                }
             }
         }
         $reply=Request 'GET' ('/api/moonshine/jobs/'+$job.job_id) $auth;$job=ConvertFrom-Json -InputObject $reply.Body
         if ($job.state -in @('completed','failed','cancelled')) { break };Start-Sleep -Milliseconds 500
     }
+    $record.worker_state=$job.state;$record.worker_message=$job.message
     Check ($observedUser -and $job.state -eq 'completed') ('Service worker did not complete in its normal user token: '+$job.message)
     Check ($job.snapshot.tests -ge 454) 'The embedded engine suite did not complete through the service.'
     for ($n=0;$n -lt 30;$n++) {
