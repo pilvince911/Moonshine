@@ -131,8 +131,12 @@ function Get-MMEffectiveReferences($Context,[switch]$Fresh) {
     foreach ($reference in @(Get-MMReferences $Context)) {
         if ($preview) {
             if ($reference.source -cin @('Donnees encore utilisees par le service 0.9','Raccourci encore utilise par le service 0.9')) { continue }
-            if ($preview.service -and $reference.source -ceq 'Service installe : MoonshineService' -and $reference.text -ieq (Join-Path $preview.root 'Package\tools\sunshinesvc.exe')) { continue }
-            if ($preview.service -and -not $reference.unknown -and ([string]$reference.source).StartsWith($preview.root+'\',[StringComparison]::OrdinalIgnoreCase)) { continue }
+            # .NET expands existing 8.3 components; references and candidates must
+            # use the same canonical form after exact SCM ownership is established.
+            $canonicalRoot=[IO.Path]::GetFullPath($preview.root).TrimEnd('\')
+            $canonicalExecutable=[IO.Path]::GetFullPath((Join-Path $preview.root 'Package\tools\sunshinesvc.exe'))
+            if ($preview.service -and $reference.source -ceq 'Service installe : MoonshineService' -and $reference.text -ieq $canonicalExecutable) { continue }
+            if ($preview.service -and -not $reference.unknown -and ([string]$reference.source).StartsWith($canonicalRoot+'\',[StringComparison]::OrdinalIgnoreCase)) { continue }
         }
         $reference
     }
