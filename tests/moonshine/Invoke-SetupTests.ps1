@@ -71,3 +71,6 @@ try {
     Check ((Invoke-MoonshineDriverTool $ps @('-NoProfile','-File',$child)) -eq 3010) 'A native restart-required result was lost.'
     Write-Output ('Moonshine ZIP setup: '+$checks+' WPF/migration/shape/path/driver-policy checks passed; no service, driver or trust modified.')
 } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force } }
+# A successful assertion of the synthetic 3010 result must not become the
+# GitHub shell's own exit code. Exceptions above still terminate the test.
+exit 0

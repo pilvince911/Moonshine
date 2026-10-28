@@ -10,7 +10,13 @@ try {
         'Install' { $null=Install-MoonshineZip $PSScriptRoot $OwnerSid -Migrate:$Migrate -Automatic:$Automatic }
         'Stop' { Stop-MoonshineSelectedService $OwnerSid }
         'Start' { $receipt=Read-MoonshineServiceReceipt;if ($receipt.owner_sid -cne $OwnerSid) {throw 'Compte different de celui de l installation.'};Start-MoonshineService }
-        'Drivers' { $null=Install-MoonshineDrivers $OwnerSid }
+        'Drivers' {
+            $result=Install-MoonshineDrivers $OwnerSid
+            if ($result.restart_required) {
+                Add-Type -AssemblyName PresentationFramework
+                $null=[Windows.MessageBox]::Show('Les pilotes ont ete prepares. Redemarrer Windows avant le prochain stream.','Moonshine - redemarrage requis',[Windows.MessageBoxButton]::OK,[Windows.MessageBoxImage]::Information)
+            }
+        }
         'Remove' {
             $receipt=Read-MoonshineServiceReceipt
             if ($receipt.owner_sid -cne $OwnerSid) { throw 'Compte different de celui de l installation.' }
