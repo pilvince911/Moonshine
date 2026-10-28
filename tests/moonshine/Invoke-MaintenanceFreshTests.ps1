@@ -63,6 +63,11 @@ try {
     $currentData=MakeDirectory (Join-Path $context.Local 'Moonshine\Library\cccccccccccccccccccccccccccccccc')
     [IO.File]::WriteAllText((Join-Path $currentData 'keep.txt'),'new library')
     Write-MMJson (Join-Path $current 'apps.json') @{apps=@(@{name='personal current app';cmd='do not alter'})}
+    $protectedKit=MakeDirectory (Join-Path $context.ProgramFiles 'Moonshine\OPi5-VibeShine-Sync-v0.7.0')
+    $protectedBackupKit=MakeDirectory (Join-Path $context.BackupBase 'OPi5-VibeShine-Sync-v0.7.0')
+    $context.ExtraFolders=@((Join-Path $context.ProgramFiles 'Moonshine'),$context.BackupBase)
+    Check (Test-MMProtectedPath $context $protectedKit) 'Even explicitly selected old-looking files under the new program must be protected.'
+    Check (Test-MMProtectedPath $context $protectedBackupKit) 'Previously saved backups must never become new cleanup candidates.'
     $receipt=@{schema='moonshine-service-receipt/1';name='MoonshineService';id=$id;commit=$commit;owner_sid=$sid;phase='stopped';firewall_created=$true}
     Write-MMJson (Join-Path $preview 'service-receipt.json') $receipt
     Write-MMJson (Join-Path $preview 'Package\moonshine-service-profile.json') @{schema='moonshine-service-preview/1';id=$id;owner_sid=$sid}
@@ -73,6 +78,7 @@ try {
     Check (@($candidates | Where-Object { $_.path -ieq $base }).Count -eq 1) 'The entire recognized trial base must be a single candidate.'
     Check (@($candidates | Where-Object { $_.path -ieq $trial }).Count -eq 0) 'Nested candidates must not be archived twice.'
     Check (@($candidates | Where-Object { $_.path -like ($context.ProgramFiles+'\Moonshine\*') -or $_.path -like ($context.Local+'\Moonshine\*') }).Count -eq 0) 'The standalone program and library must never be candidates.'
+    Check (@($candidates | Where-Object { $_.path -ieq $protectedBackupKit }).Count -eq 0) 'An extra search location must not expose saved archives to cleanup.'
     $tasks=@(Get-MMAllTasks $context $candidates)
     $normal=@(Get-MMPlan $candidates @(Get-MMEffectiveReferences $context) $tasks | Where-Object { $_.path -ieq $base })
     Check (-not $normal[0].removable) 'Ordinary cleanup must keep data still bound to the old service.'
@@ -85,7 +91,7 @@ try {
     Check (@($blocked | Where-Object { $_.path -ieq $preview -and -not $_.removable }).Count -eq 1) 'An unresolved custom catalogue must preserve the preview even in fresh mode.'
     [IO.File]::Delete($custom)
     $plan=@(Get-MMPlan $candidates @(Get-MMEffectiveReferences $context -Fresh) $tasks)
-    Check (@($plan | Where-Object { $_.path -ieq $preview -and $_.removable }).Count -eq 1) 'Explicit fresh cleanup must plan retirement of the known preview.'
+    Check (@($plan | Where-Object { $_.path -ieq $preview -and $_.removable }).Count -eq 1) ('Explicit fresh cleanup must plan retirement of the known preview. Synthetic plan: '+(ConvertTo-Json -InputObject $plan -Depth 6 -Compress)+'; synthetic references: '+(ConvertTo-Json -InputObject @(Get-MMEffectiveReferences $context -Fresh) -Depth 6 -Compress))
     $locks=Get-MMAllLocks $context $candidates
     $backup=New-MMBackup $context $candidates $plan $tasks
     foreach ($held in $locks) { $held.Dispose() };$locks=$null

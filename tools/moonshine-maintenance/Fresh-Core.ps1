@@ -63,6 +63,14 @@ function Test-MMTrialBase($Context,[string]$Base) {
         return $true
     } catch { return $false }
 }
+function Test-MMProtectedPath($Context,[string]$Path) {
+    $full=[IO.Path]::GetFullPath($Path).TrimEnd('\')
+    foreach ($protected in @((Join-Path $Context.ProgramFiles 'Moonshine'),(Join-Path $Context.Local 'Moonshine'),$Context.BackupBase,$PSScriptRoot)) {
+        $root=[IO.Path]::GetFullPath($protected).TrimEnd('\')
+        if ($full -ieq $root -or $full.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    return $false
+}
 function Get-MMAllCandidates($Context) {
     $items=New-Object 'Collections.Generic.List[object]'
     $base=Join-Path $Context.Local 'OPi5\Moonshine-Trial'
@@ -75,6 +83,7 @@ function Get-MMAllCandidates($Context) {
     $catalogue=@(Get-MMOldDistributions)
     foreach ($folder in @(Get-MMKitFolders $Context)) {
         foreach ($entry in @(Get-ChildItem -LiteralPath $folder -Force -ErrorAction Stop)) {
+            if (Test-MMProtectedPath $Context $entry.FullName) { continue }
             foreach ($distribution in $catalogue) {
                 if (-not (Test-MMDistributionName $entry.Name $distribution.name -Zip:(-not $entry.PSIsContainer))) { continue }
                 $path=$entry.FullName
