@@ -197,8 +197,16 @@ namespace moonshine {
           const auto error=GetLastError();
           if (error==ERROR_IO_PENDING) {
             HANDLE waits[]={connected.value,process_handle.value,event};DWORD count=0;
-            if (WaitForMultipleObjects(3,waits,FALSE,30000)!=WAIT_OBJECT_0 || !GetOverlappedResult(pipe,&connection,&count,TRUE)) {
-              CancelIoEx(pipe,&connection);GetOverlappedResult(pipe,&connection,&count,TRUE);throw std::runtime_error("Connexion du moteur local interrompue.");
+            const auto wait=WaitForMultipleObjects(3,waits,FALSE,30000);
+            const bool ready=wait==WAIT_OBJECT_0 && GetOverlappedResult(pipe,&connection,&count,TRUE);
+            if (!ready) {
+              const auto native_error=GetLastError();DWORD exit_code=STILL_ACTIVE;
+              std::string message="Connexion du moteur local interrompue.";
+              if (GetExitCodeProcess(process_handle.value,&exit_code) && exit_code!=STILL_ACTIVE) {
+                char code[16];snprintf(code,sizeof(code),"%08lx",static_cast<unsigned long>(exit_code));message+=" Arrêt Windows 0x"+std::string(code)+" avant connexion.";
+              } else if (wait==WAIT_TIMEOUT) message+=" Délai de démarrage dépassé.";
+              else if (wait==WAIT_FAILED || wait==WAIT_OBJECT_0) message+=" Windows "+std::to_string(native_error)+".";
+              CancelIoEx(pipe,&connection);GetOverlappedResult(pipe,&connection,&count,TRUE);throw std::runtime_error(message);
             }
           } else if (error!=ERROR_PIPE_CONNECTED) throw std::runtime_error("Connexion du moteur local impossible.");
         }

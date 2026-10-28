@@ -16,6 +16,7 @@
 #include <iomanip>
 #ifdef _WIN32
 #include "platform/windows/misc.h"
+#include <aclapi.h>
 #include <sddl.h>
 #include <shlobj.h>
 #include <userenv.h>
@@ -48,6 +49,21 @@ namespace confighttp {
         SID_AND_ATTRIBUTES disabled {admin,0};HANDLE limited=nullptr;
         if (!CreateRestrictedToken(token.get(),DISABLE_MAX_PRIVILEGE|LUA_TOKEN,1,&disabled,0,nullptr,0,nullptr,&limited)) return {};
         token=own(limited);
+        // A full administrator token may default new objects to Administrators.
+        // After filtering that group, give this user's own SID control over its
+        // new objects and make it their owner, as in a normal interactive token.
+        GetTokenInformation(token.get(),TokenUser,nullptr,0,&bytes);std::vector<unsigned char> user_storage(bytes);
+        if (!bytes || !GetTokenInformation(token.get(),TokenUser,user_storage.data(),bytes,&bytes)) return {};
+        const auto user_sid=reinterpret_cast<TOKEN_USER *>(user_storage.data())->User.Sid;
+        TOKEN_OWNER owner {user_sid};if (!SetTokenInformation(token.get(),TokenOwner,&owner,sizeof(owner))) return {};
+        GetTokenInformation(token.get(),TokenDefaultDacl,nullptr,0,&bytes);std::vector<unsigned char> dacl_storage(bytes);
+        if (!bytes || !GetTokenInformation(token.get(),TokenDefaultDacl,dacl_storage.data(),bytes,&bytes)) return {};
+        EXPLICIT_ACCESSW grant {};grant.grfAccessPermissions=GENERIC_ALL;grant.grfAccessMode=GRANT_ACCESS;grant.grfInheritance=NO_INHERITANCE;
+        grant.Trustee.TrusteeForm=TRUSTEE_IS_SID;grant.Trustee.TrusteeType=TRUSTEE_IS_USER;grant.Trustee.ptstrName=static_cast<LPWSTR>(user_sid);
+        PACL acl=nullptr;
+        if (SetEntriesInAclW(1,&grant,reinterpret_cast<TOKEN_DEFAULT_DACL *>(dacl_storage.data())->DefaultDacl,&acl)!=ERROR_SUCCESS) return {};
+        TOKEN_DEFAULT_DACL defaults {acl};const bool defaults_set=SetTokenInformation(token.get(),TokenDefaultDacl,&defaults,sizeof(defaults))!=FALSE;
+        LocalFree(acl);if (!defaults_set) return {};
         PSID medium=nullptr;if (!ConvertStringSidToSidW(L"S-1-16-8192",&medium)) return {};
         TOKEN_MANDATORY_LABEL label {{medium,SE_GROUP_INTEGRITY}};
         const bool lowered=SetTokenInformation(token.get(),TokenIntegrityLevel,&label,sizeof(label)+GetLengthSid(medium))!=FALSE;
@@ -99,20 +115,28 @@ namespace confighttp {
       std::error_code ec;
       if (platf::is_running_as_system()) {
         // The worker is an explicit packaged executable, not a shell/URL launch.
-        // Keep the service's caller privileges while assigning the normal user's
-        // primary token; do not impersonate around CreateProcessAsUserW.
+        // Keep the service's caller privileges and use the selected limited
+        // token. Windows supplies that account's access to the inherited desktop.
         const auto user=user_context();
         if (!user.token || user.sid.empty()) { error="Session Windows sélectionnée indisponible.";return false; }
+        DWORD token_session=0,host_session=0,bytes=0;
+        if (!GetTokenInformation(user.token.get(),TokenSessionId,&token_session,sizeof(token_session),&bytes) || !ProcessIdToSessionId(GetCurrentProcessId(),&host_session) || token_session!=host_session) {error="La session Windows a changé; redémarrer le service Moonshine.";return false;}
         void *environment=nullptr;
         if (!CreateEnvironmentBlock(&environment,static_cast<HANDLE>(user.token.get()),FALSE)) {error="CreateEnvironmentBlock Windows "+std::to_string(GetLastError());return false;}
         const int count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,command.data(),static_cast<int>(command.size()),nullptr,0);
         if (!count) {const auto code=GetLastError();DestroyEnvironmentBlock(environment);error="Commande interne Windows "+std::to_string(code);return false;}
+        if (count>=1024) {DestroyEnvironmentBlock(environment);error="Commande du moteur trop longue pour le lancement Windows.";return false;}
         std::vector<wchar_t> text(static_cast<std::size_t>(count)+1,L'\0');MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,command.data(),static_cast<int>(command.size()),text.data(),count);
-        startup.StartupInfo.lpDesktop=const_cast<wchar_t *>(L"winsta0\\default");
+        wchar_t system[MAX_PATH];if (!GetSystemDirectoryW(system,MAX_PATH)) {const auto code=GetLastError();DestroyEnvironmentBlock(environment);error="Répertoire Windows "+std::to_string(code);return false;}
+        const auto application=std::filesystem::path(system)/L"WindowsPowerShell/v1.0/powershell.exe";
+        // An explicit WinSta0\\Default name makes the caller responsible for
+        // desktop ACLs. nullptr asks Windows to prepare access for this account.
+        startup.StartupInfo.lpDesktop=nullptr;
+        startup.StartupInfo.dwFlags|=STARTF_USESHOWWINDOW;startup.StartupInfo.wShowWindow=SW_HIDE;
         const DWORD flags=CREATE_NO_WINDOW|CREATE_UNICODE_ENVIRONMENT|(startup.lpAttributeList?EXTENDED_STARTUPINFO_PRESENT:0);
-        const bool success=CreateProcessAsUserW(static_cast<HANDLE>(user.token.get()),nullptr,text.data(),nullptr,nullptr,FALSE,flags,environment,directory.c_str(),reinterpret_cast<LPSTARTUPINFOW>(&startup),&process)!=FALSE;
+        const bool success=CreateProcessWithTokenW(static_cast<HANDLE>(user.token.get()),LOGON_WITH_PROFILE,application.c_str(),text.data(),flags,environment,directory.c_str(),reinterpret_cast<LPSTARTUPINFOW>(&startup),&process)!=FALSE;
         const auto code=success?ERROR_SUCCESS:GetLastError();DestroyEnvironmentBlock(environment);
-        if (!success) error="CreateProcessAsUserW Windows "+std::to_string(code);return success;
+        if (!success) error="CreateProcessWithTokenW Windows "+std::to_string(code);return success;
       }
       const bool success=platf::launch_process_without_impersonation(command,directory,CREATE_NO_WINDOW,startup,process,ec);
       if (!success) error="Windows "+std::to_string(ec.value());return success;
