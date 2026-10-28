@@ -77,6 +77,14 @@ try {
     $normal=@(Get-MMPlan $candidates @(Get-MMEffectiveReferences $context) $tasks | Where-Object { $_.path -ieq $base })
     Check (-not $normal[0].removable) 'Ordinary cleanup must keep data still bound to the old service.'
     $plan=@(Get-MMPlan $candidates @(Get-MMEffectiveReferences $context -Fresh) $tasks)
+    Check (@($plan | Where-Object { $_.path -ieq $preview -and -not $_.removable }).Count -eq 1) 'A missing old catalogue must preserve the preview even in fresh mode.'
+    $oldConfig=MakeDirectory (Join-Path $preview 'Package\config')
+    Write-MMJson (Join-Path $oldConfig 'apps.json') @{apps=@(@{name='old imported game';cmd=(Join-Path $trial 'Sync\versions\0.8.1\Launch-Game.ps1')})}
+    $custom=Join-Path $oldConfig 'moonshine.conf';[IO.File]::WriteAllText($custom,'file_apps = C:\custom\apps.json')
+    $blocked=@(Get-MMPlan $candidates @(Get-MMEffectiveReferences $context -Fresh) $tasks)
+    Check (@($blocked | Where-Object { $_.path -ieq $preview -and -not $_.removable }).Count -eq 1) 'An unresolved custom catalogue must preserve the preview even in fresh mode.'
+    [IO.File]::Delete($custom)
+    $plan=@(Get-MMPlan $candidates @(Get-MMEffectiveReferences $context -Fresh) $tasks)
     Check (@($plan | Where-Object { $_.path -ieq $preview -and $_.removable }).Count -eq 1) 'Explicit fresh cleanup must plan retirement of the known preview.'
     $locks=Get-MMAllLocks $context $candidates
     $backup=New-MMBackup $context $candidates $plan $tasks
