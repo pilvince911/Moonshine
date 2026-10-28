@@ -6,7 +6,7 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:CI -ne 'true') { throw 'SCM qualific
 Assert-MoonshineAdmin
 if (Get-Service -Name 'MoonshineService','SunshineService' -ErrorAction SilentlyContinue) { throw 'An existing host service must never be changed by CI.' }
 if (Test-Path -LiteralPath $script:MoonshineServiceRoot) { throw 'CI service destination already exists.' }
-$id=[guid]::NewGuid().ToString('N');$owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$id=[guid]::NewGuid().ToString('N');$serviceOwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $fixture=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ('OPi5\Moonshine-Trial\'+$id)
 $record=@{status='starting';service='MoonshineService';id=$id;checks=0};$created=$false;$serviceHostPid=0
 function Check([bool]$Condition,[string]$Message) { if (-not $Condition) { throw $Message };$record.checks++ }
@@ -19,7 +19,7 @@ try {
     [IO.Directory]::CreateDirectory((Join-Path $fixture 'Sync')) | Out-Null
     [IO.File]::WriteAllText((Join-Path $fixture 'Sync\service-sentinel.txt'),'unchanged')
     $before=@{};foreach ($file in @(Get-ChildItem -LiteralPath $fixture -Recurse -File)) { $before[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash }
-    $receipt=Install-MoonshineService ([IO.Path]::GetFullPath($KitRoot)) $owner $id;$created=$true
+    $receipt=Install-MoonshineService ([IO.Path]::GetFullPath($KitRoot)) $serviceOwnerSid $id;$created=$true
     $receiptFile=Join-Path $script:MoonshineServiceRoot 'service-receipt.json'
     $receiptBytes=(Get-Item -LiteralPath $receiptFile).Length
     Check ($receiptBytes -lt 4194304 -and (Read-MoonshineServiceReceipt).id -ceq $id) 'The genuine package receipt could not be read after installation.'
@@ -30,7 +30,7 @@ try {
     $originalConfigHash=(Get-FileHash -LiteralPath (Join-Path $target 'config\moonshine.conf')).Hash
     $repairTarget=Join-Path $target 'tools\audio-info.exe';$expectedHash=(Get-FileHash -LiteralPath $repairTarget).Hash
     [IO.File]::WriteAllBytes($repairTarget,[byte[]](1,2,3))
-    $receipt=Install-MoonshineService (Join-Path $script:MoonshineServiceRoot 'Kit') $owner $id
+    $receipt=Install-MoonshineService (Join-Path $script:MoonshineServiceRoot 'Kit') $serviceOwnerSid $id
     Check ((Get-FileHash -LiteralPath $repairTarget).Hash -ceq $expectedHash) 'The verified local kit could not repair its corrupted installed helper.'
     Check ((Get-FileHash -LiteralPath (Join-Path $target 'config\moonshine.conf')).Hash -ceq $originalConfigHash) 'Repair replaced personal host settings.'
     Check (@(Get-ChildItem -LiteralPath (Join-Path $script:MoonshineServiceRoot 'Recovery') -Recurse -File | Where-Object { $_.Name -eq 'audio-info.exe' -and $_.Length -eq 3 }).Count -eq 1) 'Repair did not preserve its replaced bytes.'
@@ -45,7 +45,11 @@ try {
     # The actual WPF view is constructed, not just parsed as XML.
     & (Join-Path ([IO.Path]::GetFullPath($KitRoot)) 'Gestion-Moonshine.ps1') -ValidateWindowOnly
     Start-MoonshineService
-    . (Join-Path $target 'tools\moonshine\Core.ps1');Init-Native
+    # Compile the HTTP helper without dot-sourcing engine globals into the test.
+    # Core.ps1 intentionally has a script-scoped Owner marker of its own.
+    if (-not ('OPi5Native' -as [type])) { Add-Type -Path @((Join-Path $target 'tools\moonshine\Native.cs'),(Join-Path $target 'tools\moonshine\TransportTests.cs')) -ErrorAction Stop }
+    [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
+    Check ($receipt.owner_sid -ceq $serviceOwnerSid -and $serviceOwnerSid -match '^S-1-') 'The selected account identity changed during test setup.'
     $base='https://127.0.0.1:48990';$pin='';$ready=$false
     for ($n=0;$n -lt 120;$n++) {
         try { $probe=[OPi5Native]::Send($base+'/api/csrf-token','GET','',[Management.Automation.Language.NullString]::Value,'');if ($probe.Status -eq 200) { $pin=$probe.Fingerprint;$ready=$true;break } } catch { }
@@ -85,9 +89,9 @@ try {
                 # snapshot and GetOwnerSid. Do not mistake an absent SID for a
                 # different owner; completion and a real SID remain required.
                 $record.worker_owner_query=[int]$workerOwner.ReturnValue
-                $record.worker_sid=[string]$workerOwner.Sid;$record.expected_sid=$owner
+                $record.worker_sid=[string]$workerOwner.Sid;$record.expected_sid=$serviceOwnerSid
                 if ($workerOwner.ReturnValue -eq 0 -and $workerOwner.Sid) {
-                    Check ($workerOwner.Sid -ceq $owner -and $workerOwner.Sid -cne 'S-1-5-18') 'Worker escaped the selected normal account.';$observedUser=$true
+                    Check ($workerOwner.Sid -ceq $serviceOwnerSid -and $workerOwner.Sid -cne 'S-1-5-18') 'Worker escaped the selected normal account.';$observedUser=$true
                 }
             }
         }
