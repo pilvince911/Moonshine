@@ -35,9 +35,13 @@ function Get-MMKitFolders($Context) {
     }
     foreach ($path in @($values.Values)+@($Context.ExtraFolders)) {
         if (-not $path -or -not [IO.Directory]::Exists($path)) { continue }
-        Assert-MMPlainPath $path;$full=[IO.Path]::GetFullPath($path).TrimEnd('\')
-        if ($full -ieq [IO.Path]::GetPathRoot($full).TrimEnd('\')) { throw 'Choisir un dossier de kits, pas la racine d un disque.' }
-        if (-not $folders.Contains($full)) { $folders.Add($full) }
+        try {
+            if (Test-MMProtectedPath $Context $path) { continue }
+            Assert-MMPlainPath $path;$full=[IO.Path]::GetFullPath($path).TrimEnd('\')
+            if ($full -ieq [IO.Path]::GetPathRoot($full).TrimEnd('\')) { throw 'Choisir un dossier de kits, pas la racine d un disque.' }
+            $null=Get-ChildItem -LiteralPath $full -Force -ErrorAction Stop
+            if (-not $folders.Contains($full)) { $folders.Add($full) }
+        } catch { Write-Warning ('Dossier de kits conserve sans examen : '+$path+'; '+$_.Exception.Message) }
     }
     return $folders.ToArray()
 }
@@ -196,7 +200,9 @@ function Invoke-MMRetirePreview($Context,$Backup) {
         $rule=$rules[0];$app=Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule
         $address=Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $rule
         $expectedProgram=[IO.Path]::GetFullPath((Join-Path $preview.root 'Package\sunshine.exe'))
-        if ([IO.Path]::IsPathRooted([string]$app.Program) -and [IO.Path]::GetFullPath([string]$app.Program) -ieq $expectedProgram -and [string]$rule.Profile -ceq 'Private' -and [string]$rule.Direction -ceq 'Inbound' -and [string]$rule.Action -ceq 'Allow' -and @($address.RemoteAddress).Count -eq 1 -and $address.RemoteAddress[0] -ceq 'LocalSubnet') {
+        $expandedProgram=[Environment]::ExpandEnvironmentVariables([string]$app.Program)
+        $remote=@($address.RemoteAddress)
+        if ([IO.Path]::IsPathRooted($expandedProgram) -and [IO.Path]::GetFullPath($expandedProgram) -ieq $expectedProgram -and [string]$rule.Profile -ceq 'Private' -and [string]$rule.Direction -ceq 'Inbound' -and [string]$rule.Action -ceq 'Allow' -and $remote.Count -eq 1 -and $remote[0] -ceq 'LocalSubnet') {
             $Backup.record.preview_firewall=@{name=$name;program=$app.Program;profile='Private';direction='Inbound';action='Allow';remote='LocalSubnet';enabled=[string]$rule.Enabled}
             Write-MMJson (Join-Path $Backup.root 'backup.json') $Backup.record
             Remove-NetFirewallRule -Name $name -ErrorAction Stop

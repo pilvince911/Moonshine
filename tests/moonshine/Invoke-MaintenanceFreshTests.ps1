@@ -70,6 +70,13 @@ try {
     $context.ExtraFolders=@((Join-Path $context.ProgramFiles 'Moonshine'),$context.BackupBase)
     Check (Test-MMProtectedPath $context $protectedKit) 'Even explicitly selected old-looking files under the new program must be protected.'
     Check (Test-MMProtectedPath $context $protectedBackupKit) 'Previously saved backups must never become new cleanup candidates.'
+    $ordinaryKits=MakeDirectory (Join-Path $temporary 'ordinary-kits')
+    $linkedKits=Join-Path $temporary 'linked-kits';$null=New-Item -ItemType Junction -Path $linkedKits -Target $ordinaryKits
+    $context.ExtraFolders+=@($ordinaryKits,$linkedKits)
+    $examined=@(Get-MMKitFolders $context)
+    Check (@($examined | Where-Object { $_ -ieq [IO.Path]::GetFullPath($linkedKits) }).Count -eq 0) 'A linked/cloud-like kit folder must be skipped without traversal.'
+    Check (@($examined | Where-Object { $_ -ieq [IO.Path]::GetFullPath($ordinaryKits) }).Count -eq 1) 'An unavailable kit folder must not block independent valid locations.'
+    [IO.Directory]::Delete($linkedKits)
     $receipt=@{schema='moonshine-service-receipt/1';name='MoonshineService';id=$id;commit=$commit;owner_sid=$sid;phase='stopped';firewall_created=$true}
     Write-MMJson (Join-Path $preview 'service-receipt.json') $receipt
     Write-MMJson (Join-Path $preview 'Package\moonshine-service-profile.json') @{schema='moonshine-service-preview/1';id=$id;owner_sid=$sid}
@@ -104,7 +111,9 @@ try {
     New-NetFirewallRule -Name $ruleName -DisplayName 'Moonshine disposable cleanup fixture' -Direction Inbound -Action Allow -Profile Private -Program $firewallProgram -RemoteAddress LocalSubnet | Out-Null
     Invoke-MMRetirePreview $context $backup
     Check (-not (Get-CimInstance Win32_Service -Filter "Name='MoonshineService'")) 'The exact old SCM binding was not removed.'
-    Check (-not (Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue)) 'The exact old firewall rule was not removed.'
+    $remainingRule=Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue
+    $ruleDetails=if ($remainingRule) { @{rule=($remainingRule | Select-Object Profile,Direction,Action,Enabled);program=(Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $remainingRule).Program;remote=@((Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $remainingRule).RemoteAddress);expected=$firewallProgram} } else { @{} }
+    Check (-not $remainingRule) ('The exact old firewall rule was not removed. Synthetic values: '+(ConvertTo-Json -InputObject $ruleDetails -Depth 6 -Compress))
     Check ([IO.Directory]::Exists($preview) -and [IO.Directory]::Exists($trial)) 'Service retirement must not delete profile directories before archival.'
     Check ($backup.record.preview_service.path -ceq $ownedPath) 'The recovery journal must retain the previous SCM configuration.'
     # A new stopped standalone service using the SAME service name must survive cleanup.
@@ -129,7 +138,7 @@ try {
         $rule=Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue
         if ($rule) {
             $app=Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule
-            if ([IO.Path]::GetFullPath($app.Program) -ieq [IO.Path]::GetFullPath((Join-Path $temporary 'Program Files\Moonshine-Preview\Package\sunshine.exe'))) { Remove-NetFirewallRule -Name $ruleName }
+            if ([IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($app.Program)) -ieq [IO.Path]::GetFullPath((Join-Path $temporary 'Program Files\Moonshine-Preview\Package\sunshine.exe'))) { Remove-NetFirewallRule -Name $ruleName }
         }
     }
     if ([IO.Directory]::Exists($temporary)) { Remove-Item -LiteralPath $temporary -Recurse -Force }
