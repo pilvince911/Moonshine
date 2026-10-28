@@ -13,6 +13,14 @@ Une vérification de source n'est pas un lancement de jeu. Cette branche disting
 
 Les contrôles 3 à 5 sont confiés au workflow d’intégration; le contrôle 6 dispose de son workflow Windows dédié. Consulter le résultat du commit exact; la présence d'un workflow ne signifie pas qu'il a démarré ou réussi. Les étapes 7 et 8 restent des qualifications distinctes même si tous les tests automatisés passent.
 
+## Candidat de service 0.9.0
+
+Le kit de service reprend une copie du profil portable 0.8.1 arrêté, avec ses certificats et UUID. Le moteur reste en version 0.8.1; l’hôte 0.9.0 utilise MoonshineService et réserve la synchronisation au compte sélectionné, sans droits administrateur effectifs.
+
+Le workflow Windows doit vérifier le véritable service SCM : installation protégée, conservation du profil source et du catalogue, réparation d’un helper corrompu, enfant SYSTEM, worker utilisateur réel, révocation des jetons, arrêt, redémarrage et retrait. Ces essais sont limités à une machine jetable de CI. Le ZIP de service ne devient disponible qu’après réussite du scénario complet du commit livré. Une compilation réussie, un travail en attente ou une exécution annulée ne suffisent pas.
+
+Sur le PC réel, il restera à essayer l’écran virtuel exclusif, les paramètres demandés par le client et la restauration après la sortie du jeu. Le kit réutilise les pilotes présents et n’en installe aucun. Garder VibeShine installé avec son service arrêté pendant cet essai : son désinstalleur prévoit aussi le retrait de composants d’écran et de manette encore réutilisés par Moonshine. Le retrait de l’ancien hôte doit être distingué du retrait de ces dépendances.
+
 ## Parcours sur le PC, lorsque le build de test sera prêt
 
 - Sauvegarder la configuration actuelle et utiliser un build de test isolé avec un port distinct. Ne pas lancer deux services sur les mêmes ports.
