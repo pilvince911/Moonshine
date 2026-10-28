@@ -22,9 +22,15 @@ function Assert-MoonshineNodeRepairVersion([string]$Inf) {
     }
 }
 function Invoke-MoonshineDriverTool([string]$File,[string[]]$Arguments) {
-    & $File @Arguments | Out-Host
-    if ($LASTEXITCODE -notin @(0,3010)) { throw ('Preparation du pilote refusee : '+[IO.Path]::GetFileName($File)+' (code '+$LASTEXITCODE+'). Les parametres de securite Windows restent inchanges.') }
-    return [int]$LASTEXITCODE
+    if (-not [IO.File]::Exists($File)) { throw 'Outil de preparation absent; reparer le paquet Moonshine.' }
+    $previousPreference=$ErrorActionPreference
+    try { $ErrorActionPreference='Continue';$lines=@(& $File @Arguments 2>&1 | ForEach-Object { [string]$_ });$code=[int]$LASTEXITCODE }
+    finally { $ErrorActionPreference=$previousPreference }
+    $log=Join-Path $script:MoonshineServiceRoot 'Package\config\driver-setup.log';Assert-MoonshinePlainPath $log
+    if ([IO.File]::Exists($log) -and (Get-Item -LiteralPath $log).Length -gt 2097152) { [IO.File]::Move($log,$log+'.'+[guid]::NewGuid().ToString('N')+'.previous') }
+    [IO.File]::AppendAllText($log,((Get-Date).ToString('o')+' '+[IO.Path]::GetFileName($File)+' exit='+$code+"`r`n"+(($lines | Select-Object -Last 150) -join "`r`n")+"`r`n"),(New-Object Text.UTF8Encoding($false)))
+    if ($code -notin @(0,3010)) { throw ('Preparation du pilote refusee : '+[IO.Path]::GetFileName($File)+' (code '+$code+'). '+(($lines | Select-Object -Last 6) -join "`n")+"`nDiagnostic : "+$log) }
+    return $code
 }
 function Install-MoonshineDrivers([string]$OwnerSid) {
     Assert-MoonshineAdmin;Assert-MoonshineSetupIdle
@@ -57,9 +63,14 @@ function Install-MoonshineDrivers([string]$OwnerSid) {
     }
     $null=Invoke-MoonshineDriverTool $ps @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $display 'install.ps1'),'-RegisterVulkanLayerOnly')
     $displayNodes=@(Get-MoonshineDriverNodes 'Root\SunshineVirtualDisplay');$gamepadNodes=@(Get-MoonshineDriverNodes 'ROOT\VIBESHINEVIRTUALGAMEPAD')
-    $result=@{schema='moonshine-driver-result/1';time=(Get-Date).ToString('o');source_sha256=$proof.source_sha256;display_present=($displayNodes.Count -gt 0);gamepad_present=($gamepadNodes.Count -gt 0);restart_required=$reboot}
+    foreach ($node in @($displayNodes)+@($gamepadNodes)) {
+        if ([int]$node.ConfigManagerErrorCode -eq 22) { $null=Invoke-MoonshineDriverTool (Join-Path $env:WINDIR 'System32\pnputil.exe') @('/enable-device',[string]$node.PNPDeviceID) }
+    }
+    $displayNodes=@(Get-MoonshineDriverNodes 'Root\SunshineVirtualDisplay');$gamepadNodes=@(Get-MoonshineDriverNodes 'ROOT\VIBESHINEVIRTUALGAMEPAD')
+    $healthy=@(@($displayNodes)+@($gamepadNodes) | Where-Object { [int]$_.ConfigManagerErrorCode -ne 0 }).Count -eq 0
+    $result=@{schema='moonshine-driver-result/1';time=(Get-Date).ToString('o');source_sha256=$proof.source_sha256;display_present=($displayNodes.Count -gt 0);gamepad_present=($gamepadNodes.Count -gt 0);devices_healthy=$healthy;restart_required=$reboot}
     Write-MoonshineServiceJson (Join-Path $script:MoonshineServiceRoot 'driver-result.json') $result
-    if (-not $result.display_present -or -not $result.gamepad_present) { throw 'Preparation executee mais peripherique non confirme. Redemarrer Windows puis reprendre la verification avant le streaming.' }
+    if (-not $result.display_present -or -not $result.gamepad_present -or -not $healthy) { throw 'Preparation executee mais peripherique non operationnel. Redemarrer Windows puis reprendre la verification avant le streaming; driver-setup.log contient le diagnostic.' }
     if ($reboot) { Write-Host 'Un redemarrage Windows est requis pour terminer les pilotes.' -ForegroundColor Yellow }
     return $result
 }

@@ -37,7 +37,7 @@ try {
     Check ((Get-MoonshineOwnedService).StartMode -eq 'Auto') 'Repair changed the selected service startup mode.'
     $cfg=Join-Path $target 'config\moonshine.conf';$text=[IO.File]::ReadAllText($cfg)
     $text=[regex]::Replace($text,'(?m)^virtual_display_mode\s*=.*$','virtual_display_mode = disabled')
-    [IO.File]::WriteAllText($cfg,$text)
+    [IO.File]::WriteAllText($cfg,$text+"`r`nencoder = software`r`n")
     $privateAcl=Get-Acl -LiteralPath (Join-Path $target 'config')
     Check ($privateAcl.AreAccessRulesProtected -and @($privateAcl.Access | Where-Object { $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -notin @('S-1-5-18','S-1-5-32-544') }).Count -eq 0) 'Private host configuration is readable by ordinary users.'
     $rootAcl=Get-Acl -LiteralPath $script:MoonshineServiceRoot
@@ -164,7 +164,7 @@ try {
     Remove-Item -LiteralPath $previewRoot -Recurse -Force;$previewCreated=$false
     Remove-Item -LiteralPath (Split-Path -Parent $oldData) -Recurse -Force
     $cfg=Join-Path $target 'config\moonshine.conf';$text=[IO.File]::ReadAllText($cfg)
-    [IO.File]::WriteAllText($cfg,[regex]::Replace($text,'(?m)^virtual_display_mode\s*=.*$','virtual_display_mode = disabled'))
+    [IO.File]::WriteAllText($cfg,([regex]::Replace($text,'(?m)^virtual_display_mode\s*=.*$','virtual_display_mode = disabled')+"`r`nencoder = software`r`n"))
     Start-MoonshineService
     $ready=$false
     for ($n=0;$n -lt 120;$n++) {try {$reply=Request 'GET' '/api/csrf-token';if($reply.Status -eq 200){$ready=$true;break}}catch{};Start-Sleep -Milliseconds 500}

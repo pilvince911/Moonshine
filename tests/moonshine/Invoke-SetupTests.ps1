@@ -61,5 +61,13 @@ try {
     Assert-MoonshineNodeRepairVersion $candidate;Check $true 'An equal staged component may recreate its missing node.'
     [IO.File]::WriteAllText($store,'invalid')
     Refuses { Assert-MoonshineNodeRepairVersion $candidate } 'Unknown staged versions must prevent node replacement.'
+    $script:MoonshineServiceRoot=Join-Path $temporary 'ToolFixture';[IO.Directory]::CreateDirectory((Join-Path $script:MoonshineServiceRoot 'Package\config')) | Out-Null
+    $child=Join-Path $temporary 'diagnostic.ps1';[IO.File]::WriteAllText($child,"[Console]::Error.WriteLine('precise synthetic failure');exit 5")
+    $ps=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $message='';try { $null=Invoke-MoonshineDriverTool $ps @('-NoProfile','-File',$child) } catch { $message=$_.Exception.Message }
+    Check ($message -match 'precise synthetic failure' -and $message -match 'code 5') 'The actual native exit code or stderr was lost.'
+    Check ([IO.File]::ReadAllText((Join-Path $script:MoonshineServiceRoot 'Package\config\driver-setup.log')).Contains('precise synthetic failure')) 'The native diagnostic was not retained locally.'
+    [IO.File]::WriteAllText($child,'exit 3010')
+    Check ((Invoke-MoonshineDriverTool $ps @('-NoProfile','-File',$child)) -eq 3010) 'A native restart-required result was lost.'
     Write-Output ('Moonshine ZIP setup: '+$checks+' WPF/migration/shape/path/driver-policy checks passed; no service, driver or trust modified.')
 } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force } }

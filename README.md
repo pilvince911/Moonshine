@@ -8,7 +8,7 @@ Moonshine est une fork indépendante de [VibeShine](https://github.com/Nonary/vi
 
 Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` conserve cette référence; `moonshine/main` est la branche de destination propre à la fork et `moonshine/windows-integration` contient l'intégration proposée dans la PR nº 1. `master` suit encore la base reçue lors de la création de la fork.
 
-**État : service Windows 0.9.0 qualifié en CI et essayé sur le PC réel.** Des lancements Xbox PC et EA, l’écran virtuel exclusif et la restauration de l’affichage physique ont été observés. Ce kit dépend encore des données de l’essai 0.8.1 et des pilotes existants; il ne constitue pas une installation autonome. Voir les [conditions de sortie de la 1.0](docs/moonshine/STANDALONE-1.0.md). La qualité DLSS/FG et une installation neuve restent des vérifications distinctes.
+**État : ZIP avec installation simple du service, candidat 1.0 RC1.** Le parcours autonome a passé ses essais logiciels au commit `7b279b71b4e7ab228b661a60ad6d5a38e3385a65`; consulter les workflows du commit exact pour la candidate livrée. Le service Windows 0.9.0 a été essayé sur le PC réel. Des lancements Xbox PC et EA, l’écran virtuel exclusif et la restauration de l’affichage physique ont été observés. Ce kit dépend encore des données de l’essai 0.8.1 et des pilotes existants; il ne constitue pas une installation autonome. Voir les [conditions de sortie de la 1.0](docs/moonshine/STANDALONE-1.0.md). La qualité DLSS/FG et une installation neuve restent des vérifications distinctes.
 
 ## Bibliothèque intégrée
 

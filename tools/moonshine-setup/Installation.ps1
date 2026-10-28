@@ -21,7 +21,7 @@ function Set-MoonshineUserFolder([string]$Path,[string]$OwnerSid) {
     foreach ($sid in @('S-1-5-18','S-1-5-32-544',$OwnerSid)) {
         $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($sid)),'FullControl','ContainerInherit,ObjectInherit','None','Allow')))
     }
-    $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier($OwnerSid)))
+    $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')))
     Set-Acl -LiteralPath $Path -AclObject $acl
 }
 function Get-MoonshineSetupService([string]$OwnerSid) {
