@@ -1,0 +1,57 @@
+MOONSHINE - PREPARATION ET MENAGE
+
+Ce kit prepare le passage a une installation autonome. Il n'est pas un
+installateur Moonshine 1.0. Le service 0.9 utilise encore les donnees de son
+essai 0.8.1 et les pilotes installes par VibeShine.
+
+1. Extraire ce ZIP dans un dossier local ordinaire.
+2. Ouvrir Ouvrir-Menage-Moonshine.cmd normalement, puis accepter Windows.
+3. Choisir 1 pour examiner le plan. Aucune modification de donnees.
+4. Pour sauvegarder (choix 2), quitter les streams et fermer les anciens
+   synchroniseurs. Arreter Moonshine dans sa fenetre et VibeShine dans Services.
+5. Le choix 3 archive uniquement les dossiers reconnus devenus inutilises,
+   apres une sauvegarde dont toutes les empreintes ont ete verifiees et apres
+   saisie de ARCHIVER. Une dependance apparue depuis l'apercu bloque l'action.
+
+Les sauvegardes privees sont sous C:\ProgramData\Moonshine-Migration
+(ou le dossier ProgramData configure dans Windows). Elles sont accessibles
+uniquement aux administrateurs et a SYSTEM. Conserver ces sauvegardes :
+catalogue, appairage, certificats, reglages et etats de synchronisation peuvent
+y figurer. Ne pas les publier dans GitHub. Le fichier backup.json documente
+les sources, empreintes, taches exportees et operations effectuees.
+
+Les dossiers retires sont deplaces vers archive-root-NNN. Ils ne sont jamais
+effaces recursivement. La copie root-NNN est verifiee avant chaque deplacement.
+Pour recuperer, faire examiner backup.json et restaurer vers l'emplacement
+source uniquement lorsque cet emplacement est absent et aucun hote n'est actif.
+La restauration d'une tache XML reste une action explicite separee.
+
+PERIMETRE
+- Anciennes donnees OPi5 et marqueurs historiques de notre synchroniseur.
+- Essais Moonshine enregistres sous le compte choisi, avec deux marqueurs
+  d'identite concordants; dossiers inconnus conserves.
+- Ancien dossier Program Files\Moonshine-Preview seulement s'il est reconnu
+  et qu'aucun service ni catalogue ne le reference plus.
+- Taches du synchroniseur : nom, compte, commande exacte et XML verifie avant
+  retrait. Les taches personnalisees ou en cours restent en place.
+
+Le kit ne modifie ni service, ni pilote, ni certificat Windows, ni jeu installe,
+ni Steam/EA/Xbox, ni parametre de l'hote. Il ne desinstalle pas VibeShine et ne
+supprime pas les ZIP ou dossiers d'extraction arbitraires du Bureau/Telechargements.
+Il conserve les dossiers references meme si le service est actuellement arrete.
+Une jonction, un profil non reconnu, une copie instable ou un catalogue
+personnalise non resolu suspend le nettoyage concerne.
+
+ORDRE DE TRANSITION VERS LA FUTURE VERSION AUTONOME
+1. Sauvegarder avec ce kit et conserver l'installation fonctionnelle 0.9.
+2. Utiliser le futur paquet autonome qualifie : pilotes fournis et verifies,
+   donnees independantes de Moonshine-Trial, migration catalogue/appairage,
+   installation neuve, reparation et desinstallation essayees.
+3. Desinstaller VibeShine via Applications Windows selon ce futur guide; ses
+   pilotes partages doivent avoir un remplacement verifie. Le kit 0.9 seul
+   ne permet pas encore cette etape.
+4. Valider le nouvel hote apres redemarrage Windows, puis relancer ce menage.
+   Les anciens dossiers devenus inutilises pourront alors etre archives.
+
+Licence GPL-3.0-only. Sources : https://github.com/pilvince911/Moonshine
+Ce programme ne telecharge et n'execute aucun code d'une ancienne installation.

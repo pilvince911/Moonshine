@@ -61,10 +61,13 @@ jobs:
       - name: Trial window and reversible file workflows
         shell: powershell
         run: ./tests/moonshine/Invoke-TrialKitTests.ps1
+      - name: Maintenance backup, dependencies, task identity and atomic archives
+        shell: powershell
+        run: ./tests/moonshine/Invoke-MaintenanceTests.ps1
       - name: Service entry points and actual WPF window
         shell: powershell
         run: |
-          Get-ChildItem tools/moonshine-service -Filter *.ps1 | ForEach-Object {
+          Get-ChildItem tools/moonshine-service,tools/moonshine-maintenance -Filter *.ps1 | ForEach-Object {
             $tokens=$null;$errors=$null
             $null=[Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
             if ($errors.Count) { throw ($_.FullName+': '+(($errors | ForEach-Object { $_.Message+' at line '+$_.Extent.StartLineNumber }) -join '; ')) }

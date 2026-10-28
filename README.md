@@ -8,7 +8,7 @@ Moonshine est une fork indépendante de [VibeShine](https://github.com/Nonary/vi
 
 Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` conserve cette référence; `moonshine/main` est la branche de destination propre à la fork et `moonshine/windows-integration` contient l'intégration proposée dans la PR nº 1. `master` suit encore la base reçue lors de la création de la fork.
 
-**État : kit portable 0.8.1 essayé sur le PC réel; candidat service Windows 0.9.0 en qualification.** Le lancement et l’arrêt associé d’une session ont été observés. L’affichage virtuel exclusif reste à valider : le portable a utilisé son repli physique après un échec d’accès au pilote. Les vérifications de logiciel, les essais SCM, les pilotes et la qualité DLSS/FG sont des preuves distinctes.
+**État : service Windows 0.9.0 qualifié en CI et essayé sur le PC réel.** Des lancements Xbox PC et EA, l’écran virtuel exclusif et la restauration de l’affichage physique ont été observés. Ce kit dépend encore des données de l’essai 0.8.1 et des pilotes existants; il ne constitue pas une installation autonome. Voir les [conditions de sortie de la 1.0](docs/moonshine/STANDALONE-1.0.md). La qualité DLSS/FG et une installation neuve restent des vérifications distinctes.
 
 ## Bibliothèque intégrée
 
@@ -41,7 +41,7 @@ Le kit `tools/moonshine-service` reprend une copie vérifiée du profil de l’e
 
 Les exécutables sont protégés sous Program Files, les configurations privées ont une ACL réservée à SYSTEM/Administrateurs, et l’ancien hôte reste installé. Le service démarre manuellement; le réglage de démarrage Windows contrôle uniquement MoonshineService. La fenêtre fournit installation, démarrage, arrêt et retour à VibeShine. Aucun pilote n’est installé ni réinstallé. Voir [la procédure](tools/moonshine-service/LIRE-MOI.txt).
 
-La CI doit installer, démarrer, arrêter, redémarrer et retirer le véritable service sur un runner jetable, vérifier son enfant SYSTEM et son worker utilisateur réel, préserver un catalogue synthétique et révoquer les jetons temporaires. Elle ne qualifie pas l’écran virtuel d’un PC sans GPU. Le candidat ne devient distribuable que lorsque le workflow du commit exact réussit.
+La CI doit installer, démarrer, arrêter, redémarrer et retirer le véritable service sur un runner jetable, vérifier son enfant SYSTEM et son worker utilisateur réel, préserver un catalogue synthétique et révoquer les jetons temporaires. Elle ne qualifie pas l’écran virtuel d’un PC sans GPU. Le candidat du commit `96239aa250d10501f66a1eacca6a9496bc58d09a` a passé ces contrôles; son essai réel a ensuite confirmé l’affichage virtuel exclusif et la restauration sur le PC essayé.
 
 ## Validation et compilation
 
@@ -56,3 +56,5 @@ Le projet conserve la [GPL-3.0](LICENSE), les [avis amont](NOTICE) et les licenc
 GitHub conserve les sources; les archives de développement et rapports de PL restent sur son Drive. Le dépôt ne publie pas de release ni d'installateur automatiquement.
 
 Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.
+
+Le [kit de préparation et de ménage](tools/moonshine-maintenance/LIRE-MOI.txt) analyse les anciennes racines, les sauvegarde en privé avec vérification intégrale, puis archive uniquement celles devenues inutilisées. Il conserve les données encore référencées par un service, un catalogue ou une tâche personnalisée. Il ne désinstalle aucun hôte ni pilote.
