@@ -90,6 +90,11 @@ function Get-MMContext([string]$OwnerSid) {
 }
 function Get-MMTree([string]$Root) {
     Assert-MMPlainPath $Root
+    if ([IO.File]::Exists($Root)) {
+        Assert-MMSingleFile $Root
+        $file=Get-Item -LiteralPath $Root
+        return [pscustomobject]@{path=$file.Name;size=$file.Length;sha256=(Get-FileHash -LiteralPath $Root -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()}
+    }
     $prefix=[IO.Path]::GetFullPath($Root).TrimEnd('\')+'\'
     $pending=New-Object 'Collections.Generic.Queue[string]';$pending.Enqueue($Root)
     $files=New-Object 'Collections.Generic.List[object]';$bytes=0L
@@ -99,7 +104,7 @@ function Get-MMTree([string]$Root) {
             if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw ('Lien ou jonction refuse : '+$item.FullName) }
             if ($item.PSIsContainer) { $pending.Enqueue($item.FullName);continue }
             # Cooperative locks are held separately, never copied as live files.
-            if ($item.Name -in @('sync.lock','bootstrap.lock')) { continue }
+            if ($item.Name -in @('sync.lock','bootstrap.lock','instances.lock')) { continue }
             Assert-MMSingleFile $item.FullName
             $bytes+=$item.Length
             if ($files.Count -ge 50000 -or $bytes -gt 4294967296) { throw 'Dossier trop volumineux pour ce kit (4 Gio / 50 000 fichiers). Originaux conserves.' }
@@ -115,7 +120,7 @@ function Copy-MMVerifiedTree([string]$Source,[string]$Destination) {
     if (Test-Path -LiteralPath $Destination) { throw 'La destination de sauvegarde existe deja.' }
     $before=@(Get-MMTree $Source);[IO.Directory]::CreateDirectory($Destination) | Out-Null
     foreach ($row in $before) {
-        $from=Join-Path $Source $row.path;$to=Join-Path $Destination $row.path
+        $from=if ([IO.File]::Exists($Source)) { $Source } else { Join-Path $Source $row.path };$to=Join-Path $Destination $row.path
         Assert-MMPlainPath $from;Assert-MMPlainPath $to
         [IO.Directory]::CreateDirectory((Split-Path -Parent $to)) | Out-Null
         [IO.File]::Copy($from,$to,$false)
@@ -208,6 +213,7 @@ function Get-MMReferences($Context) {
         $receipt=Read-MMJson $receiptPath
         if ((Test-MMPreviewReceipt $receipt $Context.OwnerSid) -and $receipt.phase -ne 'removed') {
             $references.Add(@{text=(Join-Path $Context.Local ('OPi5\Moonshine-Trial\'+$receipt.id));source='Donnees encore utilisees par le service 0.9';unknown=$false})
+            $references.Add(@{text=(Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Moonshine Service.lnk');source='Raccourci encore utilise par le service 0.9';unknown=$false})
         }
     }
     return $references.ToArray()
@@ -264,7 +270,7 @@ function Assert-MMIdle {
     if ($services.Count) { throw 'Arreter les services Moonshine et VibeShine depuis leurs fenetres avant de sauvegarder ou nettoyer.' }
     $active=@(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
         $_.Name -in @('sunshine.exe','vibeshine.exe','moonshine.exe','sunshine_display_helper.exe') -or
-        ($_.Name -in @('powershell.exe','pwsh.exe') -and [string]$_.CommandLine -match '(?i)(Moonshine-Worker|Launch-Game|VibeShine-Xbox|Bootstrap|Desktop|GuiEngine)\.ps1')
+        ($_.Name -in @('powershell.exe','pwsh.exe') -and [string]$_.CommandLine -match '(?i)(Moonshine-Worker|Launch-Game|VibeShine-Xbox|Bootstrap|Desktop|GuiEngine|Demarrer-Moonshine|Gestion-Moonshine)\.ps1')
     })
     if ($active.Count) { throw 'Quitter les streams et fermer les anciens synchroniseurs. Arreter Moonshine depuis sa fenetre et VibeShine depuis Services avant de sauvegarder ou nettoyer.' }
 }
@@ -313,17 +319,22 @@ function Move-MMVerifiedRoot($Entry,[string]$BackupRoot) {
     $archive=Join-Path $BackupRoot ('archive-'+$Entry.key)
     if (Test-Path -LiteralPath $archive) { throw 'Archive deja presente; aucun ecrasement.' }
     # Atomically move the directory itself. Never recursively delete a user tree.
-    [IO.Directory]::Move($Entry.source,$archive)
+    if ([IO.File]::Exists($Entry.source)) {
+        [IO.Directory]::CreateDirectory($archive) | Out-Null
+        [IO.File]::Move($Entry.source,(Join-Path $archive ([IO.Path]::GetFileName($Entry.source))))
+    } else { [IO.Directory]::Move($Entry.source,$archive) }
     Protect-MMArchivedTree $archive
     if (-not (Test-MMTreeEqual @($Entry.files) @(Get-MMTree $archive))) { throw 'L archive a change apres deplacement. La copie de sauvegarde verifiee reste disponible.' }
     return $archive
 }
-function Invoke-MMCleanup($Context,$Candidates,$Plan,$Tasks,$Backup) {
+function Invoke-MMCleanup($Context,$Candidates,$Plan,$Tasks,$Backup,[switch]$Fresh) {
     foreach ($entry in $Backup.record.roots) {
         $row=@($Plan | Where-Object { $_.path -ceq $entry.source -and $_.removable })
         if ($row.Count -ne 1) { continue }
         # Re-read installed service/catalogue references immediately before every move.
-        $current=@(Get-MMPlan $Candidates @(Get-MMReferences $Context) @(Get-MMTasks $Context $Candidates) | Where-Object { $_.path -ceq $entry.source -and $_.removable })
+        $references=if (Get-Command Get-MMEffectiveReferences -ErrorAction SilentlyContinue) { @(Get-MMEffectiveReferences $Context -Fresh:$Fresh) } else { @(Get-MMReferences $Context) }
+        $currentTasks=if (Get-Command Get-MMAllTasks -ErrorAction SilentlyContinue) { @(Get-MMAllTasks $Context $Candidates) } else { @(Get-MMTasks $Context $Candidates) }
+        $current=@(Get-MMPlan $Candidates $references $currentTasks | Where-Object { $_.path -ceq $entry.source -and $_.removable })
         if ($current.Count -ne 1) { throw 'Une dependance est apparue depuis l apercu. Originaux restants conserves.' }
         foreach ($task in $Tasks) {
             if (-not $task.known -or -not ([IO.Path]::GetFullPath($task.data)+'\').StartsWith(([IO.Path]::GetFullPath($entry.source).TrimEnd('\')+'\'),[StringComparison]::OrdinalIgnoreCase)) { continue }

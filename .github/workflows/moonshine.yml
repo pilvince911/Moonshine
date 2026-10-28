@@ -64,6 +64,9 @@ jobs:
       - name: Maintenance backup, dependencies, task identity and atomic archives
         shell: powershell
         run: ./tests/moonshine/Invoke-MaintenanceTests.ps1
+      - name: Fresh cleanup, actual old service retirement and standalone preservation
+        shell: powershell
+        run: ./tests/moonshine/Invoke-MaintenanceFreshTests.ps1
       - name: ZIP setup window, migration and driver policies
         shell: powershell
         run: ./tests/moonshine/Invoke-SetupTests.ps1

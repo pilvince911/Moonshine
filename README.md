@@ -57,7 +57,7 @@ GitHub conserve les sources; les archives de développement et rapports de PL re
 
 Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.
 
-Le [kit de préparation et de ménage](tools/moonshine-maintenance/LIRE-MOI.txt) analyse les anciennes racines, les sauvegarde en privé avec vérification intégrale, puis archive uniquement celles devenues inutilisées. Il conserve les données encore référencées par un service, un catalogue ou une tâche personnalisée. Il ne désinstalle aucun hôte ni pilote.
+Le [kit de ménage 0.2](tools/moonshine-maintenance/LIRE-MOI.txt) analyse les anciennes racines et distributions 0.x, les sauvegarde en privé avec vérification intégrale, puis archive celles devenues inutilisées. Le choix explicite « Repartir à neuf » peut désenregistrer le seul service 0.9 arrêté, lié exactement à `Moonshine-Preview`, avant l'archivage. Il conserve la nouvelle installation et sa bibliothèque, les pilotes et les jeux. Les références d'un autre service, les tâches personnalisées et les identités inconnues bloquent le retrait concerné.
 
 ## ZIP avec installation simple du service
 
