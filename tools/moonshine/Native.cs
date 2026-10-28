@@ -1,4 +1,4 @@
-﻿// OPi5 VibeShine Xbox Sync 0.8.1. Windows PowerShell 5.1 / .NET Framework.
+﻿// OPi5 VibeShine Xbox Sync 1.0.0. Windows PowerShell 5.1 / .NET Framework.
 using System;
 using System.IO;
 using System.Net;
@@ -47,7 +47,7 @@ public static class OPi5Native {
         request.ReadWriteTimeout = 15000;
         request.KeepAlive = false;
         request.Method = method;
-        request.UserAgent = "OPi5-VibeShine-Xbox-Sync/0.8.1";
+        request.UserAgent = "OPi5-VibeShine-Xbox-Sync/1.0.0";
         request.Accept = "application/json";
         request.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => {
             if (certificate == null) return false;
@@ -122,7 +122,7 @@ public static class OPi5Native {
             request.Timeout = 8000;
             request.ReadWriteTimeout = 8000;
             request.KeepAlive = false;
-            request.UserAgent = "OPi5-VibeShine-Xbox-Sync/0.8.1";
+            request.UserAgent = "OPi5-VibeShine-Xbox-Sync/1.0.0";
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             using (var response = (HttpWebResponse)request.GetResponse()) {
                 int status = (int)response.StatusCode;

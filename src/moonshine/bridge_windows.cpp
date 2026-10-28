@@ -93,7 +93,7 @@ namespace moonshine {
       if (!std::filesystem::exists(path)) return {};
       if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path)>4096) throw std::runtime_error("Profil du service Moonshine invalide.");
       std::ifstream input(path,std::ios::binary);const auto value=json::parse(input);
-      if (!value.is_object() || value.value("schema","")!="moonshine-service-preview/1" || !policy::id(value.value("id",""))) throw std::runtime_error("Identité du service Moonshine invalide.");
+      if (!value.is_object() || value.value("schema","")!="moonshine-service-preview/1" || !policy::id(value.value("id","")) || (value.value("mode","preview")!="preview" && value.value("mode","preview")!="installed")) throw std::runtime_error("Identité du service Moonshine invalide.");
       const auto owner=value.value("owner_sid","");PSID sid=nullptr;
       const bool valid=owner.starts_with("S-1-") && owner.size()<192 && ConvertStringSidToSidW(wide(owner).c_str(),&sid);
       if (sid) LocalFree(sid);
@@ -267,6 +267,7 @@ namespace moonshine {
   }
   void configure(host_services services) { std::lock_guard guard(manager_mutex);if (configured) return;host=std::move(services);configured=true; }
   bool service_preview() { return !service_profile().empty(); }
+  bool service_installed() { const auto value=service_profile();return !value.empty() && value.value("mode","preview")=="installed"; }
   std::string service_owner_sid() { const auto value=service_profile();return value.empty()?std::string():value.value("owner_sid",""); }
   std::string trial_id() {
     wchar_t value[34] {};const auto size=GetEnvironmentVariableW(L"MOONSHINE_TRIAL_ID",value,34);
@@ -289,6 +290,13 @@ namespace moonshine {
       GetTokenInformation(token.value,TokenUser,nullptr,0,&bytes);std::vector<unsigned char> storage(bytes);
       if (!bytes || !GetTokenInformation(token.value,TokenUser,storage.data(),bytes,&bytes) || !IsWellKnownSid(reinterpret_cast<TOKEN_USER *>(storage.data())->User.Sid,WinLocalSystemSid)) throw std::runtime_error("Ce paquet doit être démarré par le service Windows Moonshine.");
       wchar_t flag[4] {};if (GetEnvironmentVariableW(L"SUNSHINE_LAUNCHED_BY_SERVICE",flag,4)!=1 || flag[0]!=L'1') throw std::runtime_error("Démarrer MoonshineService depuis sa fenêtre de gestion.");
+      if (service_installed()) {
+        for (const auto &folder: {root,root/L"tools/moonshine"}) {
+          std::ifstream input(folder/L"moonshine-install-id.txt",std::ios::binary);std::string saved(128,'\0');input.read(saved.data(),static_cast<std::streamsize>(saved.size()));saved.resize(static_cast<std::size_t>(input.gcount()));
+          while (!saved.empty() && (saved.back()=='\r' || saved.back()=='\n')) saved.pop_back();
+          if (saved!=id || std::filesystem::exists(folder/L"moonshine-trial-id.txt")) throw std::runtime_error("Identité de l’installation Moonshine incohérente.");
+        }
+      }
       // Open diagnostics in the destination session; no inherited service handles.
       if (!_wfreopen((root/L"config/service-stdout.log").c_str(),L"a",stdout) || !_wfreopen((root/L"config/service-stderr.log").c_str(),L"a",stderr)) throw std::runtime_error("Les diagnostics privés du service sont indisponibles.");
       std::setvbuf(stdout,nullptr,_IONBF,0);std::setvbuf(stderr,nullptr,_IONBF,0);
@@ -330,7 +338,8 @@ namespace moonshine {
     return public_record(value);
   }
   json status() {
-    json out={{"status",true},{"brand","Moonshine"},{"engine_version","0.8.1"},{"isolated",false},{"available",false},{"automatic",false},{"session_idle",false},{"job",nullptr},{"snapshot",nullptr}};
+    json out={{"status",true},{"brand","Moonshine"},{"engine_version","1.0.0"},{"isolated",false},{"available",false},{"automatic",false},{"session_idle",false},{"job",nullptr},{"snapshot",nullptr}};
+    out["data_mode"]=service_installed()?"installed":(trial_id().empty()?"legacy":"trial");
     out["execution_mode"]=service_preview()?"service":(trial_id().empty()?"direct":"trial");
     if (!configured) return out;
     const auto user=host.user();if (user.sid.empty()) return out;

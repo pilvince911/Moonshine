@@ -1,4 +1,4 @@
-﻿MOONSHINE — qualification du moteur embarqué 0.8.1
+﻿MOONSHINE — qualification du moteur embarqué 1.0.0
 
 ÉTAT ET PREUVES
 Le rapport du commit GitHub exact fait foi :

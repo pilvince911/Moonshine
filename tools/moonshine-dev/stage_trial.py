@@ -12,6 +12,7 @@ def main():
     parser.add_argument('--runtime-bin',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
+    version_name=os.environ.get('BUILD_VERSION','1.0.0-rc.1')
     source=Path(__file__).resolve().parents[2]
     build=args.build.resolve();runtime=args.runtime_bin.resolve();out=args.output.resolve();package=out/'Package'
     if out.exists():shutil.rmtree(out)
@@ -68,10 +69,10 @@ def main():
     result=subprocess.run([str(package/'sunshine.exe'),'--version'],cwd=package,capture_output=True,text=True,timeout=30)
     version=result.stdout+result.stderr
     if result.returncode or commit not in version:raise RuntimeError('Staged native host loader/version test failed: '+version)
-    (out/'build-info.json').write_text(json.dumps({'commit':commit,'version':'0.9.0','version_output':version.strip(),'runtime_dlls':sorted(set(copied)),'webrtc':False,'pyrowave':False,'drivers_bundled':False,'services_installed':False,'real_stream_validated':False},indent=2)+'\n',encoding='utf-8')
+    (out/'build-info.json').write_text(json.dumps({'commit':commit,'version':version_name,'version_output':version.strip(),'runtime_dlls':sorted(set(copied)),'webrtc':False,'pyrowave':False,'drivers_bundled':False,'services_installed':False,'real_stream_validated':False},indent=2)+'\n',encoding='utf-8')
     files=[{'path':p.relative_to(out).as_posix(),'sha256':digest(p),'size':p.stat().st_size} for p in sorted(out.rglob('*')) if p.is_file()]
-    (out/'manifest.json').write_text(json.dumps({'schema':'moonshine-trial-kit/1','version':'0.9.0','commit':commit,'files':files},indent=2)+'\n',encoding='utf-8')
-    archive=out.parent/'Moonshine-Windows-Essai-0.9.0.zip'
+    (out/'manifest.json').write_text(json.dumps({'schema':'moonshine-trial-kit/1','version':version_name,'commit':commit,'files':files},indent=2)+'\n',encoding='utf-8')
+    archive=out.parent/('Moonshine-Windows-Essai-'+version_name+'.zip')
     with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
         for p in sorted(out.rglob('*')):
             if p.is_file():z.write(p,'Moonshine-Essai/'+p.relative_to(out).as_posix())

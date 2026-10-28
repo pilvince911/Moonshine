@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      BUILD_VERSION: 0.9.0
+      BUILD_VERSION: 1.0.0-rc.1
       CMAKE_BUILD_PARALLEL_LEVEL: 3
       COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -116,6 +116,9 @@ jobs:
           if (Test-Path build/CMakeCache.txt) { Copy-Item build/CMakeCache.txt build-evidence/ }
           if (Test-Path build/compile_commands.json) { Copy-Item build/compile_commands.json build-evidence/ }
           if (Test-Path build/CMakeFiles/CMakeConfigureLog.yaml) { Copy-Item build/CMakeFiles/CMakeConfigureLog.yaml build-evidence/ }
+      - name: Read and verify original signed prerequisite payloads
+        shell: powershell
+        run: ./tools/moonshine-dev/Get-Prerequisites.ps1
       - name: Stage and inspect the portable trial
         id: stage_trial
         shell: msys2 {0}
@@ -125,14 +128,14 @@ jobs:
       - name: Exercise the complete host as a non-administrator
         shell: powershell
         run: ./tests/moonshine/Invoke-HostSmoke.ps1 -KitRoot trial-kit
-      - name: Prepare the separate Windows service candidate
+      - name: Prepare the self-contained Windows service ZIP
         shell: msys2 {0}
         run: |
           set -euo pipefail
-          "$(cygpath -u "$MOONSHINE_PYTHON")" tools/moonshine-dev/stage_service.py --trial-kit trial-kit --output service-kit
+          "$(cygpath -u "$MOONSHINE_PYTHON")" tools/moonshine-dev/stage_setup.py --trial-kit trial-kit --prerequisites prerequisites --output service-kit
       - name: Qualify the genuine SCM service and normal-user worker
         shell: powershell
-        run: ./tests/moonshine/Invoke-ServiceSmoke.ps1 -KitRoot service-kit
+        run: ./tests/moonshine/Invoke-ZipSmoke.ps1 -KitRoot service-kit
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -141,7 +144,7 @@ jobs:
           retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
-          name: Moonshine-Windows-Service-0.9.0
+          name: Moonshine-Windows-1.0.0-rc.1
           path: service-kit/
           include-hidden-files: true
           retention-days: 30

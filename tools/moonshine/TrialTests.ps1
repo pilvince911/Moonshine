@@ -3,6 +3,7 @@ function Invoke-MoonshineTrialSelfTests {
     . (Join-Path $PSScriptRoot 'Trial.ps1')
     $previous=$env:MOONSHINE_TRIAL_ID;$savedConnection=$script:Connection
     $temporary=Join-Path ([IO.Path]::GetFullPath($env:TEMP)) ('moonshine-trial-test-'+[guid]::NewGuid().ToString('N'))
+    $installed=Get-MoonshineInstallId
     $id=Get-MoonshineTrialId
     if (-not $id) { $id=[guid]::NewGuid().ToString('N') }
     function Get-ScheduledTask { throw 'Aucune lecture de tache Windows permise dans le test d isolation.' }
@@ -11,8 +12,9 @@ function Invoke-MoonshineTrialSelfTests {
         $env:MOONSHINE_TRIAL_ID=$id
         Assert ((Get-MoonshineTrialId) -ceq $id) 'Contexte d essai connu conserve'
         $root=Get-MoonshineDataRoot $id $temporary
-        Assert ($root -eq (Join-Path $temporary ('OPi5\Moonshine-Trial\'+$id+'\Sync'))) 'Essai et production ont des racines distinctes'
-        Assert ((Get-MoonshineDataRoot '' $temporary) -eq (Join-Path $temporary 'OPi5\VibeShine-Xbox')) 'Racine historique conservee hors essai'
+        $relative=if ($installed) { 'Moonshine\Library\'+$id } else { 'OPi5\Moonshine-Trial\'+$id+'\Sync' }
+        Assert ($root -eq (Join-Path $temporary $relative)) 'Essai et production ont des racines distinctes'
+        Assert ((Get-MoonshineDataRoot '' $temporary (Join-Path $temporary 'unmarked')) -eq (Join-Path $temporary 'OPi5\VibeShine-Xbox')) 'Racine historique conservee hors essai'
         $bad=$false;try { $null=Get-MoonshineDataRoot '..\production' $temporary } catch { $bad=$true }
         Assert $bad 'Identifiant libre ou chemin parent refuse'
         $source=Join-Path $temporary 'legacy';$target=Join-Path $temporary 'destination'
@@ -40,6 +42,18 @@ function Invoke-MoonshineTrialSelfTests {
         [IO.File]::WriteAllText((Join-Path $missing 'moonshine-trial-only.txt'),'trial')
         $bad=$false;try { $null=Get-MoonshineTrialId $missing } catch { $bad=$true }
         Assert $bad 'Copie d essai incomplete sans repli vers la production'
+        $install=Join-Path $temporary 'installed';[IO.Directory]::CreateDirectory($install) | Out-Null
+        [IO.File]::WriteAllText((Join-Path $install 'moonshine-install-id.txt'),$id)
+        Assert ((Get-MoonshineDataRoot $id $temporary $install) -ceq (Join-Path $temporary ('Moonshine\Library\'+$id))) 'Installation sans aucune racine OPi5 ou essai'
+        $bad=$false;try { $null=Get-MoonshineDataRoot '' $temporary $install } catch { $bad=$true }
+        Assert $bad 'Installation sans repli implicite vers les anciennes donnees'
+        $runtime=Join-Path $temporary 'installed-runtime'
+        Set-MoonshineTrialMarkers $runtime $id $install
+        Assert ((Get-MoonshineInstallId $runtime) -ceq $id) 'Copie de secours conserve son contexte installe'
+        Assert (-not (Test-Path -LiteralPath (Join-Path $runtime 'moonshine-trial-id.txt'))) 'Installation sans marqueur d essai'
+        [IO.File]::WriteAllText((Join-Path $install 'moonshine-trial-id.txt'),$id)
+        $bad=$false;try { $null=Get-MoonshineInstallId $install } catch { $bad=$true }
+        Assert $bad 'Contextes melanges refuses'
         $env:MOONSHINE_TRIAL_ID='f'*32
         if ($env:MOONSHINE_TRIAL_ID -ceq $id) { $env:MOONSHINE_TRIAL_ID='e'*32 }
         $bad=$false;try { $null=Get-MoonshineTrialId $copy } catch { $bad=$true }

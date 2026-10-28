@@ -12,7 +12,7 @@ Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2
 
 ## Bibliothèque intégrée
 
-- Le moteur PowerShell que nous avons développé est embarqué dans `tools/moonshine`, version 0.8.1 issue de la 0.7.0.
+- Le moteur PowerShell que nous avons développé est embarqué dans `tools/moonshine`, version 1.0.0 pour le nouveau ZIP autonome, issue du moteur 0.8.1 qualifié.
 - Il retrouve les installations Xbox/GDK, Steam et EA prises en charge par notre découverte locale. Le périmètre initial est celui des jeux installés; il n'interroge pas tout le catalogue d'un abonnement Game Pass.
 - La page Bibliothèque regroupe analyse, aperçu, confirmation, synchronisation, profils de diffusion et récupération.
 - Les UUID, marqueurs, sauvegardes et données `%LOCALAPPDATA%\OPi5\VibeShine-Xbox` sont conservés pour reprendre nos anciennes entrées.
@@ -58,3 +58,11 @@ GitHub conserve les sources; les archives de développement et rapports de PL re
 Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.
 
 Le [kit de préparation et de ménage](tools/moonshine-maintenance/LIRE-MOI.txt) analyse les anciennes racines, les sauvegarde en privé avec vérification intégrale, puis archive uniquement celles devenues inutilisées. Il conserve les données encore référencées par un service, un catalogue ou une tâche personnalisée. Il ne désinstalle aucun hôte ni pilote.
+
+## ZIP avec installation simple du service
+
+Le candidat **1.0.0-rc.1** se prépare dans `tools/moonshine-setup`. Il installe le même service sous `Program Files\Moonshine`, avec une bibliothèque indépendante dans `%LOCALAPPDATA%\Moonshine\Library\<id>`. Une installation neuve ne demande aucun index ni profil d’essai. La reprise facultative du service 0.9 copie catalogue/appairage/personnalisations et retargete les chemins de notre moteur; les originaux sont conservés.
+
+Les pilotes d’écran/manettes et les couches HDR Vulkan x64/x86 proviennent des octets épinglés de l’installateur officiel VibeShine 2.0.1, extraits sans exécuter son installateur. Les signatures et contrats sont vérifiés. Le bouton distinct **Préparer les pilotes signés** demande l’accord du propriétaire et l’élévation Windows. Aucun pilote n’est installé par la CI.
+
+La publication du ZIP exige les tests Windows du commit exact : installation neuve, vrai service/worker, réparation, retrait/réinstallation et migration suivie du retrait des anciens dossiers avant le nouveau lancement. Les instructions sont dans [le guide](tools/moonshine-setup/LIRE-MOI.txt). La candidate reste à essayer sur le PC réel après remplacement de l’ancien hôte; ce texte ne déclare pas la release finale 1.0.

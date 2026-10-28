@@ -38,6 +38,7 @@ namespace moonshine {
   void configure(host_services services);
   std::string trial_id();
   bool service_preview();
+  bool service_installed();
   std::string service_owner_sid();
   void validate_startup();
 #endif

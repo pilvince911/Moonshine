@@ -74,3 +74,11 @@ Le kit vérifié et son gestionnaire restent installés dans `Kit`, avec un racc
 Le workflow construit aussi `playnite-launcher`, `sunshine_wgc_capture`, `audio-info` et `dxgi-info`. Le helper de lancement reste une dépendance d’exécution partagée, même lorsque les importateurs de bibliothèque Steam et Playnite sont désactivés. Le stage inspecte les imports PE récursifs et exécute `--version` depuis le dossier du kit. Le cache de compilation ne remplace aucun contrôle.
 
 Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.
+
+## ZIP autonome
+
+`tools/moonshine-setup` conserve les frontières du service qualifié, crée un profil neuf ou migre le service 0.9 arrêté. Le marqueur `moonshine-install-id.txt` et le mode `installed` du profil bornent les données à `Moonshine/Library/<id>` dans LocalAppData. Le protocole historique garde son champ opaque `trial_id` pour compatibilité; il n’implique plus un chemin d’essai. Le moteur 1.0.0 et ses copies de récupération portent le marqueur installé.
+
+`Get-Prerequisites.ps1` lit le MSI embarqué de l’asset public épinglé par les API de base de données en lecture seule, puis vérifie les paquets et signatures sans installation ni import de confiance. `stage_setup.py` assemble les fichiers d’origine et les notices. La préparation des pilotes sur le PC appartient uniquement au bouton explicite exécuté par le propriétaire. Les noms, catalogues et signatures des pilotes amont sont conservés.
+
+`Invoke-SetupTests.ps1` vérifie WPF, conversion des chemins/valeurs, garde-fous de migration et de versions des pilotes dans des dossiers temporaires. `Invoke-ZipSmoke.ps1` est borné au runner jetable sans hôte préexistant; il teste le service réel depuis un profil neuf, répare un helper corrompu, préserve l’identité après réenregistrement, puis migre un profil synthétique 0.9 et enlève les anciennes racines avant de relancer un vrai worker. Aucun de ces essais ne qualifie un pilote chargé ni une topologie réelle.

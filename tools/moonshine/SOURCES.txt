@@ -1,4 +1,4 @@
-﻿Sources primaires — OPi5 / VibeShine Xbox Sync 0.8.1
+﻿Sources primaires — OPi5 / VibeShine Xbox Sync 1.0.0
 
 VibeShine 2.0.1 :
 https://github.com/Nonary/vibeshine/blob/2.0.1/src/confighttp.cpp
@@ -48,9 +48,9 @@ https://displaycatalog.mp.microsoft.com/v7.0/products
 
 Preuves fournies par PL : captures du catalogue et des réglages VibeShine,
 diagnostic Windows 0.4.1 du 26 octobre 2026. Ces pièces ne valident pas l'exécution
-réelle de 0.8.1, qui doit être confirmée par les autotests et le retour du PC.
+réelle de 1.0.0, qui doit être confirmée par les autotests et le retour du PC.
 
-Interface Windows 0.8.1 — sources Microsoft :
+Interface Windows 1.0.0 — sources Microsoft :
 https://learn.microsoft.com/en-us/dotnet/desktop/wpf/overview/
   WPF/.NET Framework pour les fenêtres et contrôles Windows.
 https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/threading-model
@@ -65,7 +65,7 @@ https://learn.microsoft.com/en-us/dotnet/api/system.windows.markup.xamlreader.lo
 https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.virtualizingpanel.virtualizationmode?view=netframework-4.8.1
   Lecture XAML WPF et recyclage des éléments de liste.
 
-Consolidation 0.8.1 — références complémentaires Microsoft :
+Consolidation 1.0.0 — références complémentaires Microsoft :
 https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_operators?view=powershell-5.1
 https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_return?view=powershell-5.1
   Énumération dans le pipeline, conservation des tableaux et virgule unaire.

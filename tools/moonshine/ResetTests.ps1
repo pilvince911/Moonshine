@@ -25,7 +25,7 @@ function Invoke-ResetSelfTests {
         return @{status=$true}
     }
     try {
-        $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.1'
+        $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\1.0.0'
         $script:Repairs=New-Object 'Collections.Generic.List[object]'
         $script:ResetTestBusy=$false;$script:ResetTestTask=$true;$script:ResetTestPauseFails=$false
         $script:ResetTestDeletes=0;$script:ResetTestPosts=0;$script:ResetTestStopAt=0

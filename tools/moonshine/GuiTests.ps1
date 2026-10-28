@@ -95,7 +95,7 @@ function Invoke-GuiBoundarySelfTests {
         return @{status=$true}
     }
     try {
-        $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.1'
+        $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\1.0.0'
         $script:Repairs=New-Object 'Collections.Generic.List[object]'
         $script:UiTestApps=@();$script:UiTestPosts=0
         $games=@()

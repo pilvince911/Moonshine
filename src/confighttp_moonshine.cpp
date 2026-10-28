@@ -109,7 +109,7 @@ namespace confighttp {
       for (const wchar_t *p=sid;*p;++p) result.sid.push_back(static_cast<char>(*p));LocalFree(sid);
       if (moonshine::service_preview() && result.sid!=moonshine::service_owner_sid()) return moonshine::user_context {};
       PWSTR local=nullptr;if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData,0,token,&local)) || !local) return moonshine::user_context {};
-      result.local_data=result.trial_id.empty() ? std::filesystem::path(local)/L"OPi5/VibeShine-Xbox" : std::filesystem::path(local)/L"OPi5/Moonshine-Trial"/std::filesystem::path(result.trial_id)/L"Sync";CoTaskMemFree(local);return result;
+      result.local_data=moonshine::service_installed() ? std::filesystem::path(local)/L"Moonshine/Library"/std::filesystem::path(result.trial_id) : result.trial_id.empty() ? std::filesystem::path(local)/L"OPi5/VibeShine-Xbox" : std::filesystem::path(local)/L"OPi5/Moonshine-Trial"/std::filesystem::path(result.trial_id)/L"Sync";CoTaskMemFree(local);return result;
     };
     services.launch=[user_context=services.user](const std::string &command,const std::wstring &directory,STARTUPINFOEXW &startup,PROCESS_INFORMATION &process,std::string &error) {
       std::error_code ec;

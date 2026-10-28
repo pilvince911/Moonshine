@@ -1,0 +1,67 @@
+MOONSHINE 1.0 RC1 - ZIP ET SERVICE WINDOWS
+
+Ce paquet installe Moonshine sans ancienne version ni profil d'essai requis.
+Le programme Moonshine n'est pas signe; les pilotes fournis conservent leurs
+signatures originales verifiees du paquet officiel VibeShine 2.0.1.
+Les jeux Xbox, EA et Steam utilisent toujours leurs lanceurs installes.
+
+INSTALLATION NEUVE
+1. Quitter les streams et arreter les anciens hotes/synchroniseurs.
+2. Extraire tout le ZIP dans un dossier local ordinaire.
+3. Ouvrir Ouvrir-Moonshine.cmd normalement.
+4. Decocher Reprendre mon service 0.9 pour un catalogue neuf, puis Installer.
+   Accepter la confirmation Windows. Choisir le demarrage Windows souhaite.
+5. Si VibeShine est encore installe, le desinstaller via Applications Windows
+   avant la preparation finale des pilotes. Conserver les sauvegardes privees.
+6. Cliquer Preparer les pilotes signes, accepter Windows et attendre la fin.
+   Cette action separee installe/repare les composants ecran et manettes. Elle
+   peut approuver l'editeur SignPath Foundation dans TrustedPublisher.
+   Aucun changement de Secure Boot, test-signing ou politique de demarrage.
+7. Redemarrer Windows si demande, ouvrir Moonshine depuis le menu Demarrer,
+   puis cliquer Demarrer et Ouvrir la bibliotheque.
+8. Creer les identifiants Web, appairer Moonlight et analyser/synchroniser les jeux.
+   Interface : https://localhost:48990/v2/library. Port Moonlight : 48989.
+   Un compte Windows connecte est requis pour decouvrir/lancer ses jeux.
+
+REPRENDRE LE SERVICE 0.9
+1. Garder les sauvegardes du menage. Arreter la 0.9 et VibeShine.
+2. Ouvrir ce nouveau kit et laisser Reprendre mon service 0.9 coche.
+3. Installer copie et verifie le catalogue, les certificats, l'appairage et
+   les donnees de synchronisation. Les UUID et personnalisations restent.
+   Les anciennes donnees restent en place. Une operation incomplete, un lien
+   ou des chemins de configuration personnalises peuvent bloquer la migration.
+4. Le service pointe ensuite vers Program Files\Moonshine. L'entree Moonlight
+   de l'ancien essai peut etre reutilisee; le nom annonce devient Moonshine.
+5. Desinstaller VibeShine, puis utiliser Preparer les pilotes signes dans la
+   nouvelle fenetre avant le prochain essai. La desinstallation de VibeShine
+   peut retirer un peripherique partage; ce bouton sert aussi a le recréer.
+6. Demarrer et tester. Apres validation, relancer le kit de menage : les anciens
+   dossiers reconnus devenus inutilises peuvent alors etre archives.
+
+FONCTIONNEMENT ET RECUPERATION
+- Programme : Program Files\Moonshine. Reference saine et gestionnaire : Kit.
+- Donnees utilisateur : %LOCALAPPDATA%\Moonshine\Library\<identifiant>.
+- Configuration/certificats et copies de recuperation : dossiers prives du programme.
+- La synchronisation fonctionne dans le compte normal choisi avant l'elevation.
+- Fermer cette fenetre laisse le service en marche. Le demarrage automatique
+  se choisit a l'installation ou dans les reglages Windows de Moonshine.
+- Mettre a jour : arreter Moonshine, extraire le nouveau ZIP puis Installer.
+  La meme version peut reparer ses fichiers depuis le kit local verifie.
+  Une version remplacee est conservee sous Moonshine.Previous.<identifiant>.
+- Retirer le service arrete/retire uniquement MoonshineService et sa regle reseau.
+  Programmes, donnees, sauvegardes et pilotes partages restent pour recuperation.
+  Une reinstallation depuis ce ZIP peut enregistrer le meme profil a nouveau.
+- Aucun ancien programme ou dossier d'essai n'est execute par l'installation.
+- Si Windows refuse un pilote, conserver le diagnostic et le message exact.
+  Une version de pilote plus recente n'est jamais retrogradee par ce kit.
+
+VALIDATION FINALE SUR LE PC
+Tester un jeu Xbox, EA puis Steam; verifier ecran virtuel exclusif, resolution,
+HDR, manette, fin du stream a la sortie du jeu et retour de l'ecran physique.
+Redemarrer Windows et refaire un lancement sans rouvrir un ancien kit.
+DLSS et Frame Generation restent des reglages internes aux jeux.
+Cette candidate n'est pas une release finale ni une preuve de tous les jeux/GPU.
+WebRTC/PyroWave et TrueHDR ne font pas partie de cette qualification.
+
+Sources et licences incluses. Fork de VibeShine/Sunshine :
+https://github.com/pilvince911/Moonshine

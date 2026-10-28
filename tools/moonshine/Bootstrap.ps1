@@ -5,7 +5,7 @@ param(
     [switch]$Unattended,
     [switch]$FunctionsOnly
 )
-$script:BootstrapVersion='0.8.1'
+$script:BootstrapVersion='1.0.0'
 $script:BootstrapFiles=@('Trial.ps1','TrialTests.ps1','Moonshine-Worker.ps1','Recovery.ps1','RecoveryTests.ps1','Desktop.ps1','Desktop.xaml','DesktopView.cs','GuiBridge.cs','GuiEngine.ps1','GuiDiagnostics.ps1','GuiTests.ps1','Mode-console.cmd','Brand.ps1','BrandTests.ps1','Profiles.ps1','ProfileTests.ps1','Atomic.ps1','Bootstrap.ps1','Repair.ps1','RepairTests.ps1','Reset.ps1','ResetTests.ps1','Core.ps1','EA.ps1','Inventory.ps1','Api.ps1','Artwork.ps1','Artwork.cs','Sync.ps1','SelfTests.ps1','TransportTests.cs','Transport-Test.pfx','Native.cs','Launch-Game.ps1','VibeShine-Xbox.ps1','Demarrer.cmd','Exporter-retour.cmd','LIRE-MOI.txt','VALIDATION.txt','SOURCES.txt')
 function Package-Hashes([string]$Folder,$Expected=$script:BootstrapFiles) {
     $manifest=Join-Path $Folder 'SHA256.txt'
@@ -73,7 +73,7 @@ try {
     foreach ($candidate in @($PSScriptRoot,$mirror,$runtime)) {
         if (Package-Valid $candidate) { $source=$candidate;break }
     }
-    if (-not $source) { throw 'Aucune copie complete et verifiable du programme. Reextraire le ZIP 0.8.1; donnees et jeux conserves.' }
+    if (-not $source) { throw 'Aucune copie complete et verifiable du programme. Reextraire le ZIP 1.0.0; donnees et jeux conserves.' }
     $hashes=Package-Hashes $source
     # Only load the writer after the complete source package has been verified.
     . (Join-Path $source 'Atomic.ps1')

@@ -99,7 +99,7 @@ function Invoke-RepairSelfTests {
         return @{status=$true}
     }
     try {
-        $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\0.8.1'
+        $script:Data=$temporary;$script:Runtime=Join-Path $temporary 'versions\1.0.0'
         [IO.Directory]::CreateDirectory($script:Runtime) | Out-Null
         $script:SelfTestCheckpoint='Neuf jeux : vrai parcours de plan ecriture relecture et reprise'
         $games=@()
@@ -143,10 +143,10 @@ function Invoke-RepairSelfTests {
         $newRuntime=Join-Path $temporary 'versions\0.6.1'
         $upgrade=@(Build-Plan @($game) @($sameApp) $loaded $newRuntime $script:Data)[0]
         Assert ($upgrade.action -eq 'update' -and 'cmd' -in $upgrade.changed_fields -and 'working-dir' -in $upgrade.changed_fields) 'Une vraie mise a niveau du lanceur reste une mise a jour'
-        $taskAction=@{Execute=(Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe');Arguments=(Automation-Arguments $script:Data '0.8.1');WorkingDirectory=''}
+        $taskAction=@{Execute=(Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe');Arguments=(Automation-Arguments $script:Data '1.0.0');WorkingDirectory=''}
         Assert (Test-ManagedAutomationAction $taskAction $script:Data) 'Nouvelle tache OPi5 reconnue par son chemin et ses arguments'
         $oldTask=To-Map $taskAction
-        $oldTask.Arguments=$oldTask.Arguments.Replace('Packages\0.8.1\Bootstrap.ps1','versions\0.3.1\VibeShine-Xbox.ps1')
+        $oldTask.Arguments=$oldTask.Arguments.Replace('Packages\1.0.0\Bootstrap.ps1','versions\0.3.1\VibeShine-Xbox.ps1')
         Assert (Test-ManagedAutomationAction $oldTask $script:Data) 'Ancienne tache OPi5 reconnue pour migration de version'
         $withDirectory=To-Map $taskAction;$withDirectory.WorkingDirectory=$script:Runtime
         Assert (Test-ManagedAutomationAction $withDirectory $script:Data) 'Tache creee par le menu avec son repertoire de version reconnue pour migration'
@@ -195,7 +195,7 @@ function Invoke-RepairSelfTests {
         Assert ((@(Build-Plan @($game) @($customCommand) $customState $script:Runtime $script:Data)[0]).action -eq 'conflict') 'Commande personnalisee jamais ecrasee pendant une reconstruction'
 
         $script:SelfTestCheckpoint='Reponse POST perdue et reprise sans doublon'
-        $script:Data=Join-Path $temporary 'lost-response';$script:Runtime=Join-Path $script:Data 'versions\0.8.1'
+        $script:Data=Join-Path $temporary 'lost-response';$script:Runtime=Join-Path $script:Data 'versions\1.0.0'
         $script:TestApiApps=@();$script:TestApiPosts=0;$script:TestLoseReply=$true
         $lostState=Empty-State
         $lostPlan=@(Build-Plan @($game) @() $lostState $script:Runtime $script:Data)
