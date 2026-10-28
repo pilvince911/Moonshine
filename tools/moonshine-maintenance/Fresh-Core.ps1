@@ -195,7 +195,8 @@ function Invoke-MMRetirePreview($Context,$Backup) {
     if ($rules.Count -eq 1) {
         $rule=$rules[0];$app=Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule
         $address=Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $rule
-        if ($app.Program -ieq (Join-Path $preview.root 'Package\sunshine.exe') -and [string]$rule.Profile -ceq 'Private' -and [string]$rule.Direction -ceq 'Inbound' -and [string]$rule.Action -ceq 'Allow' -and @($address.RemoteAddress).Count -eq 1 -and $address.RemoteAddress[0] -ceq 'LocalSubnet') {
+        $expectedProgram=[IO.Path]::GetFullPath((Join-Path $preview.root 'Package\sunshine.exe'))
+        if ([IO.Path]::IsPathRooted([string]$app.Program) -and [IO.Path]::GetFullPath([string]$app.Program) -ieq $expectedProgram -and [string]$rule.Profile -ceq 'Private' -and [string]$rule.Direction -ceq 'Inbound' -and [string]$rule.Action -ceq 'Allow' -and @($address.RemoteAddress).Count -eq 1 -and $address.RemoteAddress[0] -ceq 'LocalSubnet') {
             $Backup.record.preview_firewall=@{name=$name;program=$app.Program;profile='Private';direction='Inbound';action='Allow';remote='LocalSubnet';enabled=[string]$rule.Enabled}
             Write-MMJson (Join-Path $Backup.root 'backup.json') $Backup.record
             Remove-NetFirewallRule -Name $name -ErrorAction Stop

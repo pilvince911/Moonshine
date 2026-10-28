@@ -53,6 +53,8 @@ try {
             $folder=MakeDirectory (Join-Path $instance $relative);[IO.File]::WriteAllText((Join-Path $folder 'moonshine-trial-id.txt'),$id)
         }
     }
+    # A real PE is used only as a firewall target. It is NEVER started.
+    Copy-Item -LiteralPath "$env:WINDIR\System32\whoami.exe" -Destination (Join-Path $preview 'Package\sunshine.exe')
     MakeDirectory (Join-Path $trial 'Sync') | Out-Null
     Write-MMJson (Join-Path $base 'instances.json') @{schema='moonshine-trial-instances/1';instances=@{$commit=$id}}
     Check (Test-MMTrialBase $context $base) 'A complete known trial base should include its stale index.'
@@ -98,7 +100,8 @@ try {
     Check ($backup.record.phase -ceq 'verified') 'Every service change must follow a verified full backup.'
     $ruleName='MoonshineServicePreview-'+$id
     if (Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue) { throw 'Existing fixture firewall rule must never be changed.' }
-    New-NetFirewallRule -Name $ruleName -DisplayName 'Moonshine disposable cleanup fixture' -Direction Inbound -Action Allow -Profile Private -Program (Join-Path $preview 'Package\sunshine.exe') -RemoteAddress LocalSubnet | Out-Null
+    $firewallProgram=[IO.Path]::GetFullPath((Join-Path $preview 'Package\sunshine.exe'))
+    New-NetFirewallRule -Name $ruleName -DisplayName 'Moonshine disposable cleanup fixture' -Direction Inbound -Action Allow -Profile Private -Program $firewallProgram -RemoteAddress LocalSubnet | Out-Null
     Invoke-MMRetirePreview $context $backup
     Check (-not (Get-CimInstance Win32_Service -Filter "Name='MoonshineService'")) 'The exact old SCM binding was not removed.'
     Check (-not (Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue)) 'The exact old firewall rule was not removed.'
@@ -126,7 +129,7 @@ try {
         $rule=Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue
         if ($rule) {
             $app=Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule
-            if ($app.Program -ieq (Join-Path $temporary 'Program Files\Moonshine-Preview\Package\sunshine.exe')) { Remove-NetFirewallRule -Name $ruleName }
+            if ([IO.Path]::GetFullPath($app.Program) -ieq [IO.Path]::GetFullPath((Join-Path $temporary 'Program Files\Moonshine-Preview\Package\sunshine.exe'))) { Remove-NetFirewallRule -Name $ruleName }
         }
     }
     if ([IO.Directory]::Exists($temporary)) { Remove-Item -LiteralPath $temporary -Recurse -Force }
