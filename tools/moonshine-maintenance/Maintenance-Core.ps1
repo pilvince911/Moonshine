@@ -1,6 +1,33 @@
 ﻿#Requires -Version 5.1
 # SPDX-License-Identifier: GPL-3.0-only
 # No downloaded or installed script is dot-sourced by this maintenance tool.
+function Assert-MMSingleFile([string]$Path) {
+    if (-not ('MoonshineMaintenanceFile' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+public static class MoonshineMaintenanceFile {
+    [StructLayout(LayoutKind.Sequential)] struct Info {
+        public uint Attributes;
+        public System.Runtime.InteropServices.ComTypes.FILETIME Creation, Access, Write;
+        public uint Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
+    }
+    [DllImport("kernel32.dll", SetLastError=true)]
+    static extern bool GetFileInformationByHandle(SafeFileHandle file, out Info info);
+    public static void Check(string path) {
+        using (var stream = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete)) {
+            Info info;
+            if (!GetFileInformationByHandle(stream.SafeFileHandle,out info) || info.Links!=1)
+                throw new IOException("Fichier lie ou identite de fichier inconnue; originaux conserves: "+path);
+        }
+    }
+}
+'@
+    }
+    [MoonshineMaintenanceFile]::Check($Path)
+}
 function Assert-MMPlainPath([string]$Path) {
     if (-not [IO.Path]::IsPathRooted($Path) -or $Path.StartsWith('\\') -or $Path -match '[\r\n]') { throw 'Un chemin local absolu est requis.' }
     $item=[IO.Path]::GetFullPath($Path)
@@ -43,6 +70,7 @@ function Protect-MMArchivedTree([string]$Root) {
             if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Un lien est apparu dans l archive. Verification manuelle requise.' }
             if ($item.PSIsContainer) { Set-MMPrivateDirectory $item.FullName;$pending.Enqueue($item.FullName);continue }
             $acl=New-Object Security.AccessControl.FileSecurity
+            Assert-MMSingleFile $item.FullName
             $acl.SetAccessRuleProtection($true,$false)
             foreach ($sid in @('S-1-5-18','S-1-5-32-544')) {
                 $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($sid)),'FullControl','Allow')))
@@ -72,6 +100,7 @@ function Get-MMTree([string]$Root) {
             if ($item.PSIsContainer) { $pending.Enqueue($item.FullName);continue }
             # Cooperative locks are held separately, never copied as live files.
             if ($item.Name -in @('sync.lock','bootstrap.lock')) { continue }
+            Assert-MMSingleFile $item.FullName
             $bytes+=$item.Length
             if ($files.Count -ge 50000 -or $bytes -gt 4294967296) { throw 'Dossier trop volumineux pour ce kit (4 Gio / 50 000 fichiers). Originaux conserves.' }
             $files.Add([pscustomobject]@{path=$item.FullName.Substring($prefix.Length);size=$item.Length;sha256=(Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()})
@@ -231,6 +260,8 @@ function Get-MMPlan($Candidates,$References,$Tasks) {
     }
 }
 function Assert-MMIdle {
+    $services=@(Get-CimInstance Win32_Service -ErrorAction Stop | Where-Object { $_.Name -in @('MoonshineService','SunshineService') -and $_.State -ne 'Stopped' })
+    if ($services.Count) { throw 'Arreter les services Moonshine et VibeShine depuis leurs fenetres avant de sauvegarder ou nettoyer.' }
     $active=@(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
         $_.Name -in @('sunshine.exe','vibeshine.exe','moonshine.exe','sunshine_display_helper.exe') -or
         ($_.Name -in @('powershell.exe','pwsh.exe') -and [string]$_.CommandLine -match '(?i)(Moonshine-Worker|Launch-Game|VibeShine-Xbox|Bootstrap|Desktop|GuiEngine)\.ps1')
@@ -244,6 +275,7 @@ function Get-MMLocks($Candidates) {
             if (-not $candidate.known -or -not $candidate.sync -or -not [IO.Directory]::Exists($candidate.sync)) { continue }
             foreach ($name in @('bootstrap.lock','sync.lock')) {
                 $path=Join-Path $candidate.sync $name;Assert-MMPlainPath $path
+                if ([IO.File]::Exists($path)) { Assert-MMSingleFile $path }
                 $locks.Add([IO.File]::Open($path,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None))
             }
         }
@@ -251,6 +283,7 @@ function Get-MMLocks($Candidates) {
     } catch { foreach ($held in $locks) { $held.Dispose() };throw 'Un synchroniseur utilise encore ces donnees. Aucun retrait autorise.' }
 }
 function New-MMBackup($Context,$Candidates,$Plan,$Tasks) {
+    if (@($Candidates | Where-Object { $_.known }).Count -eq 0) { throw 'Aucun dossier reconnu a sauvegarder. Aucun retrait autorise.' }
     Set-MMPrivateDirectory $Context.BackupBase
     $root=Join-Path $Context.BackupBase ((Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
     Set-MMPrivateDirectory $root

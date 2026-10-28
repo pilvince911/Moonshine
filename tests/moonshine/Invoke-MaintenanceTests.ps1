@@ -16,6 +16,11 @@ try {
     $files=@(Copy-MMVerifiedTree $source $destination)
     Check ($files.Count -eq 2 -and -not [IO.File]::Exists((Join-Path $destination 'sync.lock'))) 'A verified backup must include hidden/nested files and omit a live lock.'
     Check (Test-MMTreeEqual $files @(Get-MMTree $destination)) 'Backup hash closure differs.'
+    $held=Get-MMLocks @(@{known=$true;sync=$source})
+    try {
+        $lockedCopy=Join-Path $temporary 'locked-copy';$snapshot=@(Copy-MMVerifiedTree $source $lockedCopy)
+        Check (Test-MMTreeEqual $files $snapshot) 'Cooperative bootstrap/sync locks must stay held while backing up normal files.'
+    } finally { foreach ($handle in $held) { $handle.Dispose() } }
     Refuses { Copy-MMVerifiedTree $source $destination } 'Existing backups must never be overwritten.'
     $entry=@{source=$source;key='copy';files=$files}
     [IO.File]::WriteAllText((Join-Path $source 'nested\state.json'),'change apres apercu')
@@ -63,6 +68,12 @@ try {
     $nestedLink=Join-Path $source 'linked';$null=New-Item -ItemType Junction -Path $nestedLink -Target $outside
     Refuses { $null=Get-MMTree $source } 'An embedded junction must not be traversed.'
     [IO.Directory]::Delete($nestedLink);[IO.Directory]::Delete($junction)
+    $external=Join-Path $outside 'shared.txt';[IO.File]::WriteAllText($external,'fichier partage externe')
+    $externalAcl=(Get-Acl -LiteralPath $external).Sddl
+    $hardlink=Join-Path $source 'shared-link.txt';$null=New-Item -ItemType HardLink -Path $hardlink -Target $external
+    Refuses { $null=Get-MMTree $source } 'Hard-linked files must not authorize ACL changes to an external file.'
+    [IO.File]::Delete($hardlink)
+    Check ((Get-Acl -LiteralPath $external).Sddl -ceq $externalAcl -and [IO.File]::ReadAllText($external) -ceq 'fichier partage externe') 'External shared file contents or permissions changed.'
     # Real atomic archive under a temporary private tree, without touching services/tasks/drivers.
     [IO.File]::WriteAllText((Join-Path $destination 'nested\state.json'),'catalogue et personnalisation')
     $archive=Move-MMVerifiedRoot $entry $temporary
