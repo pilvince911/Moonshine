@@ -1,16 +1,19 @@
 ﻿#Requires -Version 5.1
 param([switch]$ValidateWindowOnly,[switch]$TrayOnly,[switch]$Uninstall,[string]$PreviewPath,[string]$CITrace)
 $ErrorActionPreference='Stop'
+function Write-MoonshineCIPhase([string]$Value){if($CITrace -and $env:GITHUB_ACTIONS -eq 'true' -and $env:CI -eq 'true'){[IO.File]::AppendAllText($CITrace+'.phase',((Get-Date).ToString('o')+' '+$Value+"`r`n"))}}
+Write-MoonshineCIPhase 'script-entered'
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Windows.Forms,System.Drawing
+Write-MoonshineCIPhase 'desktop-assemblies-loaded'
 $script:operation=$null;$script:timer=$null;$script:notify=$null;$script:quit=$false;$script:launchInstalled=$false
 $mutex=$null;$ownsMutex=$false;$signals=@{};$script:trayItems=@{};$script:model=$null;$script:evidence=$null
 try {
     . (Join-Path $PSScriptRoot 'Installation.ps1')
     . (Join-Path $PSScriptRoot 'Pilotes.ps1')
     . (Join-Path $PSScriptRoot 'Manager-State.ps1')
-    [Environment]::CurrentDirectory=$env:WINDIR;Set-Location -LiteralPath $env:WINDIR
     [xml]$layout=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Launcher.xaml'))
     $reader=New-Object Xml.XmlNodeReader($layout);$script:window=[Windows.Markup.XamlReader]::Load($reader)
+    Write-MoonshineCIPhase 'window-constructed'
     $script:controls=@{}
     foreach ($name in @('MainTabs','BrandImage','StatusText','DetailText','InstallStep','DriverStep','RunStep','PrimaryButton','StopButton','OperationProgress','OperationText','InstallChoices','MigrateChoice','AutomaticChoice','RepairButton','DriversButton','BackupButton','DiagnosticButton','HelpButton','RemoveButton','TrayButton')) {
         $controls[$name]=$window.FindName($name);if (-not $controls[$name]) {throw ('Controle absent : '+$name)}
@@ -29,9 +32,11 @@ try {
         }
         $window.Close();Write-Output 'Moonshine RC2 WPF constructed; icon loaded without keeping a file handle.';return
     }
+    [Environment]::CurrentDirectory=$env:WINDIR;Set-Location -LiteralPath $env:WINDIR
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
     if ($identity.IsSystem -or (New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Ouvrir Moonshine normalement. Ses operations systeme demandent elles-memes la confirmation Windows.' }
     $script:ownerSid=$identity.User.Value
+    Write-MoonshineCIPhase 'normal-account-verified'
     $installedKit=Join-Path $script:MoonshineServiceRoot 'Kit'
     $script:fromInstalled=[IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\') -ieq [IO.Path]::GetFullPath($installedKit).TrimEnd('\')
     foreach ($purpose in @('Show','Uninstall','Release')) {$signals[$purpose]=New-MoonshineManagerSignal $ownerSid $purpose}
@@ -49,12 +54,14 @@ try {
         }
     }
     foreach($signal in $signals.Values){$null=$signal.Reset()}
+    Write-MoonshineCIPhase 'instance-acquired'
     $build=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'build-info.json')))
     $script:sourceCommit=[string]$build.commit
     if ($sourceCommit -cnotmatch '\A[a-f0-9]{40}\z') {throw 'Identite du paquet absente. Extraire le ZIP complet.'}
     $preview=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Moonshine-Preview\service-receipt.json'
     $controls.MigrateChoice.IsChecked=[IO.File]::Exists($preview)
     $script:application=New-Object Windows.Application;$application.ShutdownMode=[Windows.ShutdownMode]::OnExplicitShutdown
+    Write-MoonshineCIPhase 'application-created'
     function Show-MoonshineWindow([switch]$Maintenance) {
         if ($Maintenance) {$controls.MainTabs.SelectedIndex=1}
         $window.Show();$window.WindowState=[Windows.WindowState]::Normal;$null=$window.Activate()
@@ -169,7 +176,7 @@ try {
         if($evidence.installed){$null=$window.Dispatcher.BeginInvoke([Action]{Enter-MoonshineTray})}
         elseif(-not $script:operation){$null=$window.Dispatcher.BeginInvoke([Action]{Stop-MoonshineManager})}
     })
-    $script:ticks=0;Update-MoonshineManager
+    $script:ticks=0;Write-MoonshineCIPhase 'reading-state';Update-MoonshineManager;Write-MoonshineCIPhase 'state-read'
     $window.ShowInTaskbar=-not $fromInstalled
     if($Uninstall){Show-MoonshineWindow -Maintenance;Invoke-MoonshineSetupAction 'Uninstall'}elseif((-not $fromInstalled -and -not $TrayOnly) -or -not $evidence.installed){$window.Show()}
     if($CITrace){

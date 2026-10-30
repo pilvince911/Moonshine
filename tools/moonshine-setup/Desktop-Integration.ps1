@@ -115,7 +115,6 @@ function Uninstall-MoonshineInstalled([string]$OwnerSid) {
     }
     # Moving the owned root preserves all user-added files. No recursive deletion.
     Assert-MoonshinePlainPath $script:MoonshineServiceRoot
-    [Environment]::CurrentDirectory=$env:WINDIR;Set-Location -LiteralPath $env:WINDIR
     $archive=Join-Path $backup.path 'program'
     [IO.Directory]::Move($script:MoonshineServiceRoot,$archive)
     Write-MoonshineServiceJson (Join-Path $backup.path 'uninstall.json') @{schema='moonshine-uninstall/1';id=$receipt.id;phase='completed';source=$script:MoonshineServiceRoot;program_archive=$archive;library_preserved=$true;drivers_preserved=$true}

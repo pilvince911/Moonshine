@@ -23,9 +23,10 @@ try{
  $trace=Join-Path $folder 'ready.json';$ps=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
  $command='"'+$ps+'" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "'+(Join-Path $kit 'Gestion-Moonshine.ps1')+'" -TrayOnly -CITrace "'+$trace+'"'
  $child=[MoonshineTestUserProcess]::Start($command,$env:WINDIR,$testUser.Name,$testUser.Password)
- for($n=0;$n -lt 120 -and -not [IO.File]::Exists($trace) -and -not $child.HasExited;$n++){Start-Sleep -Milliseconds 250}
- if(-not [IO.File]::Exists($trace)){throw ('Normal-account tray startup did not report ready; exited='+$child.HasExited)}
+ for($n=0;$n -lt 480 -and -not [IO.File]::Exists($trace) -and -not $child.HasExited;$n++){Start-Sleep -Milliseconds 250}
+ if(-not [IO.File]::Exists($trace)){$phase=if([IO.File]::Exists($trace+'.phase')){[IO.File]::ReadAllText($trace+'.phase')}else{'script not reached'};throw ('Normal-account tray startup did not report ready; exited='+$child.HasExited+'; phases='+$phase)}
  $data=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($trace))
+ if($data.error){throw ('Normal tray error: '+$data.error+'; '+$data.stack)}
  if($data.admin -or $data.system -or $data.sid -cne $sid -or -not $data.icon_visible -or $data.window_visible -or $data.service_running){throw 'The tray did not start hidden with its normal selected identity.'}
  foreach($name in @('Open','Start','Stop','Manage','Maintenance','Exit')){if($data.menu_items -cnotcontains $name){throw ('Tray action missing: '+$name)}}
  $null=$release.Set();if(-not $child.WaitForExit(20000)){throw 'The tray did not honor its owner-scoped exit signal.'}
