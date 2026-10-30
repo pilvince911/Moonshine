@@ -130,13 +130,13 @@ function Export-MoonshineSetupDiagnostic([string]$OwnerSid,[string]$Folder) {
     Write-MoonshineServiceJson (Join-Path $stage 'status.json') @{version=$receipt.version;commit=$receipt.commit;service_state=$(if($service){$service.State}else{'absent'});data_mode='installed';os=[Environment]::OSVersion.Version.ToString();powershell=$PSVersionTable.PSVersion.ToString()}
     foreach ($file in @(Get-ChildItem -LiteralPath (Join-Path $script:MoonshineServiceRoot 'Package\config') -File -Filter '*.log' -ErrorAction SilentlyContinue)) {
         if ($file.Length -gt 2097152) { $lines=@(Get-Content -LiteralPath $file.FullName -Tail 2000) } else { $lines=@(Get-Content -LiteralPath $file.FullName) }
-        $safe=foreach ($line in $lines) {
+        $safe=@(foreach ($line in $lines) {
             if ($line -match '(?i)password|token|authorization|cookie|secret|private.key') { '[ligne sensible retiree]';continue }
             $value=[regex]::Replace([string]$line,[regex]::Escape($paths.Profile),'%USERPROFILE%',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
             $value=[regex]::Replace($value,[regex]::Escape($env:COMPUTERNAME),'%COMPUTERNAME%',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
             $value=[regex]::Replace($value,'\b(?:\d{1,3}\.){3}\d{1,3}\b','[adresse IP]')
             $value
-        }
+        })
         [IO.File]::WriteAllLines((Join-Path $stage $file.Name),[string[]]$safe,(New-Object Text.UTF8Encoding($false)))
     }
     Add-Type -AssemblyName System.IO.Compression.FileSystem

@@ -38,6 +38,22 @@ try {
  Assert-MoonshineDesktopRegistration $receipt;Check $true 'The exact owned registration must be recognized.'
  $receipt.owner_sid='S-1-5-21-1-2-3-1001';Refuses {Assert-MoonshineDesktopRegistration $receipt} 'A different Windows account must not claim the registration.'
  $base.DeleteSubKeyTree($script:MoonshineUninstallKey);$base.Dispose();$base=$null
+ # A stopped profile may legitimately contain an empty log. Export still has
+ # to succeed, while excluding token lines and anonymizing paths/addresses.
+ $receipt.owner_sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+ $files=@();foreach($name in @('one','two','three','four')){$files+=@(@{path=('Package/'+$name);sha256=('c'*64)})}
+ Write-MoonshineServiceJson (Join-Path $temporary 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=$receipt.id;owner_sid=$receipt.owner_sid;commit=('d'*40);version='1.0.0-rc.2';phase='installed';files=$files;firewall_created=$false}
+ $logs=Join-Path $temporary 'Package\config';[IO.Directory]::CreateDirectory($logs)|Out-Null
+ [IO.File]::WriteAllText((Join-Path $logs 'empty.log'),'')
+ [IO.File]::WriteAllLines((Join-Path $logs 'privacy.log'),[string[]]@('token=do-not-export',($env:USERPROFILE+'\private 192.168.1.4')))
+ $output=Join-Path $temporary 'diagnostic-output';[IO.Directory]::CreateDirectory($output)|Out-Null
+ $diag=Export-MoonshineSetupDiagnostic $receipt.owner_sid $output
+ $zip=[IO.Compression.ZipFile]::OpenRead((Join-Path $output $diag.file))
+ try {
+  $empty=$zip.GetEntry('empty.log');Check ($null -ne $empty -and $empty.Length -eq 0) 'An empty log must export as an empty entry.'
+  $reader=New-Object IO.StreamReader($zip.GetEntry('privacy.log').Open());try{$safe=$reader.ReadToEnd()}finally{$reader.Dispose()}
+  Check (-not $safe.Contains('do-not-export') -and -not $safe.Contains($env:USERPROFILE) -and -not $safe.Contains('192.168.1.4') -and $safe.Contains('[adresse IP]')) 'Diagnostic export leaked a token, profile path or IP address.'
+ }finally{$zip.Dispose()}
  Refuses {Get-MoonshineOperationFolder 'S-1-5-18' ('a'*32)} 'SYSTEM may not substitute for the selected interactive owner.'
  Refuses {Get-MoonshineOperationFolder ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value) '..\outside'} 'An operation id must never carry an output path.'
  Write-Output ('Moonshine RC2 manager: '+$checks+' state/WPF/registry/operation checks passed.')

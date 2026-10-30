@@ -74,6 +74,7 @@ try {
     }
     function Enter-MoonshineTray {
         if (-not $evidence.installed) {return}
+        if ($script:operation -and -not $operation.process.HasExited) {$null=[Windows.MessageBox]::Show('Attendre la fin de l operation avant de changer de gestionnaire.','Moonshine');return}
         if (-not $fromInstalled) {$script:launchInstalled=$true;Stop-MoonshineManager} else {$window.Hide()}
     }
     function Add-MoonshineTrayItem([string]$Key,[string]$Text,[scriptblock]$Handler) {
