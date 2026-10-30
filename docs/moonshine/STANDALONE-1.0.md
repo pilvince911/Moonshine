@@ -1,31 +1,23 @@
 # Installation autonome 1.0 : conditions de sortie
 
-Le candidat service 0.9.0 a passé les essais logiciels du commit `96239aa250d10501f66a1eacca6a9496bc58d09a`. Son utilisation réelle a ensuite confirmé des lancements Xbox PC et EA, la création de l'écran virtuel exclusif et le retour à la topologie physique. Cette preuve couvre ce PC et ces essais; elle ne qualifie pas une installation neuve ni tous les jeux.
+La RC1 autonome a passé ses contrôles logiciels au commit `ef0335dd886d8a8218aa408c123149f1ccb72e8c`. Le propriétaire a ensuite signalé son installation fonctionnelle après retrait de VibeShine et préparation des pilotes du ZIP. La RC2 conserve ce parcours et ajoute la finition Windows; sa validation réelle précède la release 1.0.
 
-## Dépendances restantes
+## Critères de la RC2
 
-Le kit 0.9 copie le profil de l'essai 0.8.1 mais garde son identifiant et sa racine `OPi5\Moonshine-Trial\<id>\Sync`. Les commandes des jeux y visent `versions\0.8.1\Launch-Game.ps1`. Le kit ne fournit aucun pilote. La désinstallation de VibeShine peut retirer des périphériques ou composants partagés encore employés par Moonshine. Un avertissement de couche HDR Vulkan absente est aussi présent dans le diagnostic du kit service.
-
-Les fichiers VHF de la base source déclarent le canal `msi-request-signing` : leur présence dans Git ne constitue pas un paquet de pilote distribuable. Ne pas livrer ces catalogues non signés comme si le travail de signature amont était déjà fait. Un paquet signé existant exige sa provenance, sa licence, ses empreintes, sa signature et sa compatibilité de protocole vérifiées. Ne pas générer de clé de production ni affaiblir les paramètres de sécurité Windows pour contourner un refus.
-
-## Travail requis avant une distribution autonome
-
-| Travail | Critère concret |
+| Parcours | Critère |
 |---|---|
-| Installation Windows propre | Installation sous l'identité Moonshine, sans index d'essais, profil OPi5 ni VibeShine préexistant; première connexion et appairage utilisables |
-| Données et lancement | Racine propre à Moonshine; aucun chemin actif ne dépend d'un ancien dossier d'essai, de son extraction ou de VibeShine |
-| Pilotes et HDR | Paquets vérifiés pour l'écran virtuel et les manettes; composants Vulkan requis présents; refus et redémarrage nécessaire clairement exposés |
-| Migration facultative | Catalogue, UUID, appairages, images et personnalisations repris depuis une sauvegarde privée; seuls les chemins gérés sont réécrits; aucun import n'est nécessaire pour une installation neuve |
-| Cycle de vie | Réparation hors ligne, mise à niveau de la même installation, désinstallation Windows et réinstallation vérifiées; aucune suppression de composant partagé sur simple recherche de nom |
-| Démarrage et récupération | Service après redémarrage, compte utilisateur normal pour le moteur, reprise d'une installation interrompue et restauration de l'affichage après déconnexion/crash |
-| Distribution | Archive/installeur, sources et licences concordants; empreintes; identité et statut de signature honnêtes; procédure de retour vérifiée |
+| Installation neuve | Aucun ancien kit, profil ou test préalable requis; pilotes signés fournis et préparation explicite |
+| Mise à jour RC1 | Même bibliothèque, appairage, UUID et réglages; programme précédent conservé |
+| Icône | Compte normal, lancement caché à la connexion, une instance, actions de bibliothèque et service |
+| Entretien | Réparation vérifiée, sauvegarde privée, diagnostic limité sans identifiants ni certificats |
+| Retrait Windows | Inscription propre, archivage du programme, bibliothèque et pilotes partagés conservés |
+| Matériel | Xbox/EA/Steam, manette, écran exclusif/HDR, fin du stream, restauration et redémarrage |
+| Distribution finale | ZIP, guide, sources/licences et empreinte concordants; release GitHub après validation |
 
-La signature du programme Moonshine réduit les avertissements SmartScreen mais reste distincte de la signature exigée pour ses pilotes. Les outils de test et sources peuvent rester dans le dépôt; aucune version précédente ni exécution préalable de tests ne doit être requise sur le PC de l'utilisateur.
+## Limites et preuve
 
-## Ménage livré séparément
+Les tests Windows couvrent un vrai service SCM et un vrai worker normal, mais pas les pilotes chargés ni l'affichage d'un GPU de runner. Le test de mise à niveau utilise un reçu antérieur synthétique; la mise à jour de la RC1 réelle est à essayer. L'icône utilise le compte interactif, et les opérations de service gardent la confirmation administrateur quand Windows la demande.
 
-`tools/moonshine-maintenance` fournit analyse, sauvegarde privée vérifiée et archivage des anciennes racines reconnues devenues inutilisées. Les services installés, leurs catalogues et les tâches empêchent le retrait des données encore nécessaires, même service arrêté. Les tâches reconnues ont un compte et une commande exacte; leurs XML sont sauvegardés avant retrait. Les profils inconnus, chemins personnalisés non résolus et jonctions sont conservés. Le script ne désinstalle ni hôte ni pilote.
+Les 19 fichiers originaux des pilotes proviennent de l'asset VibeShine 2.0.1 épinglé. Signatures, catalogues, protocole, licences et provenance restent contrôlés. Aucune clé de production n'est générée et aucune politique Windows n'est abaissée. Le programme Moonshine reste non signé; WebRTC/PyroWave, TrueHDR et l'optimisation interne DLSS/FG ne font pas partie de cette qualification.
 
-La copie vérifiée précède tout archivage. Une relecture des dépendances, du contenu et des tâches limite les plans devenus périmés. Les changements sont journalisés dans un dossier privé. Une archive conserve les octets retirés sans suppression récursive. Les extractions arbitraires du Bureau et des Téléchargements demandent un choix explicite après la transition.
-
-La séquence de validation finale est : sauvegarde, installation autonome neuve sur Windows jetable, migration sur le PC réel, désinstallation de l'ancien hôte avec remplacement vérifié des composants nécessaires, redémarrage Windows, essai Xbox/EA/Steam et restauration de l'affichage, puis archivage des anciens dossiers. Ne pas appeler la 0.9 « 1.0 autonome » pour éviter cette validation.
+Le ménage 0.2 archive les essais reconnus et peut retirer le seul ancien service 0.9 après sauvegarde. Il protège l'installation autonome et ses données. Les archives sont à conserver jusqu'à validation; aucune purge générale n'est nécessaire pour utiliser Moonshine.

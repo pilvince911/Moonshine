@@ -70,6 +70,15 @@ jobs:
       - name: ZIP setup window, migration and driver policies
         shell: powershell
         run: ./tests/moonshine/Invoke-SetupTests.ps1
+      - name: Guided manager, registry ownership and rendered Windows view
+        shell: powershell
+        run: ./tests/moonshine/Invoke-ManagerTests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moonshine-rc2-windows-interface
+          path: build-evidence/moonshine-rc2-window.png
+          retention-days: 30
       - name: Service entry points and actual WPF window
         shell: powershell
         run: |
@@ -87,6 +96,9 @@ jobs:
       - name: Standard-account process startup
         shell: powershell
         run: ./tests/moonshine/Invoke-RestrictedProbe.ps1
+      - name: Actual tray companion in a normal account
+        shell: powershell
+        run: ./tests/moonshine/Invoke-TrayProbe.ps1
   windows-bridge:
     runs-on: windows-latest
     timeout-minutes: 10

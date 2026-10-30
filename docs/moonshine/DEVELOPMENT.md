@@ -8,7 +8,7 @@ La branche de référence `upstream/v2.0.1` conserve la base VibeShine 2.0.1. Le
 |---|---|
 | `src/moonshine/` | Travaux en arrière-plan, processus dans la session Windows, canaux privés, confirmation et annulation |
 | `src/confighttp_moonshine.cpp` | Authentification/CSRF, autorisations locales temporaires et adaptation à VibeShine |
-| `tools/moonshine/` | Moteur 0.8.1 et reprise du synchroniseur 0.7.0 |
+| `tools/moonshine/` | Moteur 1.0.0, issu du synchroniseur qualifié |
 | `src_assets/common/assets/web/views/MoonshineLibraryView.vue` | Bibliothèque et maintenance intégrées |
 | `tests/moonshine/` | Politique native, vrai transport Windows et régressions du moteur |
 | `tools/moonshine-dev/` | Contrôles de source et préparation de l'archive |
@@ -82,3 +82,11 @@ Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fourni
 `Get-Prerequisites.ps1` lit le MSI embarqué de l’asset public épinglé par les API de base de données en lecture seule, puis vérifie les paquets et signatures sans installation ni import de confiance. `stage_setup.py` assemble les fichiers d’origine et les notices. La préparation des pilotes sur le PC appartient uniquement au bouton explicite exécuté par le propriétaire. Les noms, catalogues et signatures des pilotes amont sont conservés.
 
 `Invoke-SetupTests.ps1` vérifie WPF, conversion des chemins/valeurs, garde-fous de migration et de versions des pilotes dans des dossiers temporaires. `Invoke-ZipSmoke.ps1` est borné au runner jetable sans hôte préexistant; il teste le service réel depuis un profil neuf, répare un helper corrompu, préserve l’identité après réenregistrement, puis migre un profil synthétique 0.9 et enlève les anciennes racines avant de relancer un vrai worker. Aucun de ces essais ne qualifie un pilote chargé ni une topologie réelle.
+
+## Gestionnaire et icône RC2
+
+`Desktop-Integration.ps1` inscrit l'application et l'icône de session pour le SID choisi. Le compte d'élévation peut être différent; la clé Run est écrite dans la ruche du propriétaire. Une inscription étrangère est conservée. Les opérations élevées n'acceptent aucun chemin de sortie : seul un identifiant opaque est transmis; leurs comptes rendus sont dans un répertoire protégé en écriture et lisible par le seul compte choisi.
+
+`Gestion-Moonshine.ps1` reste un processus normal. WPF est la fenêtre d'installation/entretien, WinForms NotifyIcon fournit le menu dans la zone de notification. Les événements Show/Uninstall/Release sont limités au SID de session et SYSTEM; fermer l'icône ne contrôle pas le service. La fenêtre est cachée à la connexion, et le lanceur installé ne dépend pas du ZIP extrait. Le pilote reste une action explicite distincte.
+
+Les tests construisent et rendent le vrai WPF, vérifient le modèle d'états et les garde-fous d'inscription. Le probe Windows lance le vrai compagnon dans un compte standard jetable, vérifie son icône/menu, son démarrage caché et sa sortie coopérative. Le smoke SCM couvre mise à jour depuis un reçu RC1 synthétique, conservation du profil, sauvegarde, diagnostic et désinstallation avec archivage. Le reçu synthétique n'est pas l'exécution d'un ancien binaire RC1; l'essai de la mise à jour réelle reste au propriétaire.

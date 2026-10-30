@@ -33,6 +33,7 @@ function Invoke-MoonshineDriverTool([string]$File,[string[]]$Arguments) {
     return $code
 }
 function Install-MoonshineDrivers([string]$OwnerSid) {
+    Report-MoonshineSetupProgress 10 'Verification des signatures originales des pilotes...'
     Assert-MoonshineAdmin;Assert-MoonshineSetupIdle
     $receipt=Read-MoonshineServiceReceipt
     if ($receipt.owner_sid -cne $OwnerSid) { throw 'Cette installation appartient a un autre compte Windows.' }
@@ -48,7 +49,9 @@ function Install-MoonshineDrivers([string]$OwnerSid) {
         if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -ine 'CN=SignPath Foundation, O=SignPath Foundation, L=Lewes, S=Delaware, C=US') { throw 'La signature du pilote n est pas acceptee par Windows. Aucun contournement de securite.' }
     }
     $ps=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe';$reboot=$false
+    Report-MoonshineSetupProgress 30 'Preparation du pilote d ecran virtuel...'
     $reboot=(Invoke-MoonshineDriverTool $ps @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $display 'install.ps1'))) -eq 3010 -or $reboot
+    Report-MoonshineSetupProgress 55 'Preparation du pilote de manettes virtuelles...'
     $reboot=(Invoke-MoonshineDriverTool $ps @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $gamepad 'install.ps1'))) -eq 3010 -or $reboot
     # Older uninstallers can remove a root device while retaining an equal INF in Driver Store.
     # The vendor's no-downgrade guard then skips staging. Recreate only the missing owned node.
@@ -62,6 +65,7 @@ function Install-MoonshineDrivers([string]$OwnerSid) {
         $reboot=(Invoke-MoonshineDriverTool (Join-Path $gamepad 'tools\VibeshineVhfGamepadDeviceSetup.exe') @('install','--inf',$inf)) -eq 3010 -or $reboot
     }
     $null=Invoke-MoonshineDriverTool $ps @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $display 'install.ps1'),'-RegisterVulkanLayerOnly')
+    Report-MoonshineSetupProgress 85 'Verification des peripheriques et du besoin de redemarrage...'
     $displayNodes=@(Get-MoonshineDriverNodes 'Root\SunshineVirtualDisplay');$gamepadNodes=@(Get-MoonshineDriverNodes 'ROOT\VIBESHINEVIRTUALGAMEPAD')
     foreach ($node in @($displayNodes)+@($gamepadNodes)) {
         if ([int]$node.ConfigManagerErrorCode -eq 22) { $null=Invoke-MoonshineDriverTool (Join-Path $env:WINDIR 'System32\pnputil.exe') @('/enable-device',[string]$node.PNPDeviceID) }

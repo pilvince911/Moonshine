@@ -3,7 +3,7 @@
 from pathlib import Path
 import argparse,hashlib,json,shutil,subprocess,zipfile
 
-VERSION='1.0.0-rc.1'
+VERSION='1.0.0-rc.2'
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--trial-kit',type=Path,required=True);parser.add_argument('--prerequisites',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)

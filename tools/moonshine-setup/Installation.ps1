@@ -1,7 +1,9 @@
 ﻿#Requires -Version 5.1
 # SPDX-License-Identifier: GPL-3.0-only
 . (Join-Path $PSScriptRoot 'Common-Service.ps1')
+. (Join-Path $PSScriptRoot 'Desktop-Integration.ps1')
 $script:MoonshineEngineVersion='1.0.0'
+function Report-MoonshineSetupProgress([int]$Percent,[string]$Message) { if ($script:MoonshineSetupProgress) { & $script:MoonshineSetupProgress $Percent $Message } }
 function Get-MoonshineOwnerPaths([string]$OwnerSid) {
     if ($OwnerSid -cnotmatch '\AS-1-(?:5-21|12-1)-[0-9-]+\z') { throw 'Compte Windows invalide.' }
     $profile=(Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$OwnerSid) -Name ProfileImagePath -ErrorAction Stop).ProfileImagePath
@@ -154,14 +156,19 @@ function Bind-MoonshineInstalledService($Existing) {
 }
 function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrate,[switch]$Automatic) {
     Assert-MoonshineAdmin;Assert-MoonshineSetupIdle
+    Report-MoonshineSetupProgress 8 'Verification du paquet et de son empreinte...'
     $manifest=Read-MoonshineServiceManifest $KitRoot;$paths=Get-MoonshineOwnerPaths $OwnerSid
+    Assert-MoonshineStartupCommand $OwnerSid
+    if ((Get-MoonshineDesktopRegistration) -and -not [IO.Directory]::Exists($script:MoonshineServiceRoot)) { throw 'Une inscription Windows Moonshine existe sans ce programme. Elle doit etre verifiee avant une nouvelle installation.' }
     $existing=Get-MoonshineSetupService $OwnerSid
     if ($existing) { Set-Service -Name 'MoonshineService' -StartupType Manual }
     $receipt=$null;$source=$null;$previous=$null
     if (Test-Path -LiteralPath $script:MoonshineServiceRoot) {
         $receipt=Read-MoonshineServiceReceipt
         if ($receipt.owner_sid -cne $OwnerSid -or $receipt.mode -cne 'installed') { throw 'Installation inconnue ou appartenant a un autre compte.' }
+        Assert-MoonshineDesktopRegistration $receipt
         if ($receipt.commit -ceq $manifest.commit) {
+            Report-MoonshineSetupProgress 25 'Reparation depuis la copie de reference verifiee...'
             Bind-MoonshineInstalledService $existing
             Save-MoonshineServiceKit $KitRoot $manifest
             Repair-MoonshineServicePackage $KitRoot $receipt
@@ -169,6 +176,7 @@ function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrat
             if (-not [IO.Directory]::Exists($data)) { Set-MoonshineUserFolder $data $OwnerSid }
             Install-MoonshineUserRuntime $data (Join-Path $script:MoonshineServiceRoot 'Package') $receipt.id
             Add-MoonshineInstalledShortcut
+            Register-MoonshineDesktop $receipt
             Set-Service -Name 'MoonshineService' -StartupType $(if ($Automatic) {'Automatic'} else {'Manual'})
             return $receipt
         }
@@ -186,6 +194,7 @@ function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrat
     Set-MoonshineProtectedFolder $stage
     $script:MoonshineServiceRoot=$stage
     try {
+        Report-MoonshineSetupProgress 20 'Sauvegarde des reglages et preparation du programme...'
         $recovery=Join-Path $stage 'Recovery';Set-MoonshineProtectedFolder $recovery -Private
         $package=Join-Path $stage 'Package';[IO.Directory]::CreateDirectory($package) | Out-Null
         $config=Join-Path $package 'config';Set-MoonshineProtectedFolder $config -Private
@@ -193,6 +202,8 @@ function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrat
             Copy-MoonshinePrivateTree $source.Config (Join-Path $recovery 'previous-config')
             Copy-MoonshinePrivateTree (Join-Path $recovery 'previous-config') $config
             Copy-MoonshineLibraryData $source.Data (Join-Path $recovery 'previous-library')
+            $driverResult=Join-Path $source.Root 'driver-result.json'
+            if ([IO.File]::Exists($driverResult)) { Assert-MoonshinePlainPath $driverResult;[IO.File]::Copy($driverResult,(Join-Path $stage 'driver-result.json'),$false) }
         }
         $files=@($manifest.files | Where-Object { $_.path.StartsWith('Package/') })
         foreach ($file in $files) {
@@ -200,6 +211,7 @@ function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrat
             [IO.Directory]::CreateDirectory((Split-Path -Parent $to)) | Out-Null;[IO.File]::Copy($from,$to,$false)
             if ((Get-FileHash -LiteralPath $to).Hash -ine $file.sha256) { throw 'Copie du programme non verifiee.' }
         }
+        Report-MoonshineSetupProgress 65 'Preparation de la bibliotheque et de son moteur...'
         foreach ($folder in @($package,(Join-Path $package 'tools\moonshine'))) { [IO.File]::WriteAllText((Join-Path $folder 'moonshine-install-id.txt'),$id,[Text.Encoding]::ASCII) }
         Write-MoonshineServiceJson (Join-Path $package 'moonshine-service-profile.json') @{schema='moonshine-service-preview/1';mode='installed';id=$id;owner_sid=$OwnerSid}
         $conf=Join-Path $config 'moonshine.conf';$lines=if ([IO.File]::Exists($conf)) {[IO.File]::ReadAllText($conf)} else {''}
@@ -230,6 +242,7 @@ function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrat
         throw
     } finally { $script:MoonshineServiceRoot=$final }
     Bind-MoonshineInstalledService $existing
+    Report-MoonshineSetupProgress 90 'Enregistrement du service et de l icone Windows...'
     if ($existing -and $existing.Preview) {
         $rule='MoonshineServicePreview-'+$existing.Receipt.id
         $network=Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue
@@ -242,6 +255,7 @@ function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrat
     }
     $receipt.phase='installed';Save-MoonshineServiceReceipt $receipt
     Add-MoonshineInstalledShortcut
+    Register-MoonshineDesktop $receipt
     Set-Service -Name 'MoonshineService' -StartupType $(if ($Automatic) {'Automatic'} else {'Manual'})
     return $receipt
 }
@@ -250,7 +264,7 @@ function Add-MoonshineInstalledShortcut {
     $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($path)
     $target=Join-Path $script:MoonshineServiceRoot 'Kit\Ouvrir-Moonshine.cmd'
     if ([IO.File]::Exists($path) -and $link.TargetPath -ine $target) { throw 'Un autre raccourci Moonshine existe; il est conserve.' }
-    $link.TargetPath=$target;$link.WorkingDirectory=Split-Path -Parent $target;$link.Description='Moonshine - bibliotheque et service Windows';$link.Save()
+    $link.TargetPath=$target;$link.WorkingDirectory=$env:WINDIR;$link.IconLocation=Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.ico';$link.Description='Moonshine - icone de notification et bibliotheque';$link.Save()
 }
 function Stop-MoonshineSelectedService([string]$OwnerSid) {
     Assert-MoonshineAdmin;$selected=Get-MoonshineSetupService $OwnerSid

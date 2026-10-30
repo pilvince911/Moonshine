@@ -12,7 +12,7 @@ def main():
     parser.add_argument('--runtime-bin',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
-    version_name=os.environ.get('BUILD_VERSION','1.0.0-rc.1')
+    version_name=os.environ.get('BUILD_VERSION','1.0.0-rc.2')
     source=Path(__file__).resolve().parents[2]
     build=args.build.resolve();runtime=args.runtime_bin.resolve();out=args.output.resolve();package=out/'Package'
     if out.exists():shutil.rmtree(out)

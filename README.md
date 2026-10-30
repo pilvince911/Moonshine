@@ -8,7 +8,7 @@ Moonshine est une fork indépendante de [VibeShine](https://github.com/Nonary/vi
 
 Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` conserve cette référence; `moonshine/main` est la branche de destination propre à la fork et `moonshine/windows-integration` contient l'intégration proposée dans la PR nº 1. `master` suit encore la base reçue lors de la création de la fork.
 
-**État : ZIP avec installation simple du service, candidat 1.0 RC1.** Le parcours autonome a passé ses essais logiciels au commit `7b279b71b4e7ab228b661a60ad6d5a38e3385a65`; consulter les workflows du commit exact pour la candidate livrée. Le service Windows 0.9.0 a été essayé sur le PC réel. Des lancements Xbox PC et EA, l’écran virtuel exclusif et la restauration de l’affichage physique ont été observés. Ce kit dépend encore des données de l’essai 0.8.1 et des pilotes existants; il ne constitue pas une installation autonome. Voir les [conditions de sortie de la 1.0](docs/moonshine/STANDALONE-1.0.md). La qualité DLSS/FG et une installation neuve restent des vérifications distinctes.
+**État : finition 1.0 RC2 en ZIP avec service Windows et icône de notification.** Le propriétaire a signalé la RC1 fonctionnelle après préparation d'une installation neuve et retrait de VibeShine. La RC2 ajoute le parcours guidé, l'icône dans le compte normal, l'entretien et l'inscription dans les applications Windows. Consulter les workflows du commit exact pour la qualification logicielle et [le guide](tools/moonshine-setup/LIRE-MOI.txt) pour les essais. La publication de la 1.0 finale attend la validation réelle de la RC2.
 
 ## Bibliothèque intégrée
 
@@ -61,8 +61,14 @@ Le [kit de ménage 0.2](tools/moonshine-maintenance/LIRE-MOI.txt) analyse les an
 
 ## ZIP avec installation simple du service
 
-Le candidat **1.0.0-rc.1** se prépare dans `tools/moonshine-setup`. Il installe le même service sous `Program Files\Moonshine`, avec une bibliothèque indépendante dans `%LOCALAPPDATA%\Moonshine\Library\<id>`. Une installation neuve ne demande aucun index ni profil d’essai. La reprise facultative du service 0.9 copie catalogue/appairage/personnalisations et retargete les chemins de notre moteur; les originaux sont conservés.
+Le candidat **1.0.0-rc.2** se prépare dans `tools/moonshine-setup`. Il installe le même service sous `Program Files\Moonshine`, avec une bibliothèque indépendante dans `%LOCALAPPDATA%\Moonshine\Library\<id>`. Une installation neuve ne demande aucun index ni profil d’essai. La reprise facultative du service 0.9 copie catalogue/appairage/personnalisations et retargete les chemins de notre moteur; les originaux sont conservés.
 
 Les pilotes d’écran/manettes et les couches HDR Vulkan x64/x86 proviennent des octets épinglés de l’installateur officiel VibeShine 2.0.1, extraits sans exécuter son installateur. Les signatures et contrats sont vérifiés. Le bouton distinct **Préparer les pilotes signés** demande l’accord du propriétaire et l’élévation Windows. Aucun pilote n’est installé par la CI.
 
 La publication du ZIP exige les tests Windows du commit exact : installation neuve, vrai service/worker, réparation, retrait/réinstallation et migration suivie du retrait des anciens dossiers avant le nouveau lancement. Les instructions sont dans [le guide](tools/moonshine-setup/LIRE-MOI.txt). La candidate reste à essayer sur le PC réel après remplacement de l’ancien hôte; ce texte ne déclare pas la release finale 1.0.
+
+## Gestion Windows RC2
+
+L'installation conserve le format ZIP et le service qualifié. La fenêtre guide installation, pilotes puis démarrage; le bouton principal suit l'état réel et la progression est transmise par des comptes rendus privés écrits par l'opération administrateur. Après installation, une icône démarre dans la session du compte choisi, sans fenêtre visible. Son menu regroupe bibliothèque, démarrage/arrêt et entretien. Fermer la fenêtre revient à l'icône; quitter l'icône conserve le service. Une instance par session et des signaux limités au compte permettent de retrouver la fenêtre et de passer à un nouveau kit.
+
+L'entrée dans Applications installées appelle notre propre retrait, sans MSI. Les inscriptions sont bornées à leur identité, compte et chemin. Le retrait sauvegarde la configuration et la bibliothèque, archive le programme, retire service/raccourci/démarrage de l'icône et conserve les pilotes partagés et la bibliothèque. L'export diagnostic reste local, borné et sans copie des identifiants/certificats. La mise à jour conserve l'identifiant, les UUID, appairages et préférences de la RC1.

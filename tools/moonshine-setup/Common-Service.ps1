@@ -57,7 +57,7 @@ function Read-MoonshineServiceManifest([string]$KitRoot) {
         $seen[$file]=$true
         if (-not [IO.File]::Exists($file) -or (Get-Item -LiteralPath $file).Length -ne $row.size -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ine $row.sha256) { throw ('Kit incomplet ou modifié : '+$row.path) }
     }
-    foreach ($required in @('Package/sunshine.exe','Package/tools/sunshinesvc.exe','Package/tools/moonshine/SHA256.txt','Package/moonshine-service-only.txt','Installation.ps1','Common-Service.ps1','Action.ps1','Gestion-Moonshine.ps1','Pilotes.ps1','Ouvrir-Moonshine.cmd','Launcher.xaml','Package/drivers/provenance.json')) {
+    foreach ($required in @('Package/sunshine.exe','Package/tools/sunshinesvc.exe','Package/tools/moonshine/SHA256.txt','Package/moonshine-service-only.txt','Installation.ps1','Common-Service.ps1','Desktop-Integration.ps1','Manager-State.ps1','Desinstaller-Moonshine.ps1','Action.ps1','Gestion-Moonshine.ps1','Pilotes.ps1','Ouvrir-Moonshine.cmd','Launcher.xaml','Moonshine.ico','Package/drivers/provenance.json')) {
         if (-not $seen.ContainsKey((Get-MoonshineServiceKitPath $KitRoot $required))) { throw ('Fichier requis absent : '+$required) }
     }
     if (@($value.files | Where-Object { $_.path -match '^Package/config/' -or $_.path -match 'moonshine-(?:trial-(?:only|id)|install-id)\.txt$' }).Count) { throw 'Le paquet source contient un profil personnel ou des marqueurs de l''ancien kit.' }

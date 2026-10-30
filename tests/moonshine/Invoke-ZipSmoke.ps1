@@ -6,16 +6,20 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:CI -ne 'true') { throw 'SCM qualific
 Assert-MoonshineAdmin
 if (Get-Service -Name 'MoonshineService','SunshineService' -ErrorAction SilentlyContinue) { throw 'An existing host service must never be changed by CI.' }
 if (Test-Path -LiteralPath $script:MoonshineServiceRoot) { throw 'CI service destination already exists.' }
+if (Get-MoonshineDesktopRegistration) { throw 'An existing Windows Apps registration must never be changed by CI.' }
 $id=[guid]::NewGuid().ToString('N');$serviceOwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $fixture=Join-Path $env:TEMP ('moonshine-zip-smoke-'+$id);[IO.Directory]::CreateDirectory($fixture) | Out-Null
 $previewRoot=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Moonshine-Preview'
 if (Test-Path -LiteralPath $previewRoot) { throw 'A pre-existing preview must never be modified by CI.' }
-$dataRoots=@();$previewCreated=$false
+$dataRoots=@();$previewCreated=$false;$ownedRecovery=@();$ownedPrevious=@()
 $record=@{status='starting';service='MoonshineService';id=$id;checks=0};$created=$false;$serviceHostPid=0
 function Check([bool]$Condition,[string]$Message) { if (-not $Condition) { throw $Message };$record.checks++ }
 try {
     $null=Read-MoonshineServiceManifest $KitRoot
     $receipt=Install-MoonshineZip ([IO.Path]::GetFullPath($KitRoot)) $serviceOwnerSid -Automatic;$created=$true
+    $desktop=Get-MoonshineDesktopRegistration
+    Check ($desktop.DisplayVersion -ceq '1.0.0-rc.2' -and $desktop.MoonshineId -ceq $receipt.id -and $desktop.UninstallString -ceq (Get-MoonshineManagerCommand -Uninstall)) 'Windows Installed Apps registration is absent or bound to another command.'
+    Check ((Get-MoonshineStartupCommand $serviceOwnerSid) -ceq (Get-MoonshineManagerCommand)) 'The selected account tray startup command was not registered.'
     $id=$receipt.id;$record.id=$id;$dataRoots+=@($receipt.data_root);$before=@{}
     Check ($receipt.data_root -notmatch 'OPi5|Moonshine-Trial' -and [IO.Directory]::Exists($receipt.data_root)) 'Fresh install depends on an old trial directory.'
     $personal=@{uuid='e9ece5ce-44e4-4de4-9cae-68f4992f20d4';name='CI personal entry';cmd='';detached=@();'prep-cmd'=@();'ci-preference'='keep'}
@@ -35,6 +39,19 @@ try {
     Check ((Get-FileHash -LiteralPath (Join-Path $target 'config\moonshine.conf')).Hash -ceq $originalConfigHash) 'Repair replaced personal host settings.'
     Check (@(Get-ChildItem -LiteralPath (Join-Path $script:MoonshineServiceRoot 'Recovery') -Recurse -File | Where-Object { $_.Name -eq 'audio-info.exe' -and $_.Length -eq 3 }).Count -eq 1) 'Repair did not preserve its replaced bytes.'
     Check ((Get-MoonshineOwnedService).StartMode -eq 'Auto') 'Repair changed the selected service startup mode.'
+    # An earlier installed-layout receipt is synthetic. The real compiled host
+    # and personal profile are then upgraded through the different-commit path.
+    $beforeId=$receipt.id;$beforeData=$receipt.data_root
+    $appsBefore=(Get-FileHash -LiteralPath (Join-Path $target 'config\apps.json')).Hash
+    $customFile=Join-Path $target 'config\personal-upgrade.txt';[IO.File]::WriteAllText($customFile,'keep this private personal file')
+    Unregister-MoonshineDesktop $receipt
+    $receipt=Read-MoonshineServiceReceipt;$receipt.commit='d'*40;$receipt.version='1.0.0-rc.1';Save-MoonshineServiceReceipt $receipt
+    $previousBefore=@(Get-ChildItem -LiteralPath (Split-Path -Parent $script:MoonshineServiceRoot) -Directory -Filter 'Moonshine.Previous.*' | ForEach-Object {$_.FullName})
+    $receipt=Install-MoonshineZip $KitRoot $serviceOwnerSid -Automatic
+    $ownedPrevious+=@(Get-ChildItem -LiteralPath (Split-Path -Parent $script:MoonshineServiceRoot) -Directory -Filter 'Moonshine.Previous.*' | Where-Object {$_.FullName -notin $previousBefore} | ForEach-Object {$_.FullName})
+    Check ($receipt.id -ceq $beforeId -and $receipt.data_root -ceq $beforeData -and $receipt.version -ceq '1.0.0-rc.2') 'In-place upgrade changed installation/library identity.'
+    Check ((Get-FileHash -LiteralPath (Join-Path $target 'config\apps.json')).Hash -ceq $appsBefore -and [IO.File]::ReadAllText($customFile) -ceq 'keep this private personal file') 'In-place upgrade changed the personal catalogue or custom file.'
+    Check ($ownedPrevious.Count -eq 1 -and (Get-MoonshineDesktopRegistration).DisplayVersion -ceq '1.0.0-rc.2') 'The previous program was not retained or Windows registration was not refreshed.'
     $cfg=Join-Path $target 'config\moonshine.conf';$text=[IO.File]::ReadAllText($cfg)
     $text=[regex]::Replace($text,'(?m)^virtual_display_mode\s*=.*$','virtual_display_mode = disabled')
     [IO.File]::WriteAllText($cfg,$text+"`r`nencoder = software`r`n")
@@ -124,6 +141,7 @@ try {
     Check ($again.id -ceq $id -and (Get-FileHash -LiteralPath (Join-Path $target 'config\apps.json')).Hash -ceq $configHash) 'Reinstallation changed the catalogue or installation identity.'
     Remove-MoonshineService
     $savedConfig=Join-Path $fixture 'saved-config';Copy-MoonshinePrivateTree (Join-Path $target 'config') $savedConfig
+    Unregister-MoonshineDesktop (Read-MoonshineServiceReceipt)
     Remove-Item -LiteralPath $script:MoonshineServiceRoot -Recurse -Force
     # Prepare an inert 0.9-shaped profile. Its scripts are never executed.
     $previewCreated=$true;$oldId=[guid]::NewGuid().ToString('N')
@@ -178,12 +196,20 @@ try {
     Check ($reply.Status -eq 200) 'Migrated worker job could not start.'
     for ($n=0;$n -lt 240;$n++) { $reply=Request 'GET' ('/api/moonshine/jobs/'+$migratedJob.job_id) $auth;$migratedJob=ConvertFrom-Json -InputObject $reply.Body;if($migratedJob.state -in @('completed','failed','cancelled')){break};Start-Sleep -Milliseconds 500 }
     Check ($migratedJob.state -eq 'completed' -and $migratedJob.snapshot.tests -ge 459) ('Migrated worker failed without the prior installation: '+$migratedJob.message)
-    Stop-MoonshineService;Remove-MoonshineService
-    $record=@{status='passed';service='MoonshineService';id=$oldId;checks=$record.checks;system_host=$true;normal_user_worker=$true;catalogue_preserved=$true;fresh_install_without_trial=$true;prior_roots_removed_before_worker=$true;migration_pairing_and_preferences_preserved=$true;local_verified_repair=$true;engine_tests=$job.snapshot.tests;migrated_engine_tests=$migratedJob.snapshot.tests;scm_start_stop_restart_remove=$true;reinstall_preserved_profile=$true;driver_install_executed=$false;real_display_qualified=$false}
+    Stop-MoonshineService
+    $backup=Backup-MoonshineInstalled $serviceOwnerSid;$ownedRecovery+=@($backup.path)
+    Check ($backup.verified -and [IO.File]::Exists((Join-Path $backup.path 'config\apps.json'))) 'The private maintenance backup was not verified.'
+    $diagFolder=Initialize-MoonshineOperation $serviceOwnerSid ([guid]::NewGuid().ToString('N'))
+    $diag=Export-MoonshineSetupDiagnostic $serviceOwnerSid $diagFolder
+    Check ([IO.File]::Exists((Join-Path $diagFolder $diag.file)) -and -not $diag.contains_credentials) 'The bounded diagnostic archive was not created.'
+    $removed=Uninstall-MoonshineInstalled $serviceOwnerSid;$ownedRecovery+=@($removed.path);$created=$false
+    Check (-not (Get-Service -Name MoonshineService -ErrorAction SilentlyContinue) -and -not (Get-MoonshineDesktopRegistration) -and -not (Get-MoonshineStartupCommand $serviceOwnerSid)) 'Uninstall left its SCM, Apps or tray startup registration.'
+    Check (-not [IO.Directory]::Exists($script:MoonshineServiceRoot) -and [IO.Directory]::Exists($migrated.data_root) -and [IO.File]::Exists((Join-Path $removed.path 'program\Package\config\apps.json'))) 'Uninstall lost the library or archived program/configuration.'
+    $record=@{status='passed';service='MoonshineService';id=$oldId;checks=$record.checks;system_host=$true;normal_user_worker=$true;catalogue_preserved=$true;fresh_install_without_trial=$true;prior_roots_removed_before_worker=$true;migration_pairing_and_preferences_preserved=$true;local_verified_repair=$true;engine_tests=$job.snapshot.tests;migrated_engine_tests=$migratedJob.snapshot.tests;scm_start_stop_restart_remove=$true;reinstall_preserved_profile=$true;synthetic_rc1_in_place_upgrade=$true;windows_apps_registration=$true;owner_tray_startup=$true;private_backup=$true;diagnostic_export=$true;uninstall_archives_program_and_keeps_library=$true;driver_install_executed=$false;real_display_qualified=$false}
 
 } catch { $record.status='failed';$record.error=$_.Exception.Message;$record.stack=$_.ScriptStackTrace }
 finally {
-    if ($created) { try { Remove-MoonshineService } catch { $record.cleanup_error=$_.Exception.Message } }
+    if ($created) { try { Remove-MoonshineService;Unregister-MoonshineDesktop (Read-MoonshineServiceReceipt) } catch { $record.cleanup_error=$_.Exception.Message } }
     $folder=Split-Path -Parent ([IO.Path]::GetFullPath($Evidence));[IO.Directory]::CreateDirectory($folder) | Out-Null
     $config=Join-Path $script:MoonshineServiceRoot 'Package\config'
     if (Test-Path -LiteralPath $config) {
@@ -196,6 +222,7 @@ finally {
     if ($created -and (Test-Path -LiteralPath $link)) { Remove-Item -LiteralPath $link -Force -ErrorAction SilentlyContinue }
     if ($previewCreated -and (Test-Path -LiteralPath $previewRoot)) { Remove-Item -LiteralPath $previewRoot -Recurse -Force -ErrorAction SilentlyContinue }
     foreach ($dataRoot in $dataRoots) { if (Test-Path -LiteralPath $dataRoot) { Remove-Item -LiteralPath $dataRoot -Recurse -Force -ErrorAction SilentlyContinue } }
+    foreach ($owned in @($ownedRecovery)+@($ownedPrevious)) {if(Test-Path -LiteralPath $owned){Remove-Item -LiteralPath $owned -Recurse -Force -ErrorAction SilentlyContinue}}
     if (Test-Path -LiteralPath $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force -ErrorAction SilentlyContinue }
 }
 if ($record.status -ne 'passed') { throw ('Service qualification failed: '+$record.error+'; '+$record.stack) }
