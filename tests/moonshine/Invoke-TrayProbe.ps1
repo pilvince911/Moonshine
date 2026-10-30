@@ -21,7 +21,12 @@ try{
  Write-MoonshineServiceJson (Join-Path $script:MoonshineServiceRoot 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=('b'*32);owner_sid=$sid;commit=$commit;version='1.0.0-rc.2';phase='installed';firewall_created=$false;files=$files}
  $release=New-MoonshineManagerSignal $sid 'Release'
  $trace=Join-Path $folder 'ready.json';$ps=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
- $command='"'+$ps+'" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "'+(Join-Path $kit 'Gestion-Moonshine.ps1')+'" -TrayOnly -CITrace "'+$trace+'"'
+ # The logon API creates the new user's environment instead of inheriting CI
+ # flags. Set only these non-secret fixture flags in a reviewed local bootstrap.
+ $bootstrap=Join-Path $folder 'start-tray.ps1'
+ $code='[IO.File]::WriteAllText('''+($trace+'.phase').Replace("'","''")+''',''bootstrap-entered''+[Environment]::NewLine);$env:GITHUB_ACTIONS=''true'';$env:CI=''true'';& '''+(Join-Path $kit 'Gestion-Moonshine.ps1').Replace("'","''")+''' -TrayOnly -CITrace '''+$trace.Replace("'","''")+''''
+ [IO.File]::WriteAllText($bootstrap,$code,(New-Object Text.UTF8Encoding($true)))
+ $command='"'+$ps+'" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "'+$bootstrap+'"'
  $child=[MoonshineTestUserProcess]::Start($command,$env:WINDIR,$testUser.Name,$testUser.Password)
  for($n=0;$n -lt 480 -and -not [IO.File]::Exists($trace) -and -not $child.HasExited;$n++){Start-Sleep -Milliseconds 250}
  if(-not [IO.File]::Exists($trace)){$phase=if([IO.File]::Exists($trace+'.phase')){[IO.File]::ReadAllText($trace+'.phase')}else{'script not reached'};throw ('Normal-account tray startup did not report ready; exited='+$child.HasExited+'; phases='+$phase)}

@@ -20,8 +20,10 @@ try {
     }
     $iconBytes=[IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Moonshine.ico'))
     $stream=New-Object IO.MemoryStream(,$iconBytes)
-    try { $bitmap=New-Object Windows.Media.Imaging.BitmapImage;$bitmap.BeginInit();$bitmap.CacheOption=[Windows.Media.Imaging.BitmapCacheOption]::OnLoad;$bitmap.StreamSource=$stream;$bitmap.EndInit();$bitmap.Freeze();$controls.BrandImage.Source=$bitmap;$window.Icon=$bitmap } finally {$stream.Dispose()}
+    try { $decoder=[Windows.Media.Imaging.BitmapDecoder]::Create($stream,[Windows.Media.Imaging.BitmapCreateOptions]::PreservePixelFormat,[Windows.Media.Imaging.BitmapCacheOption]::OnLoad);$bitmap=@($decoder.Frames | Sort-Object PixelWidth -Descending)[0];$bitmap.Freeze();$controls.BrandImage.Source=$bitmap;$window.Icon=$bitmap } finally {$stream.Dispose()}
     if ($ValidateWindowOnly) {
+        $previewModel=Get-MoonshineManagerModel @{installed=$false;running=$false;drivers=$false;reboot=$false;service_present=$false;update=$false;blocked=$false;busy=$false}
+        $controls.StatusText.Text=$previewModel.title;$controls.DetailText.Text=$previewModel.detail;$controls.PrimaryButton.Content=$previewModel.primary;$controls.PrimaryButton.IsEnabled=$true;$controls.StopButton.IsEnabled=$false;$controls.TrayButton.IsEnabled=$false
         $window.Show();$window.UpdateLayout()
         if ($PreviewPath) {
             $width=[int]$window.ActualWidth;$height=[int]$window.ActualHeight
