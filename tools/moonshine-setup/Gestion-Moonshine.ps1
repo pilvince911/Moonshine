@@ -36,11 +36,11 @@ try {
     $script:fromInstalled=[IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\') -ieq [IO.Path]::GetFullPath($installedKit).TrimEnd('\')
     foreach ($purpose in @('Show','Uninstall','Release')) {$signals[$purpose]=New-MoonshineManagerSignal $ownerSid $purpose}
     $mutex=New-Object Threading.Mutex($false,('Local\Moonshine.Setup.Window.'+$ownerSid))
-    try{$ownsMutex=$mutex.WaitOne(0)}catch[Threading.AbandonedMutexException]{$ownsMutex=$true}
+    try{$ownsMutex=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$ownsMutex=$true}
     if (-not $ownsMutex) {
         if (-not $fromInstalled -and -not $TrayOnly -and -not $Uninstall) {
             $null=$signals.Release.Set()
-            for ($n=0;$n -lt 25 -and -not $ownsMutex;$n++) {try{$ownsMutex=$mutex.WaitOne(200)}catch[Threading.AbandonedMutexException]{$ownsMutex=$true}}
+            for ($n=0;$n -lt 25 -and -not $ownsMutex;$n++) {try{$ownsMutex=$mutex.WaitOne(200)}catch [Threading.AbandonedMutexException]{$ownsMutex=$true}}
         }
         if (-not $ownsMutex) {
             $null=$signals[$(if($Uninstall){'Uninstall'}else{'Show'})].Set()
@@ -89,6 +89,7 @@ try {
         $notify.Add_DoubleClick({if($evidence.running){Start-Process 'https://localhost:48990/v2/library'}else{Show-MoonshineWindow}})
     }
     function Invoke-MoonshineSetupAction([string]$Action) {
+        $fromTray=-not $window.IsVisible -and $Action -in @('Start','Stop')
         try {
             if ($script:operation) {return}
             if ($Action -eq 'Open') {Start-Process 'https://localhost:48990/v2/library';Enter-MoonshineTray;return}
@@ -102,17 +103,18 @@ try {
                 'Stop' {'Arreter Moonshine? Terminez les streams et les operations de bibliotheque avant de continuer.'}
                 default {'Demarrer le service Moonshine? Les autres hotes de streaming doivent etre arretes.'}
             }
-            if ([Windows.MessageBox]::Show($message,'Moonshine',[Windows.MessageBoxButton]::YesNo,[Windows.MessageBoxImage]::Question) -ne [Windows.MessageBoxResult]::Yes) {return}
+            if ($Action -ne 'Start' -and [Windows.MessageBox]::Show($message,'Moonshine',[Windows.MessageBoxButton]::YesNo,[Windows.MessageBoxImage]::Question) -ne [Windows.MessageBoxResult]::Yes) {return}
             $id=[guid]::NewGuid().ToString('N')
             $arguments='-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+(Join-Path $PSScriptRoot 'Action.ps1')+'" -Action '+$Action+' -OwnerSid '+$ownerSid+' -OperationId '+$id
             if ($Action -eq 'Install') {if($controls.MigrateChoice.IsChecked){$arguments+=' -Migrate'};if($controls.AutomaticChoice.IsChecked){$arguments+=' -Automatic'}}
             $controls.OperationText.Text='Confirmation Windows...';$controls.OperationProgress.Value=0
             $process=Start-Process -FilePath "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $arguments -Verb RunAs -PassThru
-            $script:operation=@{id=$id;action=$Action;process=$process};Show-MoonshineWindow
+            $script:operation=@{id=$id;action=$Action;process=$process;from_tray=$fromTray}
+            if(-not $fromTray){Show-MoonshineWindow}
             foreach($key in @('PrimaryButton','StopButton','RepairButton','DriversButton','BackupButton','DiagnosticButton','RemoveButton')){$controls[$key].IsEnabled=$false}
             if($notify){$trayItems.Start.Enabled=$false;$trayItems.Stop.Enabled=$false}
             $controls.StatusText.Text='Operation en cours'
-        } catch {$controls.OperationText.Text=$_.Exception.Message;Show-MoonshineWindow}
+        } catch {$controls.OperationText.Text=$_.Exception.Message;if($fromTray -and $notify){$notify.ShowBalloonTip(5000,'Moonshine',$_.Exception.Message,[Windows.Forms.ToolTipIcon]::Info)}else{Show-MoonshineWindow}}
     }
     function Update-MoonshineManager {
         try {
@@ -131,6 +133,7 @@ try {
                             if ($dialog.ShowDialog() -eq $true) {[IO.File]::Copy((Join-Path (Get-MoonshineOperationFolder $ownerSid $completed.id) 'diagnostic.zip'),$dialog.FileName,$true)}
                         }
                         if ($completed.action -eq 'Uninstall') { $null=[Windows.MessageBox]::Show(('Moonshine est desinstalle. Bibliotheque et pilotes conserves. Archive : '+$report.result.path),'Moonshine');Stop-MoonshineManager;return }
+                        if($completed.from_tray -and $notify){$notify.ShowBalloonTip(2500,'Moonshine',$(if($completed.action -eq 'Start'){'Le service est demarre.'}else{'Le service est arrete.'}),[Windows.Forms.ToolTipIcon]::Info)}
                     } else { $controls.OperationText.Text=if($report){$report.message}else{'Operation non terminee ou confirmation Windows annulee. Reprendre la meme action.'} }
                 } else {return}
             }
