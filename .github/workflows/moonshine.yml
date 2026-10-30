@@ -1,0 +1,121 @@
+name: Moonshine integration
+on:
+  pull_request:
+    branches: [moonshine/main, upstream/v2.0.1]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: moonshine-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: g++ -std=c++23 -Wall -Wextra -Werror -pedantic tests/moonshine/test_policy.cpp -o /tmp/moonshine-policy && /tmp/moonshine-policy
+      - run: python3 tools/moonshine-dev/validate_source.py
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: src_assets/common/assets/web/package-lock.json
+      - run: npm ci
+        working-directory: src_assets/common/assets/web
+      - run: npm run build
+        working-directory: src_assets/common/assets/web
+      - run: npm run test:unit
+        working-directory: src_assets/common/assets/web
+      - run: npx playwright install --with-deps chromium
+        working-directory: src_assets/common/assets/web
+      - run: npx playwright test e2e/moonshine-library.spec.ts
+        working-directory: src_assets/common/assets/web
+      - name: Emit the synthetic interface preview
+        working-directory: src_assets/common/assets/web
+        run: node -e "console.log('MOONSHINE_UI_PNG=' + require('node:fs').readFileSync('test-results/moonshine-library-trial.png').toString('base64'))"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moonshine-interface-preview
+          path: src_assets/common/assets/web/test-results
+          retention-days: 14
+  windows-engine:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Windows PowerShell 5.1 regression suite
+        shell: powershell
+        run: ./tests/moonshine/Invoke-EngineTests.ps1
+      - name: Regression suite in an isolated trial context
+        shell: powershell
+        run: |
+          $env:MOONSHINE_TRIAL_ID=[guid]::NewGuid().ToString('N')
+          ./tests/moonshine/Invoke-EngineTests.ps1
+      - name: Trial window and reversible file workflows
+        shell: powershell
+        run: ./tests/moonshine/Invoke-TrialKitTests.ps1
+      - name: Maintenance backup, dependencies, task identity and atomic archives
+        shell: powershell
+        run: ./tests/moonshine/Invoke-MaintenanceTests.ps1
+      - name: Fresh cleanup, actual old service retirement and standalone preservation
+        shell: powershell
+        run: ./tests/moonshine/Invoke-MaintenanceFreshTests.ps1
+      - name: ZIP setup window, migration and driver policies
+        shell: powershell
+        run: ./tests/moonshine/Invoke-SetupTests.ps1
+      - name: Guided manager, registry ownership and rendered Windows view
+        shell: powershell
+        run: ./tests/moonshine/Invoke-ManagerTests.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moonshine-rc2-windows-interface
+          path: build-evidence/moonshine-rc2-window.png
+          retention-days: 30
+      - name: Service entry points and actual WPF window
+        shell: powershell
+        run: |
+          Get-ChildItem tools/moonshine-service,tools/moonshine-maintenance -Filter *.ps1 | ForEach-Object {
+            $tokens=$null;$errors=$null
+            $null=[Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
+            if ($errors.Count) { throw ($_.FullName+': '+(($errors | ForEach-Object { $_.Message+' at line '+$_.Extent.StartLineNumber }) -join '; ')) }
+          }
+          ./tools/moonshine-service/Gestion-Moonshine.ps1 -ValidateWindowOnly
+  windows-user-context:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Standard-account process startup
+        shell: powershell
+        run: ./tests/moonshine/Invoke-RestrictedProbe.ps1
+      - name: Actual tray companion in a normal account
+        shell: powershell
+        run: ./tests/moonshine/Invoke-TrayProbe.ps1
+  windows-bridge:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the pinned JSON test header
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force test-deps/nlohmann | Out-Null
+          Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/nlohmann/json/v3.11.3/single_include/nlohmann/json.hpp -OutFile test-deps/nlohmann/json.hpp
+          if ((Get-FileHash test-deps/nlohmann/json.hpp -Algorithm SHA256).Hash -ine '9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6') { throw 'JSON test dependency checksum mismatch' }
+      - name: Compile and exercise the actual Windows process bridge
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do call "%%i\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /EHsc /std:c++latest /utf-8 /W4 /I test-deps tests/moonshine/test_bridge_windows.cpp src/moonshine/bridge_windows.cpp /Fe:moonshine-bridge-test.exe /link advapi32.lib ole32.lib userenv.lib
+          if errorlevel 1 exit /b 1
+          mkdir test-fixture
+          copy tests\moonshine\worker_fixture.ps1 test-fixture\Moonshine-Worker.ps1
+          moonshine-bridge-test.exe test-fixture

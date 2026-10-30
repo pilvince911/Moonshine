@@ -32,6 +32,10 @@ namespace config {
 
   void apply_playnite(std::unordered_map<std::string, std::string> &vars) {
     playnite = parse_playnite(vars);
+#ifdef MOONSHINE_HOST
+    playnite.enabled = false;playnite.auto_sync = false;playnite.fullscreen_entry_enabled = false;
+    return; // No legacy sync or fullscreen-entry reconciliation.
+#endif
 
 #ifdef _WIN32
     try {

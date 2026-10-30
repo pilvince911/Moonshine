@@ -1,0 +1,138 @@
+import { expect, test, type Page } from '@playwright/test';
+
+async function library(page: Page, idle = true, isolated = false, emptyScan = false) {
+  const id = 'a'.repeat(32), nonce = 'b'.repeat(32);
+  const calls: { action?: string; nonce?: string; accept?: boolean; text?: string; mode?: string; csrf?: string }[] = [];
+  let job: Record<string, unknown> | null = null;
+  let creationProfile = 'game-provided';
+  await page.route('https://api.github.com/repos/**/releases**', async (route) => {
+    expect(route.request().url()).toMatch(/^https:\/\/api\.github\.com\/repos\/pilvince911\/Moonshine\/releases/);
+    await route.fulfill({ json: [] });
+  });
+  await page.route('**/api/**', async (route) => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    if (!path.startsWith('/api/')) { await route.continue();return; }
+    let body: unknown = { status: true };
+    if (path === '/api/auth/status') body = { authenticated: true, credentials_configured: true, login_required: false };
+    else if (path === '/api/configLocale') body = { locale: 'en' };
+    else if (path === '/api/csrf-token') body = { csrf_token: 'synthetic-ui-csrf' };
+    else if (path === '/api/metadata') body = { platform: 'windows', version: '0.8.1', encoder_status: { state: 'ready', h264: true } };
+    else if (path === '/api/session/status') body = { status: true, activeSessions: idle ? 0 : 1, appRunning: !idle };
+    else if (path === '/api/apps' && request.method() === 'GET') body = { apps: [
+      { uuid: 'desktop', name: 'Desktop', cmd: '' },
+      { uuid: '706c6f73-7862-8830-81ec-2118ff82baaa', name: 'Jeu Steam existant', 'plos-xbox-owner': 'plos-xbox-sync/1', 'plos-xbox-key': 'steam:990080' },
+    ] };
+    else if (path === '/api/moonshine/status') body = { available: true, automatic: false, session_idle: idle, brand: 'Moonshine', isolated, engine_version: '0.8.1', creation_profile: creationProfile, job, snapshot: emptyScan ? { schema: 'moonshine-snapshot/1', version: '0.8.1', games: [], tests: 444 } : null };
+    else if (path === '/api/moonshine/jobs' && request.method() === 'POST') {
+      const input = request.postDataJSON();calls.push({ action: input.action, csrf: request.headers()['x-csrf-token'] });
+      if (input.action === 'creation_profile') {
+        creationProfile = input.mode;calls[calls.length - 1]!.mode = input.mode;
+        job = { job_id: id, action: input.action, state: 'completed', message: 'Préréglage enregistré', percent: 100, logs: [], prompt: null,
+          snapshot: { schema: 'moonshine-snapshot/1', version: '0.8.1', creation_profile: creationProfile, games: [], tests: 454 } };
+        await route.fulfill({ json: job });return;
+      }
+      const reset = input.action === 'reset';
+      job = { job_id: id, action: input.action, state: 'awaiting_confirmation', percent: -1, message: 'Plan synthétique à confirmer', logs: [],
+        prompt: { nonce, message: 'Vérifier le plan synthétique', expected: reset ? 'REINITIALISER' : 'APPLIQUER', typed: reset, rows: [{ title: 'Jeu Steam existant', action: reset ? 'remove' : 'update', reason: 'Modification synthétique' }] } };
+      body = job;
+    } else if (path === `/api/moonshine/jobs/${id}/confirm`) {
+      calls.push({ ...request.postDataJSON(), csrf: request.headers()['x-csrf-token'] });
+      job = { ...job, state: 'completed', message: 'Terminé', prompt: null };body = job;
+    } else if (path === `/api/moonshine/jobs/${id}`) body = job;
+    else if (path === '/api/apps' && request.method() !== 'GET') throw new Error('The library must use the native job controller.');
+    await route.fulfill({ json: body });
+  });
+  await page.goto('/v2/library');
+  await expect(page.getByRole('heading', { name: 'Vos jeux, directement.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Analyser', exact: true })).toBeEnabled();
+  return calls;
+}
+
+test('existing historical entries appear without a write and filters do not change sync scope', async ({ page }) => {
+  const calls = await library(page);
+  await expect(page.getByRole('heading', { name: 'Jeu Steam existant' })).toBeVisible();
+  await page.getByLabel('Plateforme', { exact: true }).selectOption('ea');
+  await expect(page.getByText('Aucun jeu ne correspond aux filtres.')).toBeVisible();
+  expect(calls).toEqual([]);
+  await page.getByRole('button', { name: 'Effacer les filtres' }).click();
+  await expect(page.getByRole('heading', { name: 'Jeu Steam existant' })).toBeVisible();
+});
+
+test('declining the actual plan sends its nonce and CSRF token', async ({ page }) => {
+  const calls = await library(page);
+  await page.getByRole('button', { name: 'Synchroniser', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Confirmer le plan' })).toBeVisible();
+  await page.getByRole('button', { name: 'Revenir', exact: true }).click();
+  expect(calls).toEqual([
+    { action: 'sync', csrf: 'synthetic-ui-csrf' },
+    { nonce: 'b'.repeat(32), accept: false, text: '', csrf: 'synthetic-ui-csrf' },
+  ]);
+});
+
+test('reset requires the exact typed confirmation before sending acceptance', async ({ page }) => {
+  const calls = await library(page);
+  await page.getByText('Maintenance et récupération', { exact: true }).click();
+  await page.getByRole('button', { name: 'Remettre les entrées à zéro' }).click();
+  const confirm = page.getByRole('button', { name: 'Confirmer le retrait' });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel('Saisir REINITIALISER').fill('reinitialiser');await expect(confirm).toBeDisabled();
+  await page.getByLabel('Saisir REINITIALISER').fill('REINITIALISER');await confirm.click();
+  expect(calls[1]).toEqual({ nonce: 'b'.repeat(32), accept: true, text: 'REINITIALISER', csrf: 'synthetic-ui-csrf' });
+});
+
+test('an active stream retains mutation controls while allowing an analysis', async ({ page }) => {
+  const calls = await library(page, false);
+  await expect(page.getByRole('button', { name: 'Synchroniser', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Analyser', exact: true })).toBeEnabled();
+  await expect(page.getByText('Une session ou une application de streaming est active.', { exact: false })).toBeVisible();
+  expect(calls).toEqual([]);
+});
+
+test('trial context and Moonshine branding are visible', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await library(page, true, true);
+  await expect(page.getByText('Mode essai ·', { exact: false })).toBeVisible();
+  const mark = page.locator('img[src$="moonshine-mark.svg"]:visible').first();
+  await expect(mark).toBeVisible();
+  await expect.poll(() => mark.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect(page.locator('.ms-cover img')).toHaveCount(0);
+  for (const theme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    const ratios = await page.locator('.moonshine-library h1, .ms-game h2').evaluateAll((headings) => {
+      const luminance = (color: string) => {
+        const channels = (color.match(/[0-9.]+/g) ?? []).slice(0, 3).map((part) => {
+          const value = Number(part) / 255;return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+        });
+        return channels[0]! * .2126 + channels[1]! * .7152 + channels[2]! * .0722;
+      };
+      return headings.map((heading) => {
+        let background = heading.parentElement!;
+        while (background.parentElement && ['rgba(0, 0, 0, 0)', 'transparent'].includes(getComputedStyle(background).backgroundColor)) background = background.parentElement;
+        const text = luminance(getComputedStyle(heading).color), surface = luminance(getComputedStyle(background).backgroundColor);
+        return (Math.max(text, surface) + .05) / (Math.min(text, surface) + .05);
+      });
+    });
+    for (const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(4.5);
+  }
+  await page.screenshot({ path: 'test-results/moonshine-library-trial.png', fullPage: true });
+});
+
+test('a missing installation in a fresh scan keeps the historical entry visible', async ({ page }) => {
+  const calls = await library(page, true, true, true);
+  await expect(page.getByRole('heading', { name: 'Jeu Steam existant' })).toBeVisible();
+  await expect(page.getByText('Entrée conservée dans l’hôte; installation non retrouvée dans cette analyse. Aucune suppression automatique.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Tous les réglages de l’entrée ↗' })).toHaveAttribute('href', /706c6f73-7862-8830-81ec-2118ff82baaa/);
+  expect(calls).toEqual([]);
+});
+
+test('creation preset is an explicit local preference and leaves existing games untouched', async ({ page }) => {
+  const calls = await library(page, true, true);
+  await expect(page.getByText('Nouvelles fiches : Frame Generation fournie par le jeu.', { exact: false })).toBeVisible();
+  await page.getByText('Diffusion · DLSS et Frame Generation', { exact: true }).click();
+  await page.getByLabel('Préréglage des nouvelles fiches').selectOption('off');
+  await page.getByRole('button', { name: 'Enregistrer pour les nouvelles fiches' }).click();
+  await expect(page.getByText('Nouvelles fiches : Aucune coordination FG.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Jeu Steam existant' })).toBeVisible();
+  expect(calls).toEqual([{ action: 'creation_profile', mode: 'off', csrf: 'synthetic-ui-csrf' }]);
+});

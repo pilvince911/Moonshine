@@ -1,0 +1,86 @@
+MOONSHINE - MENAGE DES ANCIENS ESSAIS 0.2.0
+
+POUR UN DEPART A NEUF AVEC LA RC1
+1. Quitter les streams, arreter l'ancien Moonshine dans Services, puis fermer
+   les fenetres des anciens kits et synchroniseurs.
+2. Extraire ce ZIP et ouvrir Ouvrir-Menage-Moonshine.cmd normalement.
+   Accepter la demande Windows. Le compte d'origine est conserve meme si
+   un autre compte administrateur est utilise pour la confirmation.
+3. Choisir 4. Lire le plan, puis taper REPARTIR pour l'appliquer.
+   Cette action renonce a la reprise de l'ancien catalogue/appairage 0.9.
+4. Le script sauvegarde les fichiers et verifie toutes les empreintes AVANT
+   de retirer le service 0.9 reconnu. Il archive ensuite les anciennes donnees,
+   kits, taches reconnues et le raccourci de ce service devenus inutilises.
+5. Installer le ZIP Moonshine 1.0 RC1 sans reprise de la 0.9. VibeShine etant
+   deja desinstalle, utiliser Preparer les pilotes signes avant de demarrer.
+   Redemarrer Windows si demande, puis creer les identifiants, jumeler
+   Moonlight et synchroniser les jeux dans la nouvelle Bibliotheque.
+
+La nouvelle installation Program Files\Moonshine et les donnees
+LocalAppData\Moonshine\Library ne sont JAMAIS des cibles de ce kit.
+Il peut donc aussi servir apres l'installation de la RC1, celle-ci arretee.
+Une fiche ou un service qui reference encore un ancien dossier le protege.
+
+AUTRES CHOIX
+1 Analyse seule : aucune modification des donnees.
+2 Sauvegarde privee seulement : aucun service ni dossier retire.
+3 Archive les anciennes versions inutilisees sans retirer de service.
+  Ce choix conserve les donnees encore liees au service 0.9.
+4 Depart a neuf explicite : retire seulement l'ancien service 0.9 reconnu,
+  jamais un MoonshineService lie a la nouvelle installation.
+5 Ajoute un dossier contenant d'anciens kits, puis revenir au choix 1 ou 4.
+  Le Bureau et Telechargements du compte choisi sont examines par defaut.
+
+CE QUI EST RECONNU
+- Donnees de notre synchroniseur sous LocalAppData\plOS\VibeShine-Xbox et
+  LocalAppData\OPi5\VibeShine-Xbox : etats et marqueurs historiques verifies.
+- Essais Moonshine sous LocalAppData\OPi5\Moonshine-Trial : deux identifiants
+  concordants. Le dossier parent et son index sont archives ensemble si leur
+  contenu entier est reconnu; sinon seuls les essais reconnus sont proposes.
+- Program Files\Moonshine-Preview : recu, compte, identifiants et profil 0.9
+  concordants; service arrete et commande SCM exacte sous cette racine.
+- Anciennes distributions 0.1.0 a 0.9.0 presentes dans le catalogue livre :
+  SHA-256 du ZIP exact ou empreintes de TOUS les fichiers extraits.
+  Un fichier ajoute ou modifie empeche le retrait automatique de ce kit.
+- Taches de synchronisation : nom, compte, commande et XML verifies.
+  Les taches personnalisees ou en cours restent en place.
+- Regle reseau et raccourci du service 0.9 : identite/cible exactes.
+
+Une ancienne version renommee, modifiee, hors des dossiers examines ou non
+reconnue reste en place. Le script ne pretend pas retrouver tous les fichiers
+eparpilles sur tous les disques. Utiliser le choix 5 pour un autre emplacement.
+Les dossiers personnels, jeux, launchers Steam/EA/Xbox, pilotes, certificats
+Windows, Moonlight et fichiers OPi5OS ne sont pas nettoyes par ce script.
+Il ne desinstalle pas VibeShine; le faire dans Applications Windows si besoin.
+
+SAUVEGARDES ET RETOUR EN ARRIERE
+Les sauvegardes privees sont sous ProgramData\Moonshine-Migration, accessibles
+uniquement a SYSTEM et aux administrateurs Windows. Elles peuvent contenir
+catalogue, appairage, certificats et secrets : ne pas les publier dans GitHub.
+Le fichier backup.json contient les sources, empreintes, taches exportees et
+operations. Le retrait du service 0.9 y conserve sa configuration precedente.
+
+Les dossiers sont deplaces vers archive-root-NNN, jamais effaces recursivement.
+Les ZIP et raccourcis sont conserves entiers dans leur archive. La copie
+root-NNN est verifiee avant le deplacement. Des sauvegardes et archives locales
+restent donc sur le disque : ce menage retire les anciens essais des chemins
+actifs, il ne cherche pas a recuperer immediatement tout l'espace disque.
+Conserver ces sauvegardes au moins jusqu'a la validation reelle de la RC1.
+Une purge definitive pourra etre faite ensuite, sur ces archives identifiees.
+
+Pour recuperer, examiner backup.json, arreter les hotes et restaurer seulement
+vers un emplacement absent. Reenregistrer l'ancien service ou ses taches reste
+une operation separee; le script ne les relance jamais automatiquement.
+
+GARDE-FOUS
+Un service etranger, une dependance active, un fichier lie, une jonction, une
+copie instable, un catalogue personnalise non resolu ou une identite inconnue
+empechent le retrait concerne. Fermer Services si Windows termine encore la
+suppression du service, puis relancer le meme kit. Les operations deja faites
+sont dans le journal; les fichiers non encore archives restent a leur place.
+Plafond par dossier : 4 Gio et 50 000 fichiers. Une source sur un autre volume
+peut etre sauvegardee, mais un deplacement inter-volume est refuse par Windows;
+la source est alors conservee et son emplacement figure dans le journal.
+
+Licence GPL-3.0-only. Sources : https://github.com/pilvince911/Moonshine
+Le kit n'execute aucun script ni programme des anciennes installations.

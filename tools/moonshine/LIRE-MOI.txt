@@ -1,0 +1,217 @@
+﻿MOONSHINE — moteur embarqué 1.0.0 (prototype source)
+
+Le point d'entrée intégré est la page Bibliothèque de Moonshine. L'hôte gère la
+connexion locale temporaire, les travaux et l'automatisation. Les instructions
+ci-dessous concernent la fenêtre et le menu de secours conservés du synchroniseur
+OPi5. Ne réactivez pas sa tâche automatique après son transfert à Moonshine.
+Aucun installateur de l'hôte ni essai réel de streaming n'est qualifié ici.
+
+DOCUMENTATION DU MODE DE SECOURS
+
+OPi5 — VibeShine / bibliothèque Xbox PC
+Version 1.0.0 — consolidation avant la candidate 1.0
+
+NOUVEAUTÉS 1.0.0
+
+- Recherche par titre, plateforme ou identifiant; filtres par plateforme et état;
+  compte des jeux affichés et remise à zéro des filtres.
+- Détails d'un jeu : réglages actuels, valeurs proposées et personnalisations
+  conservées; l'ensemble des champs disponibles de l'entrée peut être consulté.
+- Listes déroulantes et tableaux sombres; journal de session copiable; raccourcis
+  Ctrl+F (recherche), F5 (analyse), Échap (demande d'annulation).
+- Affichage du vrai nombre d'autotests réussis sur le PC. Tant que la fenêtre est
+  active et au repos, actualisation du catalogue/session environ chaque minute,
+  sans nouvelle analyse des installations ni écriture dans le catalogue.
+- Retour arrière journalisé et reprenable. Aucune synchronisation ne repart au
+  milieu d'une annulation interrompue. Une sauvegarde illisible ne fait jamais
+  choisir silencieusement une opération plus ancienne à annuler.
+- Connexion enregistrée atomiquement avec son certificat et son jeton chiffré.
+  Une reconnexion ratée conserve la précédente. Les anciens formats restent lus.
+- Journal local pour terminer un choix de profil interrompu entre ses fichiers.
+- Une écriture précédente incertaine bloque aussi la recréation d'une entrée
+  disparue de l'API; une analyse doit d'abord résoudre son journal.
+- Caches d'inventaire incohérents conservés puis écartés; les données critiques
+  ambiguës bloquent les écritures et restent accessibles au diagnostic.
+
+DÉMARRAGE
+
+Fermer les anciennes fenêtres et consoles, extraire complètement le ZIP dans un
+nouveau dossier et lancer Demarrer.cmd normalement, sans administrateur.
+La fenêtre Windows est maintenant le point d'entrée. Les vérifications du
+programme se déroulent avant les actions; une erreur est affichée dans la fenêtre
+et un diagnostic de démarrage est créé si le moteur peut l'enregistrer.
+
+Mode-console.cmd ouvre le menu de secours et tous ses modes numérotés.
+Exporter-retour.cmd crée un diagnostic depuis la console.
+Une seconde ouverture de la fenêtre revient sur la fenêtre existante lorsque
+celle-ci est déjà disponible. Le programme utilise Windows PowerShell 5.1 x64
+et les composants WPF de .NET Framework sur le PC Windows compatible.
+
+Les données restent dans %LOCALAPPDATA%\OPi5\VibeShine-Xbox\.
+Le programme et sa copie saine sont installés dans versions\1.0.0 et
+Packages\1.0.0. La connexion chiffrée, les UUID historiques, les images, les profils
+et les sauvegardes existants sont repris. Les anciens lanceurs sont conservés
+pour le retour arrière. Les alias historiques restent regroupés dans Brand.ps1.
+Une entrée utilisant l'ancien lanceur reçoit normalement une mise à jour
+à la première synchronisation; elle ne doit pas être recréée en doublon.
+
+BIBLIOTHÈQUE
+
+Connecter VibeShine : saisir port, nom d'utilisateur et mot de passe dans la
+fenêtre dédiée. Le port proposé est 47990. Le mot de passe est masqué et transmis
+au moteur en SecureString; il n'est pas envoyé dans les données d'affichage ou
+les journaux. La connexion persistante reste chiffrée pour le même compte Windows.
+
+Analyser : lire les installations, préparer les images et afficher le plan.
+Les jeux Steam, Xbox et EA sont présentés avec pochette, plateforme, état et
+détail. Recherche et filtres changent seulement l'affichage.
+Détails ouvre une comparaison complète; aucune action n'y applique un réglage.
+Un ancien scan est identifié comme tel; sans connexion API, le catalogue local
+reste préliminaire. Les entrées personnelles sont protégées.
+
+Synchroniser : refaire un scan et vérifier le catalogue API, puis ouvrir une
+confirmation avec les jeux et champs à modifier. La sauvegarde précède l'écriture.
+Après application, l'état affiché est recalculé depuis la relecture de l'API.
+Une nouvelle synchronisation sans changement doit donner zéro ajout/mise à jour.
+Le filtre de plateforme ne restreint pas le bouton Synchroniser, qui vise tous
+les jeux pris en charge. Les modes pilote et EA se trouvent dans Maintenance.
+
+DIFFUSION
+
+Sélectionner un jeu géré dans Bibliothèque, puis Profil du jeu, ou ouvrir
+Diffusion et Configurer le profil. Trois choix :
+- Frame Generation fourni par le jeu : Game Provided pour DLSS/FSR FG natif.
+- Aucune génération d'images coordonnée par VibeShine.
+- Conserver les réglages actuels sans les gérer.
+
+En l'absence de profil enregistré, le dialogue sélectionne la conservation des
+réglages. Choisir le premier mode pour les jeux où le FG natif est activé.
+Aucun réglage n'est appliqué à tous les jeux ou au pilote NVIDIA par défaut.
+Après Enregistrer, utiliser Synchroniser pour appliquer le plan proposé.
+DLSS et FG doivent rester activés dans les options internes des jeux compatibles.
+Le profil ne modifie pas leurs fichiers ni NVIDIA App et ne cumule pas une
+activation de Lossless Scaling avec le profil de génération native.
+
+Actualiser le diagnostic lit les préférences locales autorisées et, pour le jeu
+sélectionné, les exceptions de son entrée API. La carte graphique provient de
+Windows; RTSS est seulement détecté aux emplacements connus. Capture, écran,
+limiteur, mode RTSS, cadence virtuelle, V-Sync et encodeur sont affichés avec leur
+origine. Les fichiers de configuration sont lus aux emplacements d'installation
+usuels; un fichier trouvé n'est pas une preuve qu'il est celui du service actif.
+Les valeurs manquantes restent à vérifier, sans reconfiguration automatique.
+Aucun identifiant contenu dans le fichier de configuration n'est copié.
+
+Le contrôle de santé de VibeShine et le client Moonlight restent nécessaires
+pour confirmer la capture réelle, le HDR, le codec et la fréquence négociée.
+Le bouton VibeShine ouvre l'interface locale au port enregistré.
+Ne pas cumuler Frame Generation native et NVIDIA Smooth Motion. HDR/RTX HDR et
+SDR 10 bits restent conditionnels au jeu et au client, sans activation forcée.
+
+MAINTENANCE
+
+Les modes pilote Steam + Xbox, EA seulement et pilote EA utilisent les mêmes
+protections et confirmations que la synchronisation complète.
+Activer l'automatisation : confirmation avant création/mise à jour de la tâche
+à l'ouverture de session, puis toutes les dix minutes. Désactiver la retire.
+Pendant une session Moonlight active, les écritures sont reportées ou bloquées.
+
+Remettre les entrées à zéro : la fenêtre liste les seuls jeux dont le propriétaire,
+la clé et l'UUID sont vérifiés. Saisir REINITIALISER confirme leur retrait de
+VibeShine. Une sauvegarde privée précède tout DELETE; la tâche est mise en pause.
+Les jeux installés, les applications personnelles, la connexion, les images et
+les anciens lanceurs sont conservés. Le reset ne se déclenche jamais seul.
+
+Restaurer le dernier reset : restituer les entrées sauvegardées et leurs réglages
+si elles n'ont pas été modifiées ou réimportées entretemps. Cela peut rétablir
+les anciens lanceurs. Annuler la dernière sync concerne les synchronisations,
+avec protection des changements personnels ultérieurs. Si elle est interrompue,
+le bouton devient Reprendre l'annulation et les synchronisations attendent.
+Toutes les cibles sont contrôlées avant le premier retrait; chaque réponse perdue
+est vérifiée avant d'envisager une reprise. Ces actions ne restaurent
+pas la ligne sélectionnée arbitrairement dans la liste : elles ciblent la dernière
+opération correspondante, comme indiqué dans leur confirmation.
+
+Les sauvegardes sont listées et peuvent être ouvertes dans l'Explorateur.
+Créer le diagnostic produit le ZIP de partage sur le Bureau. Voir le diagnostic
+ouvre son dossier après la création. Les sauvegardes privées et les secrets ne
+sont pas joints au partage. Le mode console reste disponible en cas de besoin.
+
+ANNULER ET FERMER
+
+Les scans et écritures travaillent dans un moteur séparé du fil de la fenêtre.
+Annuler demande un arrêt au prochain point sûr : une écriture déjà envoyée doit
+être relue et journalisée avant l'arrêt. Une requête réseau peut donc encore
+prendre son délai de réponse. L'actualisation réseau supplémentaire est évitée
+après l'annulation; Actualiser le diagnostic permet ensuite de reprendre.
+Il n'y a pas de destruction forcée du moteur.
+Fermer la fenêtre suit la même règle, puis libère ses ressources.
+
+Un reset, un retour arrière ou une restauration interrompus gardent leur journal :
+reprendre depuis
+Maintenance. La synchronisation automatique reste en pause après reset jusqu'au
+réimport manuel et à sa réactivation explicite. Au repos, la fenêtre libère le
+verrou des données pour laisser la tâche automatique effectuer ses passages.
+Les opérations de la fenêtre reprennent ce verrou et relisent leurs données.
+
+VALIDATION SUR LE PC
+
+1. Ouvrir Demarrer.cmd et attendre les contrôles de démarrage.
+2. Vérifier connexion, pochettes, recherche, filtre et navigation.
+3. Analyser, examiner la confirmation et synchroniser.
+4. Refaire une synchronisation, puis après fermeture/réouverture : zéro ajout ou
+   mise à jour inutile si les installations et réglages restent identiques.
+5. Vérifier les profils souhaités et les lancements réels dans Moonlight.
+6. Depuis Maintenance, créer et transmettre le diagnostic.
+
+Le reset est facultatif pour une simple mise à niveau. Pour repartir avec des
+entrées propres : reset confirmé, synchronisation, profils souhaités, deuxième
+passage stable et validation des lancements avant réactivation automatique.
+
+DÉCOUVERTE ET PROTECTIONS CONSERVÉES
+
+La bibliothèque Xbox est recoupée avec les installations Steam, Xbox/GDK et EA.
+EA utilise les identifiants de contenu exacts, y compris les références composites.
+Les images viennent de Steam ou du Microsoft Store; pour EA, la recherche vérifie
+le titre, l'éditeur et la plateforme. Une icône locale peut servir de secours.
+L'absence d'image ne bloque pas l'import. Une image personnalisée est protégée.
+
+Les entrées manuelles reconnues restent existing; les ambiguïtés deviennent
+conflict. La synchronisation normale ne supprime jamais les jeux absents du scan.
+Une mise à jour OPi5 existante conserve noms, réglages et images personnalisés.
+Une commande personnalisée ambiguë bloque l'écriture. L'API est relue juste avant
+et après les changements. Une session Moonlight active suspend les écritures.
+
+Les fichiers temporaires sont vidés et fermés avant remplacement; les erreurs
+transitoires connues ont des reprises bornées. Un renommage partiel conserve ses
+candidats. L'état a une copie valide, les fiches peuvent être reconstruites et les
+fichiers du programme sont vérifiés et réparés depuis une copie SHA-256 saine.
+Les originaux corrompus sont conservés dans Recovery. Le correctif JSON null de
+0.4.2 est conservé. Les chemins Windows équivalents ne causent pas de réécriture.
+
+DONNÉES ET DIAGNOSTIC
+
+Backups conserve les copies privées et journaux de synchronisation et de reset.
+Recovery conserve les originaux endommagés et anciennes définitions de tâche.
+Games contient les fiches de lancement; Artwork les images; Returns les retours.
+stream-profiles.json conserve les choix de diffusion par UUID.
+reset-control.json retient l'identifiant de la sauvegarde et la pause logique.
+undo-control.json protège le retour arrière; stream-profile-change.json protège
+le changement local d'un profil. Les fichiers de connexion restent privés.
+Ne pas effacer ces fichiers pour forcer une reprise; utiliser le menu.
+
+Le retour partagé contient un résumé du reset et les profils choisis. Il exclut
+les catalogues privés sauvegardés, les commandes personnelles, le jeton, le mot de
+passe et les XML de tâche. Les chemins de profil et les identifiants Windows sont
+masqués. Les anciens résultats en cache sont explicitement identifiés comme tels.
+
+LIMITES ET VALIDATION
+
+Les vérifications de syntaxe, dépendances, encodages, certificat de test et ZIP
+sont faites à la préparation. Les nouveaux autotests Windows 5.1 et les lancements
+réels doivent encore être confirmés sur le PC. Aucun succès de lancement EA ou
+nouveau total d'autotests réussis n'est affirmé à la livraison. Voir VALIDATION.txt.
+
+Permissions, disque plein, connexion expirée, certificat changé, préférences
+ambiguës ou schéma inconnu restent des erreurs explicites. Le script ne répare
+pas Windows, EA app ou les jeux. La copie SHA-256 détecte une corruption locale;
+elle ne remplace pas une signature de sécurité ni une mise à jour distante.

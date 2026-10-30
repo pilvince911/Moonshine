@@ -132,7 +132,7 @@ test('every runtime override has an editor or belongs to the adapter pair', asyn
     assert.ok(key === 'adapter_pnp_id' || settingsFields.has(key), key);
 });
 
-test('legacy global configuration is covered by v2 fields or a dedicated integration destination', async () => {
+test('supported global configuration is covered by v2 fields or a dedicated destination', async () => {
   const { readFileSync } = await import('node:fs');
   const { settingsDestinations } = await import('../configs/settingsSchema.ts');
   const source = readFileSync(
@@ -142,7 +142,9 @@ test('legacy global configuration is covered by v2 fields or a dedicated integra
   for (const match of source.matchAll(/^      (\w+):/gm)) {
     const key = match[1];
     assert.ok(
-      key === 'adapter_pnp_id' ||
+      // The retired provider configuration is intentionally absent from Moonshine.
+      key.startsWith('steam_') || key.startsWith('playnite_') ||
+        key === 'adapter_pnp_id' ||
         settingsFields.has(key) ||
         settingsDestinations.some((destination) => destination.keys.includes(key)),
       key,
@@ -186,3 +188,4 @@ test('Linux explicit non-KMS capture warns without rejecting the selection', () 
   assert.equal(linuxVirtualCaptureWarning('windows', 'wgc'), false);
   assert.equal(linuxVirtualCaptureWarning('macos', 'avfoundation'), false);
 });
+

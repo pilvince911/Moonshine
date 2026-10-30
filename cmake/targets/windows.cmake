@@ -46,6 +46,7 @@ list(APPEND SUNSHINE_EXTERNAL_LIBRARIES
         Mscms.lib
         version.lib)
 
+if(NOT MOONSHINE_HOST)
 # Build the Playnite 10 .NET plugin into the runtime/package layout. Do not copy
 # the SDK or project sources into the installer; Playnite supplies Playnite.SDK.
 if(DEFINED SUNSHINE_DOTNET_EXECUTABLE AND SUNSHINE_DOTNET_EXECUTABLE STREQUAL "")
@@ -105,6 +106,10 @@ add_custom_command(
 )
 add_custom_target(build_playnite_plugin DEPENDS ${SUNSHINE_PLAYNITE_PLUGIN_OUTPUT_FILES})
 add_dependencies(sunshine build_playnite_plugin)
+else()
+    # Keep packaging dependency names valid without shipping the connector.
+    add_custom_target(build_playnite_plugin)
+endif()
 
 # Ensure the Windows display helper is built and placed next to the Sunshine binary
 # so the runtime launcher can find it reliably.
@@ -154,6 +159,7 @@ foreach(_packaged_target IN ITEMS
     endif()
 endforeach()
 
+if(MOONSHINE_BUILD_INSTALLER)
 # Convenience target to build MSI via CPack (WiX)
 add_custom_target(package_msi
     COMMAND "${CMAKE_CPACK_COMMAND}" -G WIX -C "$<IF:$<CONFIG:>,${CMAKE_BUILD_TYPE},$<CONFIG>>"
@@ -174,3 +180,5 @@ add_custom_target(package_installer
     DEPENDS package_msi
     COMMENT "Building custom installer executable"
 )
+
+endif() # MOONSHINE_BUILD_INSTALLER

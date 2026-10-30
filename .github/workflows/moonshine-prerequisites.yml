@@ -1,0 +1,32 @@
+name: Moonshine prerequisite payloads
+on:
+  pull_request:
+    branches: [moonshine/main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: moonshine-prerequisites-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  windows-prerequisites:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Read and verify the pinned public prerequisite payloads
+        shell: powershell
+        run: ./tools/moonshine-dev/Get-Prerequisites.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moonshine-verified-prerequisites
+          path: prerequisites/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moonshine-prerequisites-evidence
+          path: build-evidence/
+          retention-days: 14

@@ -5,8 +5,8 @@ const ApplicationView = () => import('@/views/ApplicationView.vue');
 const ApiTokensView = () => import('@/views/ApiTokensView.vue');
 const BrowserStreamView = () => import('@/views/BrowserStreamView.vue');
 const DevicesView = () => import('@/views/DevicesView.vue');
-const IntegrationsView = () => import('@/views/IntegrationsView.vue');
-const LibraryView = () => import('@/views/LibraryView.vue');
+
+const LibraryView = () => import('@/views/MoonshineLibraryView.vue');
 const LogsView = () => import('@/views/LogsView.vue');
 const MaintenanceView = () => import('@/views/MaintenanceView.vue');
 const NotFoundView = () => import('@/views/NotFoundView.vue');
@@ -72,7 +72,7 @@ const router = createRouter({
     {
       path: '/integrations',
       name: 'integrations',
-      component: IntegrationsView,
+      redirect: '/library',
       meta: { titleKey: 'ui.nav.integrations' },
     },
     {

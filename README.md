@@ -1,169 +1,74 @@
-# Vibeshine
+# Moonshine
 
-## What is Vibeshine?
+**Hôte de streaming Windows pour les clients Moonlight, avec la bibliothèque Xbox PC intégrée.**
 
-Vibeshine is an AI‑enhanced version of Sunshine, a popular remote streaming application. It intends to integrate all scripts from myself (Nonary) and more.
+Moonshine est une fork indépendante de [VibeShine](https://github.com/Nonary/vibeshine), lui-même issu de Sunshine. Nonary et les contributeurs amont restent les auteurs du moteur de streaming et de ses fonctionnalités. Le client garde son nom **Moonlight**; cette fork de l'hôte s'appelle **Moonshine**.
 
+## Branche de développement
 
+Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` conserve cette référence; `moonshine/main` est la branche de destination propre à la fork et `moonshine/windows-integration` contient l'intégration proposée dans la PR nº 1. `master` suit encore la base reçue lors de la création de la fork.
 
-## Key Features
+**État : finition 1.0 RC2 en ZIP avec service Windows et icône de notification.** Le propriétaire a signalé la RC1 fonctionnelle après préparation d'une installation neuve et retrait de VibeShine. La RC2 ajoute le parcours guidé, l'icône dans le compte normal, l'entretien et l'inscription dans les applications Windows. Consulter les workflows du commit exact pour la qualification logicielle et [le guide](tools/moonshine-setup/LIRE-MOI.txt) pour les essais. La publication de la 1.0 finale attend la validation réelle de la RC2.
 
-* **Display Setting Automation**
-  Vibeshine adds multiple safeguards to prevent dummy plugs or virtual displays from getting “stuck” when you return to your PC. It resolves common Windows 11 **24H2** display issues and restores your layout after hard crashes, shutdowns, or reboots. (The only scenario it can’t restore is during a user logout.) The workflow is simplified to a dropdown—just pick the display you want to stream.
+## Bibliothèque intégrée
 
-* **Windows Graphics Capture in Service Mode**
-  Running Windows Graphics Capture (WGC) as a service improves performance and stability. It captures the full frame rate of frame‑generated titles, avoids crashes when VRAM is exceeded, and follows Microsoft’s recommended capture method going forward. Vibeshine auto‑switches capture methods on demand, so the login screen and UAC prompts are still captured even when using WGC.
+- Le moteur PowerShell que nous avons développé est embarqué dans `tools/moonshine`, version 1.0.0 pour le nouveau ZIP autonome, issue du moteur 0.8.1 qualifié.
+- Il retrouve les installations Xbox/GDK, Steam et EA prises en charge par notre découverte locale. Le périmètre initial est celui des jeux installés; il n'interroge pas tout le catalogue d'un abonnement Game Pass.
+- La page Bibliothèque regroupe analyse, aperçu, confirmation, synchronisation, profils de diffusion et récupération.
+- Les UUID, marqueurs, sauvegardes et données `%LOCALAPPDATA%\OPi5\VibeShine-Xbox` sont conservés pour reprendre nos anciennes entrées.
+- Les importateurs Steam et Playnite amont sont désactivés, leurs routes de synchronisation et leurs commandes d'import sont retirées de l'interface. Steam Big Picture ne fait plus partie des applications par défaut. Les jeux Steam passent par notre moteur et utilisent toujours leur lanceur installé.
+- Les applications personnelles, Desktop, Remote Input et Remote Monitor restent distinctes des jeux importés. Les anciennes entrées Steam/Playnite externes ne sont pas supprimées automatiquement et doivent être vérifiées si leur commande dépend de l'ancien connecteur.
 
-* **Native Virtualized Display**
-  Vibeshine uses its bundled virtual display driver by default and keeps SudoVDA installed as a rollback option. It can capture output from any GPU, including those in hybrid laptops, ensuring the virtual screen connects to the correct GPU when needed. It also provides simple virtual display options, allowing users to choose between a physical or virtual display. On headless setups, it enables automatically to prevent 503 errors and false encoder detections, such as incorrect HEVC support reports.
+## Fonctionnement Windows
 
-* **Focused Configuration Interface**
-  Vibeshine includes a responsive, dependency-light browser interface built around the tasks people perform most often: selecting a streaming display, tuning frame pacing, managing games and devices, checking sessions, and recovering the host. Less common controls remain organized by domain instead of competing with everyday setup.
+L'hôte lance le moteur dans le compte Windows connecté, avec un jeton limité aux routes de bibliothèque nécessaires. Ce jeton transite dans un canal privé, n'est pas enregistré par le moteur, est révoqué à la fin et les autorisations temporaires abandonnées sont retirées au démarrage suivant.
 
-* **Playnite Integration**
-  Deep integration with Playnite (a “launcher of launchers”) automatically syncs recently played games with configurable expiration rules, per‑category sync, and exclusions.
+Les opérations utilisent les mêmes sauvegardes, comparaisons de personnalisations, relectures API et journaux de reprise que le synchroniseur autonome. Les écritures attendent une session de streaming inactive. Annuler demande un arrêt à un point sûr; une écriture déjà envoyée doit être vérifiée. Le reset et le retour arrière mettent l'automatisation en pause.
 
-* **RTSS & NVIDIA Control Panel Integration**
-  Vibeshine can manage RTSS to apply the correct frame limit and disable V‑Sync before streaming, significantly improving frame pacing and smoothness. The applied frame cap matches the client device’s requested FPS.
+Une tâche automatique OPi5 reconnue peut être transférée à l'automatisation intégrée; son XML est sauvegardé en privé. Une tâche personnalisée bloque la reprise plutôt que d'être remplacée. Le menu autonome reste un outil de secours manuel pendant la transition.
 
-* **Frame‑Generated Capture Fixes**
-  DLSS/FSR game-provided frame generation requires Vibeshine's virtual display for reliable capture. The virtual display guarantees composed flip, allowing generated frames to be captured through WGC, and Vibeshine targets 4x virtual refresh for pacing.
+## Essai Windows séparé
 
-* **Lossless Scaling & NVIDIA Smooth Motion**
-  Vibeshine can automatically apply optimal Lossless Scaling settings to generate frames for any application. On RTX 40‑series and newer GPUs, you can optionally enable **NVIDIA Smooth Motion** for better performance and image quality (while Lossless Scaling remains more customizable).
+Le workflow `.github/workflows/moonshine-host.yml` compile l’hôte complet, ses helpers et l’interface, vérifie les dépendances DLL, puis exige un démarrage réel sans droits administrateur et un aperçu produit par le moteur embarqué via HTTPS avant de publier son artefact d’essai. Consulter le résultat du commit exact : un script de test présent dans le dépôt ne prouve pas sa réussite.
 
-* **API Token Management**
-  Access tokens can be tightly scoped—down to specific methods—so external scripts don’t need full administrative rights. This improves security while keeping automation flexible.
+Le kit propose une fenêtre Windows (`Demarrer-Moonshine.cmd`), une sauvegarde locale vérifiée et un arrêt propre. Il utilise son propre profil sous `%LOCALAPPDATA%\\OPi5\\Moonshine-Trial`, un catalogue neuf et le port Web 48990. Il ne reprend pas les tâches ni les données de production; arrêter temporairement l’autre hôte avant de démarrer cet essai. Voir [le parcours d’essai](tools/moonshine-trial/LIRE-MOI.txt).
 
-* **Session‑Based Authentication**
-  The sign‑in flow supports password managers and includes a “remember me” option to minimize prompts. The experience is security‑hardened without sacrificing convenience.
+Les versions portables sont des builds de développement non signés. Elles ne qualifient pas le streaming, les pilotes ou l’installateur. WebRTC et PyroWave sont désactivés dans ce kit. Le DLSS et la Frame Generation restent configurés dans les jeux.
 
-* **Update Notifications**
-  Built‑in notifications let you know when new features or bug fixes are available, making it easy to stay current.
+## Candidat service Windows 0.9.0
 
-Due to the sheer pace and volume of changes I was producing, it became impractical to manage them within the original Sunshine repository. The review process simply couldn’t keep up with the rate of development, and large feature sets were piling up without a clear path to integration. To ensure the work remained organized, maintainable, and actively progressing, I established Vibeshine as a standalone fork.
+Le kit `tools/moonshine-service` reprend une copie vérifiée du profil de l’essai portable arrêté. Il conserve les certificats, l’appairage Moonlight et les UUID, puis enregistre **MoonshineService**, distinct de SunshineService. Le binaire amont s’exécute comme SYSTEM dans la session de console; le worker est toujours lancé sans élévation dans le compte sélectionné. Le moteur et ses données d’essai restent en version 0.8.1. Aucun autre importateur n’est réintroduit.
 
-At this point, Vibeshine differs from upstream Sunshine by roughly **99,800 changed lines** (about **91,800 added** and **8,000 removed**). At that scale, asking upstream maintainers to accept large backports in one sweep is generally not sustainable, which is why Vibeshine continues as a standalone fork.
+Les exécutables sont protégés sous Program Files, les configurations privées ont une ACL réservée à SYSTEM/Administrateurs, et l’ancien hôte reste installé. Le service démarre manuellement; le réglage de démarrage Windows contrôle uniquement MoonshineService. La fenêtre fournit installation, démarrage, arrêt et retour à VibeShine. Aucun pilote n’est installé ni réinstallé. Voir [la procédure](tools/moonshine-service/LIRE-MOI.txt).
 
----
+La CI doit installer, démarrer, arrêter, redémarrer et retirer le véritable service sur un runner jetable, vérifier son enfant SYSTEM et son worker utilisateur réel, préserver un catalogue synthétique et révoquer les jetons temporaires. Elle ne qualifie pas l’écran virtuel d’un PC sans GPU. Le candidat du commit `96239aa250d10501f66a1eacca6a9496bc58d09a` a passé ces contrôles; son essai réel a ensuite confirmé l’affichage virtuel exclusif et la restauration sur le PC essayé.
 
-## Linux (beta)
+## Validation et compilation
 
-Vibeshine now runs natively on Linux as a set of machine-wide system services with its own
-virtual-display kernel driver. The beta targets **Arch Linux and CachyOS**, and it is developed and
-tested on **CachyOS with KDE Plasma 6 on Wayland**. You need Linux 6.16 or newer with matching
-kernel headers, a Plasma Wayland session started by SDDM or Plasma Login Manager, and a GPU with a
-hardware H.264 encoder. Pre-login streaming is NVIDIA-only.
+Voir [la procédure de développement](docs/moonshine/DEVELOPMENT.md), [les limites de validation](docs/moonshine/VALIDATION.md) et [le protocole du moteur](docs/moonshine/PROTOCOL.md). La CI dédiée exécute la politique native, le frontend, les régressions Windows PowerShell et le vrai pont Windows avec un moteur synthétique.
 
-```bash
-curl -fsSLO https://raw.githubusercontent.com/Nonary/vibeshine/vibe-test/scripts/linux_install.sh
-sudo bash linux_install.sh
-```
+Le build standard du binaire reste celui de VibeShine, avec ses dépendances. Les cibles d'installateur sont désactivées par défaut; leur identité et leur comportement de mise à niveau doivent être qualifiés avant distribution. Les vérifications de mise à jour ciblent `pilvince911/Moonshine`.
 
-The script checks the requirements, installs the kernel headers and the package, opens the firewall,
-and prints whether a reboot is needed. Manual steps, verification, and troubleshooting are in the
-[Linux install guide](docs/linux/install.md). AppImage, Flatpak, Debian, Fedora, and Docker builds
-are not part of this beta.
+## Licence et confidentialité
 
-SteamOS development uses a separate [user bundle](packaging/linux/steamos/README.md)
-which leaves the read-only operating system untouched. Its experimental Gaming
-Mode path supports stock Gamescope SDR capture and an optional
-[patched Gamescope HDR10 path](packaging/linux/steamos/gamescope/README.md).
-Gaming Mode automatically uses the existing Gamescope output even when virtual
-display is selected. Desktop display/layout preferences are preserved for the
-next Desktop Mode session; Gaming Mode does not create independent monitors.
-See the [SteamOS audit](packaging/linux/steamos/AUDIT.md)
-for validation and remaining work.
+Le projet conserve la [GPL-3.0](LICENSE), les [avis amont](NOTICE) et les licences des dépendances. Aucun identifiant de PL, inventaire personnel, journal brut, jeton, clé de signature de production ou compte de service ne fait partie du dépôt. `tools/moonshine/Transport-Test.pfx` est exclusivement le certificat synthétique public des tests de transport; il ne doit jamais servir en production.
 
-## Does Vibeshine aim to replace Sunshine or Apollo?
+GitHub conserve les sources; les archives de développement et rapports de PL restent sur son Drive. Le dépôt ne publie pas de release ni d'installateur automatiquement.
 
-Yes. Vibeshine replaces Sunshine or Apollo as your streaming host. On Linux,
-use one host installation at a time: replace an existing Sunshine, Vibeshine,
-or Vibepollo installation when installing Vibeshine, and preserve your
-configuration and pairing data during the transition.
+Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.
 
-In addition, for users who prefer Apollo’s ecosystem, there is a [Vibepollo](https://github.com/Nonary/Vibepollo) that brings Vibeshine’s feature set to Apollo. This exists primarily to serve Apollo users who asked for Vibeshine‑style capabilities while staying on Apollo.
+Le [kit de ménage 0.2](tools/moonshine-maintenance/LIRE-MOI.txt) analyse les anciennes racines et distributions 0.x, les sauvegarde en privé avec vérification intégrale, puis archive celles devenues inutilisées. Le choix explicite « Repartir à neuf » peut désenregistrer le seul service 0.9 arrêté, lié exactement à `Moonshine-Preview`, avant l'archivage. Il conserve la nouvelle installation et sa bibliothèque, les pilotes et les jeux. Les références d'un autre service, les tâches personnalisées et les identités inconnues bloquent le retrait concerné.
 
+## ZIP avec installation simple du service
 
-## Will Vibeshine’s features merge back into Sunshine or Apollo?
+Le candidat **1.0.0-rc.2** se prépare dans `tools/moonshine-setup`. Il installe le même service sous `Program Files\Moonshine`, avec une bibliothèque indépendante dans `%LOCALAPPDATA%\Moonshine\Library\<id>`. Une installation neuve ne demande aucun index ni profil d’essai. La reprise facultative du service 0.9 copie catalogue/appairage/personnalisations et retargete les chemins de notre moteur; les originaux sont conservés.
 
-**Short answer: Unlikely to be backported upstream as large, sweeping merges.**
+Les pilotes d’écran/manettes et les couches HDR Vulkan x64/x86 proviennent des octets épinglés de l’installateur officiel VibeShine 2.0.1, extraits sans exécuter son installateur. Les signatures et contrats sont vérifiés. Le bouton distinct **Préparer les pilotes signés** demande l’accord du propriétaire et l’élévation Windows. Aucun pilote n’est installé par la CI.
 
-Vibeshine is largely AI‑generated. While it works well, it carries a kind of surface‑level technical debt that many upstream projects want resolved before taking big changes (styling consistency, thin/missing docs, and some over‑engineering). I see that debt as relatively unimportant today because modern AI tools can answer “why does this function exist?”, “what does this parameter do?”, or “how do these classes interact?” and will soon auto‑fix these issues—re‑style trees, write docstrings, and prune unused layers—without human effort.
+La publication du ZIP exige les tests Windows du commit exact : installation neuve, vrai service/worker, réparation, retrait/réinstallation et migration suivie du retrait des anciens dossiers avant le nouveau lancement. Les instructions sont dans [le guide](tools/moonshine-setup/LIRE-MOI.txt). La candidate reste à essayer sur le PC réel après remplacement de l’ancien hôte; ce texte ne déclare pas la release finale 1.0.
 
-So this “mess” is mostly cosmetic. It doesn’t break the code, create security risks, or block future maintenance. The only debt that truly matters is architectural: API design, threading models, modularity, and performance. Those are hard to fix even with AI tools, which is why I focus on them up front and guide the AI accordingly.
+## Gestion Windows RC2
 
-Because I define the architecture, I know how everything works. Whether the code looks polished or not doesn’t matter to me.
+L'installation conserve le format ZIP et le service qualifié. La fenêtre guide installation, pilotes puis démarrage; le bouton principal suit l'état réel et la progression est transmise par des comptes rendus privés écrits par l'opération administrateur. Après installation, une icône démarre dans la session du compte choisi, sans fenêtre visible. Son menu regroupe bibliothèque, démarrage/arrêt et entretien. Fermer la fenêtre revient à l'icône; quitter l'icône conserve le service. Une instance par session et des signaux limités au compte permettent de retrouver la fenêtre et de passer à un nouveau kit.
 
-Bringing Vibeshine fully in line with upstream style and documentation would take a lot of engineering time for limited practical gain. For now, full backports into Sunshine or Apollo are unlikely. Over time, targeted refactors or added documentation may make **selective upstreaming** possible.
-
-**Note on Apollo:** The Apollo port is a downstream **backport**, not an upstream merge. It adapts Vibeshine features to Apollo’s architecture where it makes sense, with the understanding that Apollo maintains its own priorities and conventions.
-
----
-
-## Origin of the Name "Vibeshine"
-
-The name arose as a playful suggestion from another developer who joked about the potential unmanageability of extensive AI‑generated code. Given that approximately **99% of Vibeshine’s code is AI‑generated**, the name seemed fitting.
-
----
-
-## Why Use AI‑generated Code? Concerns About Technical Debt?
-
-AI significantly accelerates development by offloading much of the routine implementation work. Instead of spending hours writing boilerplate, wiring dependencies, or handling repetitive edge cases, I can focus on high‑level architecture, long‑term design decisions, and system direction. This shift doesn’t just speed things up—it fundamentally changes the role of the engineer, pushing us toward oversight, orchestration, and design rather than rote code production.
-
-What stands out most is that AI code works on the first try around 90% of the time. That reliability, combined with instant generation, makes it dramatically more efficient to accept its form of debt than to painstakingly write everything from scratch. In other words, I’m trading minor, manageable debt for massive development velocity—and that trade is almost always worth it.
-
-I’m not overly concerned about technical debt in this workflow, because the debt that truly matters stems from bad architecture and poor design choices, not from the code itself. As long as I guide the AI with clear structure and intent, the generated code ends up being maintainable. Problems like inconsistent naming, redundant code, or unused helpers are minor forms of debt—easily identified, cleaned up, or ignored. By contrast, deep architectural flaws, poor layering, or mismatched abstractions create lasting problems.
-
-In fact, compared to many traditional enterprise codebases I’ve maintained, AI‑assisted code often comes out cleaner and easier to manage. Legacy systems are usually burdened with years of ad‑hoc patches, inconsistent styles, and various bad practices due to knowledge level of contributor. AI‑generated code doesn’t necessarily carry fewer design flaws than human code, but it does avoid accumulating those scars—especially when paired with an intentional architectural vision, and it is less likely to do seriously bad practices that you typically find in enterprise codebases.
-
-Broadly speaking, AI‑assisted development represents the future of software engineering. Just as compilers and IDEs once transformed programming, AI is now transforming how we design, implement, and maintain systems. Instead of fearing it, I view it as a force multiplier that complements professional judgment. Vibeshine is an example of what happens when you embrace that shift: rapid iteration, a massive expansion of features, and code that remains maintainable because the architecture is intentionally guided.
-
----
-
-## The Original “AI-Only” Goal (And Why It Changed)
-
-One of the original goals of Vibeshine was to prove a specific point: that an experienced developer could maintain a complex project using almost entirely AI‑generated code, as long as they provided the architecture and kept the system coherent.
-
-That idea hasn’t aged particularly well, not because it was wrong, but because the models scaled far faster than most projections. Most of Vibeshine was developed on GPT‑5, which (per METR’s public benchmark on metr.org at the time) only hit about a 50% success rate on 1‑hour tasks. A few months later, GPT‑5.2 landed and the same 50% point moved out to roughly 6.5‑hour tasks, which is a huge jump in practical autonomy.
-
-The result is that the “skill gap” in prompting and guiding the AI matters less than it did even a few months prior. You still need engineering judgment and architecture, but it’s now dramatically easier to get high‑quality, end‑to‑end results without the same level of careful orchestration. So the original “prove it’s possible” goal is basically moot: it’s not a niche workflow anymore, it’s simply where the tools have gone.
-
----
-
-## AI Models Used by Vibeshine
-
-Vibeshine has always been built with **Codex** as the primary workflow, and in practice that has meant mostly the **GPT‑5 family** (today: **GPT‑5.3‑Codex**). I use it with the same principles as before: start from architecture, sanity‑check assumptions, and do the hard reasoning up front so the implementation lands cleanly.
-
-With **GPT‑5.3‑Codex**, there’s no real need to juggle a “fast but less capable” model anymore. In the past I’d reach for speed‑first models (like Sonnet, or smaller GPT “mini” variants) for quick turnaround, but **GPT‑5.3‑Codex** covers both: it’s about as fast as those options while also being strong enough to handle the hard engineering work in one pass.
-
-Claude was used more heavily earlier on. Older Claude models had a tendency to go off on their own path, even when the architectural plan was clear. That behavior has mostly been fixed in newer Claude releases, but GPT still ended up being the more useful engineering tool for me because it will challenge you and not simply agree with whatever you ask for.
-
-In general, GPT has felt more intelligent for the way I build and maintain this codebase. I may occasionally ask **Claude Opus 4.5** for a second opinion if GPT can’t resolve something cleanly end‑to‑end, but this is increasingly rare.
-
----
-
-## Sponsors
-
-<p align="center">
-  <a href="https://signpath.io?utm_source=foundation&amp;utm_medium=github&amp;utm_campaign=vibeshine">
-    <img src="docs/images/signpath.svg" alt="SignPath" width="420">
-  </a>
-</p>
-
-Thank you to [SignPath.io](https://signpath.io?utm_source=foundation&utm_medium=github&utm_campaign=vibeshine)
-and the [SignPath Foundation](https://signpath.org?utm_source=foundation&utm_medium=github&utm_campaign=vibeshine)
-for sponsoring Vibeshine's Windows code signing.
-
-### Code signing policy
-
-Official Vibeshine Windows releases use free code signing provided by
-[SignPath.io](https://signpath.io?utm_source=foundation&utm_medium=github&utm_campaign=vibeshine), and a
-certificate by the [SignPath Foundation](https://signpath.org?utm_source=foundation&utm_medium=github&utm_campaign=vibeshine).
-
-* **Committer and reviewer:** [Nonary](https://github.com/Nonary)
-* **Approver:** [Nonary](https://github.com/Nonary)
-* **Privacy:** Vibeshine transfers information to networked systems only for functionality requested by the user or
-  operator; it does not transmit user or runtime data to SignPath. Separately, SignPath's GitHub integration receives
-  the build artifacts, signing-request details, and GitHub-provided build-origin metadata needed to sign official
-  releases.
+L'entrée dans Applications installées appelle notre propre retrait, sans MSI. Les inscriptions sont bornées à leur identité, compte et chemin. Le retrait sauvegarde la configuration et la bibliothèque, archive le programme, retire service/raccourci/démarrage de l'icône et conserve les pilotes partagés et la bibliothèque. L'export diagnostic reste local, borné et sans copie des identifiants/certificats. La mise à jour conserve l'identifiant, les UUID, appairages et préférences de la RC1.

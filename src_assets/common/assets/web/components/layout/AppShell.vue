@@ -40,7 +40,6 @@ const navigationGroups = [
     labelKey: 'ui.shell.manage',
     items: [
       { labelKey: 'ui.nav.settings', icon: 'settings', to: '/settings' },
-      { labelKey: 'ui.nav.integrations', icon: 'integrations', to: '/integrations' },
       { labelKey: 'ui.nav.api_tokens', icon: 'key', to: '/api-tokens' },
       { labelKey: 'ui.nav.maintenance', icon: 'help', to: '/maintenance' },
     ],
@@ -164,8 +163,8 @@ onBeforeUnmount(() => {
         <UiIcon name="menu" :size="20" />
       </button>
       <RouterLink class="mobile-brand" to="/" :aria-label="t('ui.shell.brand_overview')">
-        <img :src="`${baseUrl}images/logo-sunshine-45.png`" alt="" width="28" height="28" />
-        <span>Vibeshine</span>
+        <img :src="`${baseUrl}images/moonshine-mark.svg`" alt="" width="28" height="28" />
+        <span>Moonshine</span>
       </RouterLink>
       <span class="mobile-status" :data-state="system.health">{{ statusText }}</span>
     </header>
@@ -190,9 +189,9 @@ onBeforeUnmount(() => {
     >
       <div class="sidebar__header">
         <RouterLink class="brand" to="/" :aria-label="t('ui.shell.brand_overview')">
-          <img :src="`${baseUrl}images/logo-sunshine-45.png`" alt="" width="32" height="32" />
+          <img :src="`${baseUrl}images/moonshine-mark.svg`" alt="" width="32" height="32" />
           <span class="sidebar__label">
-            <span class="brand__name">Vibeshine</span>
+            <span class="brand__name">Moonshine</span>
             <span class="brand__description">{{ t('ui.shell.host_console') }}</span>
           </span>
         </RouterLink>
@@ -260,10 +259,6 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
-        <a class="sidebar__legacy" href="/" :title="t('ui.shell.classic_interface')">
-          <UiIcon name="external-link" :size="16" />
-          <span class="sidebar__label">{{ t('ui.shell.classic_interface') }}</span>
-        </a>
         <div class="sidebar__utility">
           <button
             class="sidebar__logout"
