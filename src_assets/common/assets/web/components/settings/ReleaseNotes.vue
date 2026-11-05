@@ -19,7 +19,7 @@ async function load(remote = false) {
   failed.value = false;
   try {
     const response = await fetch(
-      remote ? 'https://api.github.com/repos/Nonary/vibeshine/releases' : '/assets/changelog.json',
+      remote ? 'https://api.github.com/repos/pilvince911/Moonshine/releases' : '/assets/changelog.json',
       { headers: { Accept: 'application/json' }, credentials: 'omit' },
     );
     if (!response.ok) throw new Error('releases-unavailable');
@@ -62,7 +62,7 @@ onMounted(() => void load());
       <summary>{{ release.name || release.tag }} · {{ release.date }}</summary>
       <p class="release-notes__body">{{ release.body }}</p>
       <a
-        v-if="release.url?.startsWith('https://github.com/Nonary/vibeshine/releases/')"
+        v-if="release.url?.startsWith('https://github.com/pilvince911/Moonshine/releases/')"
         :href="release.url"
         target="_blank"
         rel="noopener noreferrer"

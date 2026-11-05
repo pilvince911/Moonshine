@@ -1,0 +1,15 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Moonshine · Service Windows" Width="760" Height="570" MinWidth="700" MinHeight="550" WindowStartupLocation="CenterScreen" Background="#101827" Foreground="#EEF3FC" FontFamily="Segoe UI">
+  <Window.Resources>
+    <Style TargetType="Button"><Setter Property="Background" Value="#26354D"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="Padding" Value="16,11"/><Setter Property="Margin" Value="0,0,10,10"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="14"/></Style>
+    <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/></Style>
+  </Window.Resources>
+  <Grid Margin="30">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <StackPanel><TextBlock Text="MOONSHINE" FontSize="30" FontWeight="SemiBold"/><TextBlock Text="0.9.0 · Essai du service Windows" FontSize="16" Foreground="#A9C8FF" Margin="0,5,0,16"/></StackPanel>
+    <Border Grid.Row="1" Background="#19263B" CornerRadius="10" Padding="18" Margin="0,0,0,18"><StackPanel><TextBlock x:Name="StatusText" Text="Vérification du service…" FontSize="18" FontWeight="SemiBold"/><TextBlock x:Name="DetailText" Text="Le moteur de synchronisation reste dans votre session utilisateur." Foreground="#C6D3E6" Margin="0,8,0,0"/></StackPanel></Border>
+    <StackPanel Grid.Row="2"><TextBlock Text="Essai existant à reprendre" Foreground="#C6D3E6" Margin="0,0,0,7"/><ComboBox x:Name="TrialChoice" Height="32" Foreground="#102038" Background="#FFFFFF" DisplayMemberPath="Label" Margin="0,0,0,18"/></StackPanel>
+    <WrapPanel Grid.Row="3"><Button x:Name="InstallButton" Content="Installer et démarrer" Background="#355EA8"/><Button x:Name="OpenButton" Content="Ouvrir la bibliothèque"/><Button x:Name="StartButton" Content="Démarrer"/><Button x:Name="StopButton" Content="Arrêter"/><Button x:Name="ReturnButton" Content="Revenir à VibeShine"/><Button x:Name="ServicesButton" Content="Services Windows"/></WrapPanel>
+    <StackPanel Grid.Row="4" Margin="0,12,0,0"><TextBlock Text="La confirmation administrateur de Windows est demandée uniquement pour gérer le service. Le pilote déjà installé est réutilisé." Foreground="#C6D3E6"/><TextBlock Text="La copie du catalogue et de l’appairage est conservée dans un dossier protégé. L’ancien hôte et ses réglages restent disponibles." Foreground="#C6D3E6" Margin="0,10,0,0"/></StackPanel>
+    <TextBlock Grid.Row="5" Text="Fermer cette fenêtre laisse le service en marche. Interface Web : https://localhost:48990" Foreground="#A9C8FF" FontSize="12" Margin="0,15,0,0"/>
+  </Grid>
+</Window>

@@ -27,6 +27,11 @@ elseif(UNIX)
 endif()
 
 target_link_libraries(sunshine ${SUNSHINE_EXTERNAL_LIBRARIES} ${EXTRA_LIBS})
+if(WIN32)
+    target_link_libraries(sunshine advapi32 ole32 userenv)
+    add_custom_command(TARGET sunshine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/tools/moonshine" "$<TARGET_FILE_DIR:sunshine>/tools/moonshine")
+endif()
 if(TARGET sunshine_libvirtualdisplay_uapi)
     target_link_libraries(sunshine sunshine_libvirtualdisplay_uapi)
 endif()

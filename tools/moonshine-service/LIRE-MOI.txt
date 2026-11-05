@@ -1,0 +1,74 @@
+MOONSHINE 0.9.0 — ESSAI DU SERVICE WINDOWS
+
+Cette version de développement est non signée. Elle conserve le moteur de
+synchronisation 0.8.1 et passe l’hôte en service Windows distinct de VibeShine.
+Le pilote virtuel déjà présent est réutilisé. Aucun pilote n’est installé.
+
+INSTALLATION SUR LE PC HÔTE
+1. Terminer le stream puis arrêter l’essai portable avec son bouton Arrêter.
+   Si VibeShine/Sunshine tourne, arrêter temporairement son service.
+2. Extraire le ZIP complet dans un dossier local ordinaire.
+3. Ouvrir Ouvrir-Moonshine-Service.cmd par un double-clic normal.
+4. Sélectionner l’essai 0.8.1 existant, puis Installer et démarrer.
+5. Examiner le plan affiché et accepter la confirmation administrateur Windows.
+6. Ouvrir la bibliothèque. Le catalogue, les identifiants et les certificats de
+   cet essai sont copiés. L’entrée Moonshine Essai de Moonlight reste utilisable;
+   port 48989 et interface Web https://localhost:48990/v2/library.
+7. Pour les prochaines ouvertures, utiliser Moonshine Service dans le menu
+   Démarrer. Le gestionnaire et sa référence de réparation restent installés.
+
+CE QUI CHANGE
+MoonshineService est un nouveau service en démarrage manuel. Il exécute l’hôte
+dans la session de console avec les droits SYSTEM requis par le moteur amont.
+Le worker de bibliothèque conserve les droits normaux du compte sélectionné,
+son canal privé, les UUID et le profil de synchronisation existants de l’essai.
+Une autre session utilisateur ne peut pas reprendre sa bibliothèque native.
+La fermeture de la fenêtre de gestion laisse le service en marche.
+
+Les fichiers exécutables sont copiés sous Program Files\Moonshine-Preview,
+protégés contre l’écriture par les comptes ordinaires. Configurations privées
+et copies de récupération sont accessibles uniquement aux administrateurs
+et à SYSTEM. La règle réseau propre à cet essai est limitée au réseau privé
+et au sous-réseau local. UPnP et installations automatiques de pilote restent
+désactivés. Ne pas exécuter les fichiers .bat de service hérités de Sunshine.
+
+DONNÉES ET RETOUR
+L’installation copie le profil de l’essai arrêté, vérifie ses fichiers et conserve
+une copie de configuration et de synchronisation dans Recovery. Elle ne copie
+pas le catalogue de production VibeShine et ne supprime aucun jeu installé.
+Le moteur reste 0.8.1 et reprend ses données d’essai et UUID existants. Ne pas
+utiliser les deux hôtes simultanément. L’ancien dossier portable est conservé.
+
+Revenir à VibeShine arrête et retire uniquement MoonshineService et sa règle
+réseau, puis redémarre SunshineService si son identité correspond toujours
+à celle enregistrée. Les fichiers et sauvegardes restent en place. Si l’ancien
+service avait un autre nom, le démarrer dans Services Windows.
+Le type de démarrage et le binaire de l’ancien service ne sont pas modifiés.
+Pour reprendre le portable : arrêter MoonshineService, puis ouvrir l’ancien kit.
+
+RÉPARATION
+Arrêter le service puis utiliser Réparer et démarrer dans sa fenêtre. Le kit
+local est revérifié avant de remplacer uniquement les fichiers exécutables
+endommagés de la même version. Leurs anciens octets restent dans Recovery;
+la configuration et le catalogue actifs sont conservés. Le démarrage automatique
+de Moonshine est temporairement suspendu pendant la réparation. Après une
+interruption, reprendre cette même opération. Un reçu ambigu, un lien de fichiers
+ou une référence altérée suspend la réparation au lieu de deviner une identité.
+
+VALIDATION À FAIRE SUR LA RTX 4080
+Tester un jeu déjà synchronisé avec les mêmes paramètres Moonlight. Vérifier
+la création de l’écran virtuel, l’inactivation de l’écran physique, résolution,
+HDR et politique de fréquence, puis la restauration après la sortie du jeu.
+La fréquence interne utilisée par la capture FG peut différer des FPS du stream.
+Le lancement et la fermeture de session ont fonctionné lors des essais 0.8.1;
+le service et l’affichage doivent encore être validés sur le PC réel.
+Si l’écran reste actif, exporter le nouveau diagnostic depuis l’interface.
+Les détails d’ouverture du transport sont aussi conservés dans les fichiers
+service-stdout.log et service-stderr.log du dossier config protégé.
+
+LIMITES
+Ce kit n’est pas la version 1.0 ni un installateur MSI final. Il nécessite le
+profil de l’essai portable existant et n’écrase pas une installation d’une autre
+version. Les chemins de fichiers personnalisés demandent une migration distincte.
+WebRTC/PyroWave et TrueHDR ne sont pas qualifiés par ce parcours. DLSS/FG restent
+des réglages internes aux jeux. La réussite en CI ne prouve pas l’affichage réel.

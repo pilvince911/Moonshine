@@ -4,9 +4,12 @@ cmake_minimum_required(VERSION 3.20)
 # `cmake_path(CONVERT ... TO_NATIVE_PATH_LIST ...)` requires 3.20
 # todo - set this conditionally
 
-project(Vibeshine VERSION 0.0.0
+project(Moonshine VERSION 0.0.0
         DESCRIPTION "Self-hosted game stream host for Moonlight"
-        HOMEPAGE_URL "https://github.com/Nonary/vibeshine")
+        HOMEPAGE_URL "https://github.com/pilvince911/Moonshine")
+
+set(MOONSHINE_HOST ON)
+option(MOONSHINE_BUILD_INSTALLER "Build experimental Moonshine installers (not qualified)" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,7 +35,7 @@ if (WIN32)
     # WiX requires RTF license; also set stable Upgrade GUID
     set(CPACK_WIX_LICENSE_RTF "${CMAKE_SOURCE_DIR}/packaging/windows/LICENSE.rtf")
     set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/packaging/windows/LICENSE.rtf")
-    set(CPACK_WIX_UPGRADE_GUID "{C2C36624-2D9C-4AFD-9C79-6B7861AE4A0D}")
+    set(CPACK_WIX_UPGRADE_GUID "{D1E73422-7FE8-5DD9-AB83-FA0C4E50FD58}")
 endif()
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -92,6 +95,9 @@ include(${CMAKE_MODULE_PATH}/dependencies/common.cmake)
 
 # setup compile definitions
 include(${CMAKE_MODULE_PATH}/compile_definitions/common.cmake)
+
+# Moonshine additions keep their own module and embedded engine.
+include(${CMAKE_MODULE_PATH}/moonshine.cmake)
 
 # target definitions
 include(${CMAKE_MODULE_PATH}/targets/common.cmake)

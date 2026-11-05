@@ -38,6 +38,7 @@
 #include "session_history.h"
 #include "state_storage.h"
 #include "steam_auto_sync.h"
+#include "moonshine/bridge.h"
 #ifdef __linux__
   #include "lutris_auto_sync.h"
 #endif
@@ -332,6 +333,8 @@ int main(int argc, char *argv[]) {
   SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
 
   setlocale(LC_ALL, "C");
+  try { moonshine::validate_startup(); }
+  catch (const std::exception &error) { std::fprintf(stderr,"Moonshine: %s\n",error.what());return 1; }
 #endif
 
 #pragma GCC diagnostic push
@@ -721,10 +724,15 @@ int main(int argc, char *argv[]) {
   // Steam's catalog can change while the server is running. The watcher is
   // started after logging/platform initialization and owns its shutdown
   // thread independently of the task pool.
+#ifdef _WIN32
+  auto moonshine_guard = util::fail_guard([]() { moonshine::stop(); });
+#endif
+#ifndef MOONSHINE_HOST
   platf::steam::autosync::start();
   auto steam_autosync_guard = util::fail_guard([]() {
     platf::steam::autosync::stop();
   });
+#endif
 #ifdef __linux__
   platf::lutris::autosync::start();
   auto lutris_autosync_guard = util::fail_guard([]() {
@@ -1023,6 +1031,9 @@ int main(int argc, char *argv[]) {
   // The signal handler only wakes main; start the owned watchdog here so it
   // never constructs threads or queues work from signal context.
   shutdown_deadline.arm();
+#ifdef _WIN32
+  moonshine::stop();moonshine_guard.disable();
+#endif
 
 #ifdef WIN32
   // Join the hidden shutdown-notification window while the deadline watchdog
@@ -1051,8 +1062,10 @@ int main(int argc, char *argv[]) {
   platf::lutris::autosync::stop();
   lutris_autosync_guard.disable();
 #endif
+#ifndef MOONSHINE_HOST
   platf::steam::autosync::stop();
   steam_autosync_guard.disable();
+#endif
 
 #ifdef _WIN32
   // Full process shutdown cannot leave the paused-session watchdog running.

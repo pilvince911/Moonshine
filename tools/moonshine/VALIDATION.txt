@@ -1,0 +1,59 @@
+﻿MOONSHINE — qualification du moteur embarqué 1.0.0
+
+ÉTAT ET PREUVES
+Le rapport du commit GitHub exact fait foi :
+- .github/workflows/moonshine.yml : politique C++, frontend, tests de navigateur,
+  régressions Windows PowerShell 5.1, fenêtre WPF et vrai pont de processus.
+- .github/workflows/moonshine-host.yml : compilation complète, dépendances PE,
+  démarrage HTTPS sous un compte standard et exécution du vrai moteur embarqué.
+La présence du test ne signifie pas que le test a réussi. Les sorties de CI et
+le rapport accompagnant l'archive distinguent les contrôles passés des limites.
+
+PÉRIMÈTRE
+La bibliothèque Web intégrée réunit Xbox PC, Steam et EA. Les anciens importateurs
+Steam et Playnite sont désactivés et retirés des écrans. Le helper partagé de
+lancement/capture reste une dépendance du moteur de streaming.
+Le moteur conserve UUID, marqueurs historiques, préférences, sauvegardes,
+comparaisons avant/après écriture et journaux de reprise. Il n'adopte pas une
+application ambiguë sur son seul titre. Annuler attend un point sûr.
+Le mode de secours console/WPF reste disponible hors du kit isolé; il ne faut
+pas l'exécuter en parallèle de l'automatisation native.
+
+DLSS ET FRAME GENERATION
+Les nouvelles fiches du module natif proposent « Frame Generation fournie par
+le jeu », avec Lossless Scaling désactivé. Le plan décrit ce choix avant toute
+confirmation. Les fiches existantes et les profils explicites restent prioritaires.
+Diffusion permet de choisir un autre préréglage. Moonshine ne modifie ni les
+réglages internes DLSS/FG des jeux, ni les pilotes ou fréquences par ce choix.
+L'effet réel dépend du jeu, du GPU et du client et doit être mesuré en streaming.
+
+ESSAI ISOLÉ
+Le parcours à suivre est tools/moonshine-trial/LIRE-MOI.txt, inclus à la racine
+du kit sous LIRE-MOI.txt. Démarrer avec Demarrer-Moonshine.cmd sans élévation.
+La fenêtre propose sauvegarde locale, démarrage, bibliothèque et arrêt propre.
+Le profil d'essai et son catalogue neuf sont distincts des données de production;
+les anciennes tâches ne sont pas reprises. Le paquet et sa copie privée sont
+vérifiés; une copie privée réparée conserve les fichiers remplacés dans Recovery.
+La restauration d'une sauvegarde prépare un nouveau dossier sans écraser l'actif.
+Ne jamais partager les sauvegardes privées contenant identifiants/certificats.
+
+VALIDATIONS RESTANTES SUR LE PC
+1. Vérifier fenêtre, lisibilité, jeux Xbox/Steam/EA et pochettes du compte réel.
+2. Analyser, examiner le plan et tester un pilote de chaque plateforme présente.
+3. Répéter : aucun doublon ni changement inutile. Personnaliser une fiche et
+   confirmer que son titre et ses réglages restent conservés au passage suivant.
+4. Tester chaque lancement, la sortie, le son, la manette et le streaming DLSS/FG
+   sur la RTX 4080 avec le client et l'écran réels.
+5. Vérifier qu'une session de streaming active retient les écritures.
+6. Facultatif dans le catalogue d'essai : reset confirmé, répétition, restauration
+   et conservation d'une application personnelle. Aucun jeu n'est désinstallé.
+7. Exporter le diagnostic depuis la bibliothèque et l'inspecter avant partage.
+8. Arrêter l'essai proprement et relancer l'ancien service VibeShine.
+
+L'ESSAI NE QUALIFIE PAS LA VERSION 1.0
+Les tests synthétiques, le vrai processus Windows, la compilation de l'hôte et
+une session de jeu sont des preuves distinctes. Le service Windows, la migration
+des anciennes fiches/tâches, l'installateur, les pilotes, les mises à niveau et
+le retour à VibeShine demandent ensuite leurs validations propres.
+Le reset n'est pas nécessaire pour mettre le moteur à jour. Activer l'automatisation
+après validation des lancements réels et de la répétition sans doublons.

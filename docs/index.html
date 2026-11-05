@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#101913">
+  <meta name="description" content="Moonshine 1.0.0, hôte Windows pour Moonlight avec bibliothèque Xbox PC, Steam et EA. Téléchargement, installation et mise à jour.">
+  <title>Moonshine 1.0.0 — Hôte Windows pour Moonlight</title>
+  <link rel="icon" type="image/svg+xml" href="moonshine-mark.svg">
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #101913;
+      --surface: #17231b;
+      --border: #36483b;
+      --text: #f3f8f0;
+      --muted: #bac9bb;
+      --accent: #b8eb79;
+      --ink: #152210;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--text); background: var(--background); line-height: 1.6; }
+    a { color: var(--accent); text-underline-offset: .22em; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 3px; }
+    .wrap { width: min(70rem, 100% - 3rem); margin-inline: auto; }
+    .skip { position: absolute; left: 1rem; top: -6rem; background: var(--text); color: var(--ink); padding: .6rem; z-index: 2; }
+    .skip:focus { top: .5rem; }
+    header { border-bottom: 1px solid var(--border); }
+    header .wrap, footer .wrap { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-block: 1rem; }
+    .brand { display: inline-flex; gap: .7rem; align-items: center; color: var(--text); font-size: 1.15rem; font-weight: 700; text-decoration: none; }
+    nav { display: flex; flex-wrap: wrap; gap: 1.2rem; }
+    nav a { color: var(--muted); text-decoration: none; }
+    nav a:hover { color: var(--accent); }
+    .hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: clamp(1.25rem, 5vw, 4rem); align-items: center; padding-block: clamp(2.5rem, 8vw, 6rem) 3rem; }
+    .pill { display: inline-block; padding: .22rem .7rem; background: #24371f; border: 1px solid #435a37; color: var(--accent); border-radius: 2rem; font-size: .86rem; font-weight: 700; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-block: .75rem 1.1rem; font-size: clamp(2.5rem, 6.3vw, 5rem); line-height: 1.05; letter-spacing: -.045em; }
+    h2 { font-size: clamp(1.55rem, 3vw, 2.15rem); line-height: 1.18; margin-bottom: 1rem; }
+    h3 { font-size: 1.16rem; line-height: 1.3; margin-bottom: .55rem; }
+    .lead { color: var(--muted); font-size: 1.13rem; max-width: 36rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.65rem; }
+    .button { display: inline-flex; justify-content: center; align-items: center; min-height: 2.9rem; padding: .58rem 1.08rem; border: 1px solid var(--border); border-radius: .6rem; color: var(--text); font-weight: 650; text-decoration: none; }
+    .primary { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+    .button:hover { filter: brightness(1.12); }
+    .small { font-size: .92rem; color: var(--muted); }
+    .checksum { margin-block: .9rem 0; }
+    .release-card, .tile, .procedure { border: 1px solid var(--border); border-radius: 1.1rem; background: var(--surface); }
+    .release-card { padding: clamp(1.4rem, 4vw, 2.4rem); background: radial-gradient(ellipse at 100% 0%, #2d4328, var(--surface) 70%); }
+    .release-card img { display: block; margin-bottom: 1.4rem; }
+    .release-card dl { margin: 0; }
+    .release-card dl div { display: flex; justify-content: space-between; align-items: baseline; gap: .9rem; border-top: 1px solid var(--border); padding-block: .55rem; }
+    dt { color: var(--muted); }
+    dd { margin: 0; text-align: end; font-weight: 650; }
+    .features, .procedures { display: grid; gap: 1rem; margin-bottom: 2.75rem; }
+    .features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .procedures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tile, .procedure { padding: clamp(1.1rem, 3vw, 1.6rem); }
+    .tile p, .procedure p, li { color: var(--muted); }
+    .tile p:last-child, .procedure p:last-child { margin-bottom: 0; }
+    ol { padding-left: 1.3rem; }
+    li + li { margin-top: .45rem; }
+    code { color: var(--text); background: #223128; border-radius: .25rem; padding: .12em .25em; overflow-wrap: anywhere; }
+    .resources { border-top: 1px solid var(--border); padding-block: 1.7rem 2.5rem; }
+    .resources p { max-width: 51rem; }
+    .links { display: flex; flex-wrap: wrap; gap: .6rem 1.25rem; }
+    footer { border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+    footer p { margin: 0; }
+    @media (max-width: 50rem) {
+      .hero { grid-template-columns: 1fr; }
+      .release-card { max-width: 32rem; }
+    }
+    @media (max-width: 39rem) {
+      .wrap { width: min(70rem, 100% - 2rem); }
+      .features, .procedures { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body id="haut">
+  <a class="skip" href="#contenu">Aller au contenu</a>
+  <header>
+    <div class="wrap">
+      <a class="brand" href="#haut"><img src="moonshine-mark.svg" width="38" height="38" alt="">Moonshine</a>
+      <nav aria-label="Navigation principale">
+        <a href="#installer">Installer</a>
+        <a href="#mise-a-jour">Mettre à jour</a>
+        <a href="https://github.com/pilvince911/Moonshine/tree/moonshine/main">GitHub</a>
+      </nav>
+    </div>
+  </header>
+  <main id="contenu" class="wrap">
+    <section class="hero" aria-labelledby="titre">
+      <div>
+        <span class="pill">Version stable 1.0.0</span>
+        <h1 id="titre">Tes jeux Windows dans Moonlight</h1>
+        <p class="lead">Moonshine regroupe tes jeux Xbox PC, Steam et EA dans une bibliothèque intégrée. Installe le service depuis le ZIP et gère-le depuis l’icône Windows près de l’horloge.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/pilvince911/Moonshine/releases/download/v1.0.0/Moonshine-Windows-1.0.0.zip">Télécharger pour Windows</a>
+          <a class="button" href="https://github.com/pilvince911/Moonshine/releases/tag/v1.0.0">Notes de version</a>
+        </div>
+        <p class="checksum small">Windows 64 bits · <a href="https://github.com/pilvince911/Moonshine/releases/download/v1.0.0/Moonshine-Windows-1.0.0.sha256">Empreinte SHA-256</a></p>
+      </div>
+      <aside class="release-card" aria-labelledby="paquet">
+        <img src="moonshine-mark.svg" width="78" height="78" alt="Croissant vert de Moonshine">
+        <h2 id="paquet">Moonshine 1.0.0</h2>
+        <dl>
+          <div><dt>Format</dt><dd>ZIP autonome</dd></div>
+          <div><dt>Gestion</dt><dd>Icône Windows</dd></div>
+          <div><dt>Client</dt><dd>Moonlight</dd></div>
+          <div><dt>Sources</dt><dd>GPL-3.0</dd></div>
+        </dl>
+      </aside>
+    </section>
+
+    <section aria-labelledby="fonctionnalites">
+      <h2 id="fonctionnalites">Ce que Moonshine regroupe</h2>
+      <div class="features">
+        <article class="tile">
+          <h3>Bibliothèque intégrée</h3>
+          <p>Analyse les jeux installés reconnus, présente les changements avant de les appliquer et conserve tes réglages de diffusion.</p>
+        </article>
+        <article class="tile">
+          <h3>Service Windows</h3>
+          <p>L’icône revient à la connexion. Son menu ouvre la bibliothèque, démarre ou arrête le service et donne accès à l’entretien.</p>
+        </article>
+        <article class="tile">
+          <h3>Entretien</h3>
+          <p>Répare l’installation, sauvegarde le profil ou exporte un diagnostic. La désinstallation archive le programme et conserve la bibliothèque.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="procedures">
+      <section class="procedure" id="installer" aria-labelledby="premiere">
+        <h2 id="premiere">Installer Moonshine</h2>
+        <ol>
+          <li>Extrais tout le ZIP dans un dossier local.</li>
+          <li>Ouvre <code>Ouvrir-Moonshine.cmd</code> et choisis <strong>Installer Moonshine</strong>. Accepte la confirmation Windows.</li>
+          <li>Prépare les pilotes signés si le gestionnaire le demande. Redémarre Windows si indiqué.</li>
+          <li>Démarre le service, ouvre la bibliothèque depuis l’icône, puis appaire ton client Moonlight.</li>
+        </ol>
+        <p>Garde le compte Windows qui utilise les jeux connecté pendant la diffusion.</p>
+      </section>
+      <section class="procedure" id="mise-a-jour" aria-labelledby="depuis">
+        <h2 id="depuis">Depuis la RC1 ou la RC2</h2>
+        <ol>
+          <li>Termine ton stream, arrête le service et ferme sa fenêtre. Quitte l’ancienne icône si elle est affichée.</li>
+          <li>Extrais le ZIP 1.0.0 dans un nouveau dossier.</li>
+          <li>Ouvre <code>Ouvrir-Moonshine.cmd</code> et choisis <strong>Mettre à jour Moonshine</strong>.</li>
+        </ol>
+        <p>Tu retrouves ton catalogue, ton appairage et tes réglages. Les pilotes opérationnels sont réutilisés.</p>
+      </section>
+    </div>
+
+    <section class="resources" aria-labelledby="repere">
+      <h2 id="repere">Connexion et documentation</h2>
+      <p>La bibliothèque s’ouvre à <code>https://localhost:48990/v2/library</code> sur le PC hôte. Le port Moonlight est <strong>48989</strong>. Les jeux utilisent leurs lanceurs installés.</p>
+      <p>Le ZIP inclut les sources, les licences et les pilotes signés d’origine. Le programme Moonshine est non signé. La RC2 a été essayée sur un PC réel. Les notes de la 1.0.0 donnent les résultats de la qualification du ZIP distribué.</p>
+      <div class="links">
+        <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.0/tools/moonshine-setup/LIRE-MOI.txt">Guide Windows complet</a>
+        <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.0/docs/moonshine/VALIDATION.md">Validation</a>
+        <a href="https://github.com/pilvince911/Moonshine/tree/v1.0.0">Code source 1.0.0</a>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="wrap">
+      <p>Moonshine est un fork de VibeShine et de Sunshine.</p>
+      <div class="links">
+        <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.0/LICENSE">Licence</a>
+        <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.0/NOTICE">Attributions</a>
+        <a href="https://github.com/pilvince911/Moonshine/issues">Signaler un problème</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

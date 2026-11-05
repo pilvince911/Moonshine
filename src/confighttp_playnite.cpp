@@ -36,6 +36,7 @@
   #include <zlib.h>
 
   // local includes
+  #include "config.h"
   #include "config_playnite.h"
   #include "confighttp.h"
   #include "httpcommon.h"
@@ -843,6 +844,27 @@ namespace confighttp {
         }
       }
     } catch (...) {}
+
+#ifdef MOONSHINE_HOST
+    // Destination-session diagnostics include the native driver transport error.
+    // Do not export configurations, credentials, receipts or recovery contents.
+    for (const auto *name : {"service.log", "service-stdout.log", "service-stderr.log"}) {
+      try {
+        const auto path=std::filesystem::path(config::sunshine.config_file).parent_path()/name;
+        std::error_code ec;
+        if (!std::filesystem::is_regular_file(std::filesystem::symlink_status(path,ec))) continue;
+        const auto size=std::filesystem::file_size(path,ec);if (ec) continue;
+        constexpr std::uintmax_t limit=2ull*1024ull*1024ull;
+        const auto count=std::min(size,limit);
+        std::ifstream input(path,std::ios::binary);if (!input) continue;
+        if (size>count) input.seekg(static_cast<std::streamoff>(size-count));
+        std::string data(static_cast<std::size_t>(count),'\0');
+        input.read(data.data(),static_cast<std::streamsize>(count));data.resize(static_cast<std::size_t>(input.gcount()));
+        const auto mtime=std::filesystem::last_write_time(path,ec);
+        entries.push_back(make_export_log_entry(sanitizer,std::string("moonshine-")+name,std::move(data),ec?std::nullopt:std::optional(mtime)));
+      } catch (...) {}
+    }
+#endif
 
     // Playnite plugin log (Roaming\Sunshine\sunshine_playnite.log)
     try {

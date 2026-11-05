@@ -38,6 +38,9 @@ target_link_libraries(audio-info
 target_compile_options(audio-info PRIVATE ${SUNSHINE_COMPILE_OPTIONS})
 
 add_executable(sunshinesvc sunshinesvc.cpp)
+if(MOONSHINE_HOST)
+    target_compile_definitions(sunshinesvc PRIVATE MOONSHINE_HOST=1)
+endif()
 target_link_libraries(sunshinesvc
         ${CMAKE_THREAD_LIBS_INIT}
         wtsapi32

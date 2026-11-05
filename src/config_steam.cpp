@@ -133,6 +133,10 @@ namespace config {
 
   void apply_steam(std::unordered_map<std::string, std::string> &vars) {
     steam = parse_steam(vars);
+#ifdef MOONSHINE_HOST
+    steam.enabled = false;
+    steam.auto_sync = false;
+#endif
 #ifndef SUNSHINE_TESTS
     platf::steam::autosync::configure({
       .enabled = steam.enabled,

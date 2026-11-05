@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
+#include "service_constants.h"
 
 namespace service_ctrl {
   struct startup_state {
@@ -40,7 +41,7 @@ namespace service_ctrl {
           return;
         }
         // This API controls only our installed service, never a client-supplied name.
-        handle = OpenServiceW(manager, L"SunshineService", access);
+        handle = OpenServiceW(manager, platf::service_launch::wide_name, access);
         if (!handle) {
           fail(state, GetLastError());
           return;
@@ -88,7 +89,7 @@ namespace service_ctrl {
   inline startup_state get_service_startup() {
     startup_detail::service service {SERVICE_QUERY_CONFIG};
     if (service.read()) {
-      auto change = OpenServiceW(service.manager, L"SunshineService", SERVICE_CHANGE_CONFIG);
+      auto change = OpenServiceW(service.manager, platf::service_launch::wide_name, SERVICE_CHANGE_CONFIG);
       service.state.can_change = change != nullptr;
       if (change) {
         CloseServiceHandle(change);

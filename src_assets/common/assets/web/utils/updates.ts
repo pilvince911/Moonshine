@@ -114,10 +114,10 @@ export function completeRelease(
     return false;
   const packageAvailable =
     platform === 'windows'
-      ? asset(release, 'VibeshineSetup.exe') ||
+      ? asset(release, 'MoonshineSetup.exe') ||
         (!isDailyTag(release.tag_name) &&
-          (asset(release, `VibeshineSetup-v${release.tag_name.replace(/^v/, '')}.exe`) ||
-            asset(release, `VibeshineSetup-${release.tag_name.replace(/^v/, '')}.exe`)))
+          (asset(release, `MoonshineSetup-v${release.tag_name.replace(/^v/, '')}.exe`) ||
+            asset(release, `MoonshineSetup-${release.tag_name.replace(/^v/, '')}.exe`)))
       : platform === 'linux' &&
         Array.isArray(release.assets) &&
         release.assets.some(
@@ -203,7 +203,7 @@ export async function fetchUpdateReleases(
   let complete = false;
   for (let page = 1; page <= 10; page++) {
     const response = await fetch(
-      `https://api.github.com/repos/Nonary/vibeshine/releases?per_page=100&page=${page}`,
+      `https://api.github.com/repos/pilvince911/Moonshine/releases?per_page=100&page=${page}`,
       { headers: { Accept: 'application/vnd.github+json' }, credentials: 'omit', signal },
     );
     if (!response.ok) throw new Error('releases-unavailable');
@@ -220,7 +220,7 @@ export async function fetchUpdateReleases(
   return releases;
 }
 
-const dismissedKey = 'vibeshine-dismissed-updates';
+const dismissedKey = 'moonshine-dismissed-updates';
 export function dismissedUpdate(storage: Pick<Storage, 'getItem'>, tag: string): boolean {
   try {
     const tags: unknown = JSON.parse(storage.getItem(dismissedKey) ?? '[]');

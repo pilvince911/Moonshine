@@ -83,13 +83,13 @@ function dismiss(): void {
       v-if="available"
       tone="info"
       announce="polite"
-      :title="t('ui.updates.available', { version: available.tag })"
+      :title="t('ui.updates.available', { version: available.tag }).replace(/Vibeshine/gi, 'Moonshine')"
     >
       <a
         :href="
-          available.url?.startsWith('https://github.com/Nonary/vibeshine/releases/')
+          available.url?.startsWith('https://github.com/pilvince911/Moonshine/releases/')
             ? available.url
-            : 'https://github.com/Nonary/vibeshine/releases'
+            : 'https://github.com/pilvince911/Moonshine/releases'
         "
         target="_blank"
         rel="noopener noreferrer"

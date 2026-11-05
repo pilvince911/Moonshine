@@ -17,7 +17,7 @@ function selectAvailableUpdate(...args: Parameters<typeof selectWireUpdate>) {
   return selectWireUpdate(...args);
 }
 
-const assets = [{ name: 'VibeshineSetup.exe', state: 'uploaded', size: 100 }];
+const assets = [{ name: 'MoonshineSetup.exe', state: 'uploaded', size: 100 }];
 function release(tag: string, prerelease = false): UpdateRelease {
   return { tag_name: tag, draft: false, prerelease, assets };
 }
@@ -99,12 +99,12 @@ test('daily identity uses version family, sequence and verified source, stable s
 test('published versioned setup and Arch package names retain stable notifications', () => {
   const current = {
     ...release('2.0.0'),
-    assets: [{ name: 'VibeshineSetup-v2.0.0.exe', state: 'uploaded', size: 100 }],
+    assets: [{ name: 'MoonshineSetup-v2.0.0.exe', state: 'uploaded', size: 100 }],
   };
   assert.equal(selectAvailableUpdate('1.18.4-stable.4', [current], false)?.tag, '2.0.0');
   const arch = {
     ...release('2.0.0'),
-    assets: [{ name: 'vibeshine-2.0.0-1-x86_64.pkg.tar.zst', state: 'uploaded', size: 100 }],
+    assets: [{ name: 'moonshine-2.0.0-1-x86_64.pkg.tar.zst', state: 'uploaded', size: 100 }],
   };
   assert.equal(selectAvailableUpdate('1.18.4', [arch], false, 'linux', 'x86_64')?.tag, '2.0.0');
   assert.equal(selectAvailableUpdate('1.18.4', [arch], false, 'linux', 'aarch64'), null);
@@ -117,7 +117,7 @@ test('draft, incomplete, malformed and incompatible packages never notify', () =
       '1.0.0',
       [
         incomplete,
-        { ...release('4.0.0'), assets: [{ name: 'VibeshineSetup.exe', state: 'new', size: 0 }] },
+        { ...release('4.0.0'), assets: [{ name: 'MoonshineSetup.exe', state: 'new', size: 0 }] },
         { tag_name: '5.0.0' },
         release('junk'),
       ],
@@ -152,6 +152,7 @@ test('pagination is atomic, rate and malformed responses never yield partial upd
       );
     }) as typeof fetch;
     assert.equal((await fetchUpdateReleases(new AbortController().signal)).length, 101);
+    assert.match(calls[0]!, /^https:\/\/api\.github\.com\/repos\/pilvince911\/Moonshine\/releases\?/);
     assert.match(calls[1]!, /page=2$/);
     let call = 0;
     globalThis.fetch = (async () =>

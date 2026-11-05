@@ -321,23 +321,7 @@ const category = computed(
 );
 
 const isSearching = computed(() => search.value.trim().length > 0);
-const everydayLibraryDestinations = computed(() =>
-  settingsDestinations
-    .filter(
-      (destination) =>
-        matchesPlatform(destination, hostPlatform.value) &&
-        destination.keys.some((key) => ['steam', 'playnite', 'lutris'].includes(key)),
-    )
-    .map((destination) =>
-      destination.keys.includes('playnite')
-        ? {
-            ...destination,
-            labelKey: 'playnite.title',
-            to: '/integrations#integration-playnite',
-          }
-        : destination,
-    ),
-);
+const everydayLibraryDestinations = computed(() => settingsDestinations.filter(() => false));
 
 const categoryDescription = computed(() =>
   isSearching.value
@@ -359,6 +343,7 @@ const filteredGroups = computed(() => {
         ...group,
         categoryId: settingsCategory.id,
         fields: group.fields
+          .filter((field) => !field.key.startsWith('steam_') && !field.key.startsWith('playnite_'))
           .map((field) => fieldForPlatform(field, hostPlatform.value))
           .filter((field) => {
             const matches =
@@ -1893,3 +1878,4 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
   margin-block: var(--vs-space-24);
 }
 </style>
+

@@ -5,6 +5,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <format>
 #include <string>
+#include <filesystem>
+#include <fstream>
+#include <cstdio>
 #include <Windows.h>
 #include <WtsApi32.h>
 
@@ -20,10 +23,23 @@ SERVICE_STATUS service_status;
 HANDLE stop_event;
 HANDLE session_change_event;
 
-constexpr auto SERVICE_NAME = "SunshineService";
+constexpr auto SERVICE_NAME = platf::service_launch::name;
 constexpr DWORD FAST_EXIT_WINDOW_MS = 60 * 1000;
 constexpr DWORD CRASH_LOOP_RESTART_DELAY_MS = 30 * 1000;
 constexpr DWORD CRASH_LOOP_FAST_EXIT_THRESHOLD = 3;
+
+#ifdef MOONSHINE_HOST
+std::filesystem::path ServicePackageRoot() {
+  std::wstring name(32768,L'\0');
+  const auto size=GetModuleFileNameW(nullptr,name.data(),static_cast<DWORD>(name.size()));
+  if (!size || size>=name.size()) ExitProcess(ERROR_BAD_PATHNAME);
+  name.resize(size);return std::filesystem::path(name).parent_path().parent_path();
+}
+void LogService(HANDLE log,const std::string &message,DWORD error=0) {
+  const auto text=std::format("{}: {} (Windows {})\r\n",GetTickCount64(),message,error);
+  DWORD written=0;WriteFile(log,text.data(),static_cast<DWORD>(text.size()),&written,nullptr);
+}
+#endif
 
 DWORD WINAPI HandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData, LPVOID lpContext) {
   switch (dwControl) {
@@ -122,6 +138,11 @@ HANDLE DuplicateTokenForSession(DWORD console_session_id) {
 }
 
 HANDLE OpenLogFileHandle() {
+#ifdef MOONSHINE_HOST
+  const auto path=ServicePackageRoot()/L"config/service.log";
+  auto log=CreateFileW(path.c_str(),FILE_APPEND_DATA,FILE_SHARE_READ,nullptr,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+  return log;
+#else
   WCHAR log_file_name[MAX_PATH];
 
   // Create sunshine.log in the Temp folder (usually %SYSTEMROOT%\Temp)
@@ -133,9 +154,20 @@ HANDLE OpenLogFileHandle() {
 
   // Overwrite the old sunshine.log
   return CreateFileW(log_file_name, GENERIC_WRITE, FILE_SHARE_READ, &security_attributes, CREATE_ALWAYS, 0, nullptr);
+#endif
 }
 
 bool RunTerminationHelper(HANDLE console_token, DWORD pid) {
+#ifdef MOONSHINE_HOST
+  // A named event crosses sessions without inheriting SCM handles or needing a console.
+  std::ifstream input(ServicePackageRoot()/L"moonshine-trial-id.txt",std::ios::binary);
+  std::string id;std::getline(input,id);
+  if (!id.empty() && id.back()=='\r') id.pop_back();
+  if (id.size()!=32 || id.find_first_not_of("0123456789abcdef")!=std::string::npos) return false;
+  const std::wstring name=L"Global\\Moonshine.Service.Stop."+std::wstring(id.begin(),id.end());
+  const auto event=OpenEventW(EVENT_MODIFY_STATE,FALSE,name.c_str());
+  if (!event) return false;const bool signalled=SetEvent(event)!=FALSE;CloseHandle(event);return signalled;
+#else
   WCHAR module_path[MAX_PATH];
   GetModuleFileNameW(nullptr, module_path, _countof(module_path));
   std::wstring command;
@@ -169,6 +201,7 @@ bool RunTerminationHelper(HANDLE console_token, DWORD pid) {
 
   // If the helper process returned 0, it succeeded
   return exit_code == 0;
+#endif
 }
 
 void ReportServiceStopped(DWORD error, HANDLE log_file_handle = INVALID_HANDLE_VALUE, LPPROC_THREAD_ATTRIBUTE_LIST attributes = nullptr) {
@@ -237,10 +270,12 @@ VOID WINAPI ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
   STARTUPINFOEXW startup_info = {};
   startup_info.StartupInfo.cb = sizeof(startup_info);
   startup_info.StartupInfo.lpDesktop = (LPWSTR) L"winsta0\\default";
+#ifndef MOONSHINE_HOST
   startup_info.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
   startup_info.StartupInfo.hStdInput = nullptr;
   startup_info.StartupInfo.hStdOutput = log_file_handle;
   startup_info.StartupInfo.hStdError = log_file_handle;
+#endif
 
   // Allocate an attribute list with space for 2 entries
   startup_info.lpAttributeList = AllocateProcThreadAttributeList(2);
@@ -251,7 +286,9 @@ VOID WINAPI ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
   }
 
   // Only allow Sunshine.exe to inherit the log file handle, not all inheritable handles
+#ifndef MOONSHINE_HOST
   UpdateProcThreadAttribute(startup_info.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &log_file_handle, sizeof(log_file_handle), nullptr, nullptr);
+#endif
 
   // Tell SCM we're running (and stoppable now)
   service_status.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_PRESHUTDOWN | SERVICE_ACCEPT_SESSIONCHANGE;
@@ -287,11 +324,22 @@ VOID WINAPI ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
     UpdateProcThreadAttribute(startup_info.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &job_handle, sizeof(job_handle), nullptr, nullptr);
 
     PROCESS_INFORMATION process_info;
-    if (!CreateProcessAsUserW(console_token, L"Sunshine.exe", nullptr, nullptr, nullptr, TRUE, CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr, (LPSTARTUPINFOW) &startup_info, &process_info)) {
+#ifdef MOONSHINE_HOST
+    const auto root=ServicePackageRoot();const auto executable=root/L"sunshine.exe";
+    auto command=L"\""+executable.wstring()+L"\" \""+(root/L"config/moonshine.conf").wstring()+L"\"";
+    const bool launched=CreateProcessAsUserW(console_token,executable.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_UNICODE_ENVIRONMENT|CREATE_NO_WINDOW|EXTENDED_STARTUPINFO_PRESENT,nullptr,root.c_str(),(LPSTARTUPINFOW)&startup_info,&process_info)!=FALSE;
+    if (!launched) LogService(log_file_handle,"Host launch failed",GetLastError());
+#else
+    const bool launched=CreateProcessAsUserW(console_token, L"Sunshine.exe", nullptr, nullptr, nullptr, TRUE, CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr, (LPSTARTUPINFOW) &startup_info, &process_info)!=FALSE;
+#endif
+    if (!launched) {
       CloseHandle(console_token);
       CloseHandle(job_handle);
       continue;
     }
+#ifdef MOONSHINE_HOST
+    LogService(log_file_handle,"Host started in console session "+std::to_string(console_session_id));
+#endif
 
     bool still_running = true;
     bool self_exit = false;
@@ -404,6 +452,10 @@ int DoGracefulTermination(DWORD pid) {
 }
 
 int main(int argc, char *argv[]) {
+#ifdef MOONSHINE_HOST
+  SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR|LOAD_LIBRARY_SEARCH_SYSTEM32);
+  if (argc==2 && std::string(argv[1])=="--identity") { std::puts(SERVICE_NAME);return 0; }
+#endif
   static const SERVICE_TABLE_ENTRY service_table[] = {
     {(LPSTR) SERVICE_NAME, ServiceMain},
     {nullptr, nullptr}
@@ -428,5 +480,5 @@ int main(int argc, char *argv[]) {
   SetCurrentDirectoryW(module_path);
 
   // Trigger our ServiceMain()
-  return StartServiceCtrlDispatcher(service_table);
+  return StartServiceCtrlDispatcher(service_table)?0:static_cast<int>(GetLastError());
 }
