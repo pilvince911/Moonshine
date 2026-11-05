@@ -1,0 +1,116 @@
+name: Publish Moonshine 1.0.0
+on:
+  push:
+    branches: [moonshine/publish-v1.0.0]
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: moonshine-publish-v1.0.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'pilvince911/Moonshine' && github.ref == 'refs/heads/moonshine/publish-v1.0.0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_COMMIT: '99c6e11d2128c07582f539fed7a5542a671f4f05'
+      MERGED_COMMIT: '00328c1ac7696787f1e70713dc57ca757cd1867c'
+      RELEASE_TREE: '95087c848570d05d2866a7788a738a644afa46a2'
+      EXPECTED_ASSETS: '[{"name":"Moonshine-Windows-1.0.0.zip","size":86367045,"digest":"sha256:44e0d561d36240adf76c602b28c54525d4558539bb88275901202d65ea3a6dd6","state":"uploaded"},{"name":"Moonshine-Windows-1.0.0.sha256","size":95,"digest":"sha256:762a8d04d44c013c59645720cf858cfec871d0171f0e965f9e2698471f5c6b02","state":"uploaded"}]'
+    steps:
+      - name: Verify the qualified build and publish its exact assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run in 42093856902 42093856905 42093856955; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" |
+              jq -e --arg commit "$RELEASE_COMMIT" '
+                .head_sha == $commit and .event == "pull_request" and
+                .status == "completed" and .conclusion == "success"
+              ' >/dev/null
+          done
+
+          main="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/moonshine/main"   --jq '.[] | select(.ref == "refs/heads/moonshine/main") | .object.sha')"
+          test "$main" = "$MERGED_COMMIT"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$main" --jq .tree.sha)" = "$RELEASE_TREE"
+
+          gh run download 42093856902 --repo "$GITHUB_REPOSITORY" --name Moonshine-Windows-1.0.0 --dir release
+          for asset in Moonshine-Windows-1.0.0.zip Moonshine-Windows-1.0.0.sha256; do
+            entry="$(jq -ce --arg name "$asset" '.[] | select(.name == $name)' <<<"$EXPECTED_ASSETS")"
+            test "$(stat -c %s "release/$asset")" = "$(jq -r .size <<<"$entry")"
+            actual_digest="sha256:$(sha256sum "release/$asset" | cut -d ' ' -f 1)"
+            test "$actual_digest" = "$(jq -r .digest <<<"$entry")"
+          done
+          (cd release && tr -d '\r' < Moonshine-Windows-1.0.0.sha256 | sha256sum --check -)
+
+          cat > release-notes.md <<'MOONSHINE_NOTES'
+          Moonshine 1.0.0 est un hôte Windows pour Moonlight. Le ZIP autonome regroupe le service Windows, le gestionnaire avec icône près de l’horloge et la bibliothèque de jeux Xbox PC, Steam et EA.
+
+          ## Installation et mise à jour
+
+          - **Installation neuve.** Télécharge `Moonshine-Windows-1.0.0.zip`, extrais-le au complet et ouvre **Ouvrir-Moonshine.cmd** dans ton compte Windows habituel. Suis les étapes du gestionnaire pour installer le service, préparer les pilotes signés si demandé, puis ouvrir la bibliothèque et appairer Moonlight.
+          - **Depuis la RC1 ou la RC2.** Termine le stream, arrête le service et ferme son gestionnaire. Quitte l’ancienne icône si elle est affichée. Ouvre **Ouvrir-Moonshine.cmd** depuis le nouveau dossier et choisis **Mettre à jour Moonshine**. Le catalogue, l’appairage et les réglages sont conservés.
+          - **Au quotidien.** L’icône ouvre la bibliothèque, démarre ou arrête le service et donne accès à la réparation, à la sauvegarde et au diagnostic. La bibliothèque locale est à `https://localhost:48990/v2/library`. Le port Moonlight est **48989**.
+
+          [Guide Windows](https://github.com/pilvince911/Moonshine/blob/v1.0.0/tools/moonshine-setup/LIRE-MOI.txt) · [README de la 1.0.0](https://github.com/pilvince911/Moonshine/tree/v1.0.0)
+
+          ## Qualification
+
+          La RC2 a été validée sur le PC du propriétaire le 5 novembre 2026. La 1.0.0 reprend ses fonctionnalités. Le ZIP publié provient du commit `99c6e11d2128c07582f539fed7a5542a671f4f05`.
+
+          - 459 autotests du synchroniseur, gestionnaire WPF, vrai menu d’icône dans un compte standard et interface Web. [Intégration](https://github.com/pilvince911/Moonshine/actions/runs/42093856905)
+          - 285 contrôles de l’hôte et 46 du service Windows, dont installation neuve, mise à jour avec reçu RC2 synthétique, réparation, sauvegarde et désinstallation. [Hôte Windows](https://github.com/pilvince911/Moonshine/actions/runs/42093856902)
+          - 19 fichiers originaux de pilotes vérifiés. Le programme Moonshine est non signé. Les essais du service emploient un profil temporaire. Le chargement des pilotes, les manettes physiques et l’affichage se valident sur le matériel. [Prérequis](https://github.com/pilvince911/Moonshine/actions/runs/42093856955)
+
+          Le manifeste des 381 fichiers du ZIP et les sources embarquées ont été vérifiés. Le fichier `Moonshine-Windows-1.0.0.sha256` contient l’empreinte du ZIP.
+
+          ```text
+          44e0d561d36240adf76c602b28c54525d4558539bb88275901202d65ea3a6dd6
+          ```
+
+          ## Sources et licences
+
+          Le ZIP inclut les sources, les avis de licence et la provenance des pilotes. Moonshine dérive de VibeShine et de Sunshine. [Code source](https://github.com/pilvince911/Moonshine/tree/v1.0.0) · [GPL-3.0](https://github.com/pilvince911/Moonshine/blob/v1.0.0/LICENSE) · [Attributions](https://github.com/pilvince911/Moonshine/blob/v1.0.0/NOTICE)
+          MOONSHINE_NOTES
+
+          find_release() {
+            gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100"     --jq '[.[] | select(.tag_name == "v1.0.0")]'
+          }
+          releases="$(find_release)"
+          if [[ "$(jq length <<<"$releases")" == 0 ]]; then
+            existing_tag="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v1.0.0"     --jq '.[] | select(.ref == "refs/tags/v1.0.0") | .object.sha')"
+            test -z "$existing_tag"
+            gh release create v1.0.0 --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT"     --draft --title "Moonshine 1.0.0" --notes-file release-notes.md
+            releases="$(find_release)"
+          fi
+          jq -e --arg commit "$RELEASE_COMMIT" '
+            length == 1 and .[0].target_commitish == $commit and
+            .[0].name == "Moonshine 1.0.0" and .[0].prerelease == false
+          ' <<<"$releases" >/dev/null
+
+          draft="$(jq -r '.[0].draft' <<<"$releases")"
+          jq -e --argjson expected "$EXPECTED_ASSETS" '
+            [.[0].assets[] | {name, size, digest, state}] as $actual |
+            all($actual[]; . as $asset | ($expected | index($asset) != null))
+          ' <<<"$releases" >/dev/null
+          if [[ "$draft" == true ]]; then
+            for asset in Moonshine-Windows-1.0.0.zip Moonshine-Windows-1.0.0.sha256; do
+              if ! jq -e --arg name "$asset" 'any(.[0].assets[]; .name == $name)' <<<"$releases" >/dev/null; then
+                gh release upload v1.0.0 "release/$asset" --repo "$GITHUB_REPOSITORY"
+              fi
+            done
+          fi
+
+          releases="$(find_release)"
+          jq -e --argjson expected "$EXPECTED_ASSETS" '
+            ([.[0].assets[] | {name, size, digest, state}] | sort_by(.name)) ==
+            ($expected | sort_by(.name))
+          ' <<<"$releases" >/dev/null
+          if [[ "$draft" == true ]]; then
+            gh release edit v1.0.0 --repo "$GITHUB_REPOSITORY" --draft=false --latest=true
+          fi
+
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.0" --jq .object.sha)" = "$RELEASE_COMMIT"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/v1.0.0"   --jq '{html_url, tag_name, draft, prerelease, assets: [.assets[] | {name, size, digest}]}'
