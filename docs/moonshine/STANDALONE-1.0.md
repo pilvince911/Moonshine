@@ -1,23 +1,18 @@
-# Installation autonome 1.0 : conditions de sortie
+# Installation autonome de Moonshine 1.0
 
-La RC1 autonome a passé ses contrôles logiciels au commit `ef0335dd886d8a8218aa408c123149f1ccb72e8c`. Le propriétaire a ensuite signalé son installation fonctionnelle après retrait de VibeShine et préparation des pilotes du ZIP. La RC2 conserve ce parcours et ajoute la finition Windows; sa validation réelle précède la release 1.0.
+La version 1.0 est distribuée en ZIP pour Windows 64 bits. Elle reprend le service de la RC2, validée sur le PC du propriétaire. Elle crée un profil neuf à partir du ZIP ou met à jour un profil Moonshine existant.
 
-## Critères de la RC2
-
-| Parcours | Critère |
+| Parcours | Comportement |
 |---|---|
-| Installation neuve | Aucun ancien kit, profil ou test préalable requis; pilotes signés fournis et préparation explicite |
-| Mise à jour RC1 | Même bibliothèque, appairage, UUID et réglages; programme précédent conservé |
-| Icône | Compte normal, lancement caché à la connexion, une instance, actions de bibliothèque et service |
-| Entretien | Réparation vérifiée, sauvegarde privée, diagnostic limité sans identifiants ni certificats |
-| Retrait Windows | Inscription propre, archivage du programme, bibliothèque et pilotes partagés conservés |
-| Matériel | Xbox/EA/Steam, manette, écran exclusif/HDR, fin du stream, restauration et redémarrage |
-| Distribution finale | ZIP, guide, sources/licences et empreinte concordants; release GitHub après validation |
+| Installation neuve | Le gestionnaire installe MoonshineService et crée une bibliothèque pour le compte choisi. La préparation des pilotes signés est une étape distincte. |
+| Mise à jour d’une RC | Le gestionnaire conserve le catalogue, les UUID, l’appairage et les réglages. Les fichiers du programme précédent restent dans une copie de secours. |
+| Reprise de la 0.9 | La migration facultative d’un service 0.9 arrêté copie ses données et adapte les chemins. Les originaux sont conservés. |
+| Connexion Windows | L’icône démarre dans le compte choisi. Son menu ouvre la bibliothèque et gère le service. |
+| Entretien | Le kit installé permet la réparation, la sauvegarde privée et l’export d’un diagnostic limité. |
+| Désinstallation | Moonshine archive le programme après sauvegarde. La bibliothèque et les pilotes partagés sont conservés. |
 
-## Limites et preuve
+Le service protège ses fichiers dans `Program Files\Moonshine`. Les jeux et le synchroniseur s’exécutent dans le compte Windows interactif. Les opérations système demandent la confirmation Windows lorsque nécessaire.
 
-Les tests Windows couvrent un vrai service SCM et un vrai worker normal, mais pas les pilotes chargés ni l'affichage d'un GPU de runner. Le test de mise à niveau utilise un reçu antérieur synthétique; la mise à jour de la RC1 réelle est à essayer. L'icône utilise le compte interactif, et les opérations de service gardent la confirmation administrateur quand Windows la demande.
+Les pilotes inclus proviennent du paquet VibeShine 2.0.1 épinglé et gardent leurs signatures d’origine. Le programme Moonshine est non signé. L’essai du service dans GitHub Actions couvre le service Windows, la conservation du profil et le synchroniseur. L’affichage, les manettes physiques et le HDR se vérifient sur le PC hôte.
 
-Les 19 fichiers originaux des pilotes proviennent de l'asset VibeShine 2.0.1 épinglé. Signatures, catalogues, protocole, licences et provenance restent contrôlés. Aucune clé de production n'est générée et aucune politique Windows n'est abaissée. Le programme Moonshine reste non signé; WebRTC/PyroWave, TrueHDR et l'optimisation interne DLSS/FG ne font pas partie de cette qualification.
-
-Le ménage 0.2 archive les essais reconnus et peut retirer le seul ancien service 0.9 après sauvegarde. Il protège l'installation autonome et ses données. Les archives sont à conserver jusqu'à validation; aucune purge générale n'est nécessaire pour utiliser Moonshine.
+[Guide d’installation](../../tools/moonshine-setup/LIRE-MOI.txt) · [ZIP et notes de version](https://github.com/pilvince911/Moonshine/releases/tag/v1.0.0)

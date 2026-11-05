@@ -15,10 +15,10 @@ try{
  $testUser=New-MoonshineCITestUser;Grant-MoonshineCITestFolder $folder $testUser
  $sid=(New-Object Security.Principal.NTAccount($env:COMPUTERNAME,$testUser.Name)).Translate([Security.Principal.SecurityIdentifier]).Value
  $kit=Join-Path $folder 'kit';Copy-Item -LiteralPath (Join-Path $repo 'tools\moonshine-setup') -Destination $kit -Recurse
- $commit='c'*40;[IO.File]::WriteAllText((Join-Path $kit 'build-info.json'),(ConvertTo-Json @{commit=$commit;version='1.0.0-rc.2'}))
+ $commit='c'*40;[IO.File]::WriteAllText((Join-Path $kit 'build-info.json'),(ConvertTo-Json @{commit=$commit;version='1.0.0'}))
  Set-MoonshineProtectedFolder $script:MoonshineServiceRoot;$created=$true
  $files=@();foreach($name in @('one','two','three','four')){$files+=@(@{path=('Package/'+$name);sha256=('d'*64)})}
- Write-MoonshineServiceJson (Join-Path $script:MoonshineServiceRoot 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=('b'*32);owner_sid=$sid;commit=$commit;version='1.0.0-rc.2';phase='installed';firewall_created=$false;files=$files}
+ Write-MoonshineServiceJson (Join-Path $script:MoonshineServiceRoot 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=('b'*32);owner_sid=$sid;commit=$commit;version='1.0.0';phase='installed';firewall_created=$false;files=$files}
  $release=New-MoonshineManagerSignal $sid 'Release'
  $trace=Join-Path $folder 'ready.json';$ps=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
  # The logon API creates the new user's environment instead of inheriting CI
@@ -36,7 +36,7 @@ try{
  foreach($name in @('Open','Start','Stop','Manage','Maintenance','Exit')){if($data.menu_items -cnotcontains $name){throw ('Tray action missing: '+$name)}}
  $null=$release.Set();if(-not $child.WaitForExit(20000)){throw 'The tray did not honor its owner-scoped exit signal.'}
  if($child.ExitCode -ne 0 -or (Get-Service -Name MoonshineService -ErrorAction SilentlyContinue)){throw 'Exiting the tray changed a service or returned an error.'}
- Write-Output 'Moonshine RC2 tray: actual normal-account process, NotifyIcon, context menu, hidden startup and cooperative exit passed; no host service or driver started.'
+ Write-Output 'Moonshine tray: actual normal-account process, NotifyIcon, context menu, hidden startup and cooperative exit passed; no host service or driver started.'
 }finally{
  if($release){$null=$release.Set()}
  if($child -and -not $child.HasExited){$null=$child.WaitForExit(5000)}

@@ -1,6 +1,6 @@
 # Développement de Moonshine
 
-La branche de référence `upstream/v2.0.1` conserve la base VibeShine 2.0.1. Les PR de la fork ciblent `moonshine/main`, afin de garder la référence amont intacte. La branche `moonshine/windows-integration` ajoute un module C++, un moteur PowerShell embarqué et une interface Web. Le moteur reste installé par utilisateur sous le chemin OPi5 existant pour conserver ses fiches et UUID.
+La branche de référence `upstream/v2.0.1` conserve la base VibeShine 2.0.1. Les PR de la fork ciblent `moonshine/main`, afin de garder la référence amont intacte. Moonshine regroupe un module C++, un moteur PowerShell embarqué et une interface Web. Le service 1.0 utilise une bibliothèque par utilisateur et reconnaît les marqueurs historiques OPi5 pour conserver les UUID lors des reprises prévues.
 
 ## Modules
 
@@ -83,10 +83,10 @@ Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fourni
 
 `Invoke-SetupTests.ps1` vérifie WPF, conversion des chemins/valeurs, garde-fous de migration et de versions des pilotes dans des dossiers temporaires. `Invoke-ZipSmoke.ps1` est borné au runner jetable sans hôte préexistant; il teste le service réel depuis un profil neuf, répare un helper corrompu, préserve l’identité après réenregistrement, puis migre un profil synthétique 0.9 et enlève les anciennes racines avant de relancer un vrai worker. Aucun de ces essais ne qualifie un pilote chargé ni une topologie réelle.
 
-## Gestionnaire et icône RC2
+## Gestionnaire et icône Windows
 
 `Desktop-Integration.ps1` inscrit l'application et l'icône de session pour le SID choisi. Le compte d'élévation peut être différent; la clé Run est écrite dans la ruche du propriétaire. Une inscription étrangère est conservée. Les opérations élevées n'acceptent aucun chemin de sortie : seul un identifiant opaque est transmis; leurs comptes rendus sont dans un répertoire protégé en écriture et lisible par le seul compte choisi.
 
 `Gestion-Moonshine.ps1` reste un processus normal. WPF est la fenêtre d'installation/entretien, WinForms NotifyIcon fournit le menu dans la zone de notification. Les événements Show/Uninstall/Release sont limités au SID de session et SYSTEM; fermer l'icône ne contrôle pas le service. La fenêtre est cachée à la connexion, et le lanceur installé ne dépend pas du ZIP extrait. Le pilote reste une action explicite distincte.
 
-Les tests construisent et rendent le vrai WPF, vérifient le modèle d'états et les garde-fous d'inscription. Le probe Windows lance le vrai compagnon dans un compte standard jetable, vérifie son icône/menu, son démarrage caché et sa sortie coopérative. Le smoke SCM couvre mise à jour depuis un reçu RC1 synthétique, conservation du profil, sauvegarde, diagnostic et désinstallation avec archivage. Le reçu synthétique n'est pas l'exécution d'un ancien binaire RC1; l'essai de la mise à jour réelle reste au propriétaire.
+Les tests construisent et rendent le vrai WPF, vérifient le modèle d'états et les garde-fous d'inscription. Le probe Windows lance le vrai compagnon dans un compte standard jetable, vérifie son icône/menu, son démarrage caché et sa sortie coopérative. Le test SCM couvre la mise à jour à partir d’un reçu RC2 synthétique avec son inscription Windows, la conservation du profil, la sauvegarde, le diagnostic et la désinstallation avec archivage. L’essai sur un PC avec des jeux et des pilotes actifs constitue une validation distincte.

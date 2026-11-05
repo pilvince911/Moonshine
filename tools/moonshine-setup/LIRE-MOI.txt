@@ -1,11 +1,12 @@
-MOONSHINE 1.0 RC2 - ZIP, SERVICE ET ICONE WINDOWS
+MOONSHINE 1.0.0 - ZIP, SERVICE ET ICONE WINDOWS
 
 Ce paquet fonctionne sans ancien kit ni VibeShine installe. Le programme
 Moonshine reste non signe; ses pilotes gardent leurs signatures originales
 verifiees. Les jeux Xbox, EA et Steam utilisent leurs lanceurs installes.
 
-PASSER DE LA RC1 A LA RC2
-1. Terminer le stream, arreter Moonshine et fermer sa fenetre RC1.
+PASSER DE LA RC1 OU RC2 A LA VERSION 1.0.0
+1. Terminer le stream et arreter le service Moonshine. Fermer sa fenetre,
+   puis quitter l'ancienne icone si elle est affichee.
 2. Extraire tout ce nouveau ZIP dans un dossier local ordinaire.
 3. Ouvrir Ouvrir-Moonshine.cmd normalement et choisir Mettre a jour Moonshine.
    Accepter la confirmation Windows. Catalogue, appairage, UUID et reglages
@@ -66,16 +67,14 @@ Progression locale reservee au compte choisi : Program Files\Moonshine-Operation
 Le service gere l'affichage comme SYSTEM; le synchroniseur et l'icone utilisent
 le compte interactif normal. Ce compte doit etre connecte pour lancer ses jeux.
 
-VALIDATION DE CETTE RC2
-Tester la mise a jour de la RC1 et une installation neuve independante.
-Verifier icone seule apres connexion Windows, menu et sortie de l'icone sans
-arret du stream, demarrage/arret, bibliotheque et entretien. Tester Xbox, EA,
-Steam, manette, ecran virtuel exclusif, resolution/HDR, fermeture du stream
-avec le jeu et retour de l'ecran physique. Redemarrer Windows et recommencer.
-Les tests logiciels CI ne remplacent pas cette validation sur le PC reel.
-DLSS et Frame Generation restent configures dans les jeux. WebRTC/PyroWave
-et TrueHDR restent hors de cette qualification. La 1.0 finale sera publiee
-apres validation de cette candidate; aucune release automatique ici.
+APRES LA MISE A JOUR
+Verifier le catalogue, l'appairage et le demarrage depuis l'icone. Lancer un
+jeu depuis Moonlight et verifier la fin du stream ainsi que le retour de
+l'affichage physique. DLSS et Frame Generation se reglent dans les jeux.
+
+La RC2 a ete validee sur un PC reel. Les resultats logiciels, le ZIP et son
+empreinte SHA-256 sont dans la release GitHub de Moonshine 1.0.0 :
+https://github.com/pilvince911/Moonshine/releases/tag/v1.0.0
 
 Sources et licences incluses. Fork de VibeShine/Sunshine :
 https://github.com/pilvince911/Moonshine

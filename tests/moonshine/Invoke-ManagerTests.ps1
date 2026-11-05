@@ -20,8 +20,8 @@ $temporary=Join-Path $env:TEMP ('moonshine-manager-tests-'+[guid]::NewGuid().ToS
 $oldRoot=$script:MoonshineServiceRoot;$oldKey=$script:MoonshineUninstallKey
 try {
  [IO.Directory]::CreateDirectory($temporary)|Out-Null
- & (Join-Path $root 'tools\moonshine-setup\Gestion-Moonshine.ps1') -ValidateWindowOnly -PreviewPath (Join-Path $root 'build-evidence\moonshine-rc2-window.png')
- Check ([IO.File]::Exists((Join-Path $root 'build-evidence\moonshine-rc2-window.png'))) 'The actual WPF view must render to a PNG.'
+ & (Join-Path $root 'tools\moonshine-setup\Gestion-Moonshine.ps1') -ValidateWindowOnly -PreviewPath (Join-Path $root 'build-evidence\moonshine-windows-window.png')
+ Check ([IO.File]::Exists((Join-Path $root 'build-evidence\moonshine-windows-window.png'))) 'The actual WPF view must render to a PNG.'
  $script:MoonshineServiceRoot=$temporary
  $command=Get-MoonshineManagerCommand
  Check ($command.EndsWith(' -TrayOnly') -and $command.Contains('Gestion-Moonshine.ps1')) 'Session startup must launch only the normal tray companion.'
@@ -31,7 +31,7 @@ try {
  $base=[Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry64)
  $key=$base.CreateSubKey($script:MoonshineUninstallKey)
  try{$key.SetValue('DisplayName','foreign entry')}finally{$key.Dispose()}
- $receipt=@{id=('a'*32);owner_sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;version='1.0.0-rc.2'}
+ $receipt=@{id=('a'*32);owner_sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;version='1.0.0'}
  Refuses {Assert-MoonshineDesktopRegistration $receipt} 'A foreign registration must never be overwritten.'
  $key=$base.OpenSubKey($script:MoonshineUninstallKey,$true)
  try{foreach($entry in @{MoonshineSchema='moonshine-desktop/1';MoonshineId=$receipt.id;MoonshineOwner=$receipt.owner_sid;InstallLocation=$temporary;UninstallString=(Get-MoonshineManagerCommand -Uninstall)}.GetEnumerator()){$key.SetValue($entry.Key,$entry.Value)}}finally{$key.Dispose()}
@@ -42,7 +42,7 @@ try {
  # to succeed, while excluding token lines and anonymizing paths/addresses.
  $receipt.owner_sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
  $files=@();foreach($name in @('one','two','three','four')){$files+=@(@{path=('Package/'+$name);sha256=('c'*64)})}
- Write-MoonshineServiceJson (Join-Path $temporary 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=$receipt.id;owner_sid=$receipt.owner_sid;commit=('d'*40);version='1.0.0-rc.2';phase='installed';files=$files;firewall_created=$false}
+ Write-MoonshineServiceJson (Join-Path $temporary 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=$receipt.id;owner_sid=$receipt.owner_sid;commit=('d'*40);version='1.0.0';phase='installed';files=$files;firewall_created=$false}
  $logs=Join-Path $temporary 'Package\config';[IO.Directory]::CreateDirectory($logs)|Out-Null
  [IO.File]::WriteAllText((Join-Path $logs 'empty.log'),'')
  [IO.File]::WriteAllLines((Join-Path $logs 'privacy.log'),[string[]]@('token=do-not-export',($env:USERPROFILE+'\private 192.168.1.4')))
@@ -56,7 +56,7 @@ try {
  }finally{$zip.Dispose()}
  Refuses {Get-MoonshineOperationFolder 'S-1-5-18' ('a'*32)} 'SYSTEM may not substitute for the selected interactive owner.'
  Refuses {Get-MoonshineOperationFolder ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value) '..\outside'} 'An operation id must never carry an output path.'
- Write-Output ('Moonshine RC2 manager: '+$checks+' state/WPF/registry/operation checks passed.')
+ Write-Output ('Moonshine manager: '+$checks+' state/WPF/registry/operation checks passed.')
 }finally{
  if($base){$base.DeleteSubKeyTree($script:MoonshineUninstallKey,$false);$base.Dispose()}
  $script:MoonshineServiceRoot=$oldRoot;$script:MoonshineUninstallKey=$oldKey

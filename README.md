@@ -1,74 +1,41 @@
+<img src="src_assets/common/assets/web/public/images/moonshine-mark.svg" width="72" height="72" alt="Logo Moonshine">
+
 # Moonshine
 
-**Hôte de streaming Windows pour les clients Moonlight, avec la bibliothèque Xbox PC intégrée.**
+Hôte de streaming pour Windows avec une bibliothèque de jeux Xbox PC, Steam et EA. Lance tes jeux depuis un client **Moonlight**.
 
-Moonshine est une fork indépendante de [VibeShine](https://github.com/Nonary/vibeshine), lui-même issu de Sunshine. Nonary et les contributeurs amont restent les auteurs du moteur de streaming et de ses fonctionnalités. Le client garde son nom **Moonlight**; cette fork de l'hôte s'appelle **Moonshine**.
+**Version 1.0.0 · ZIP autonome pour Windows 64 bits**
 
-## Branche de développement
+[Télécharger le ZIP](https://github.com/pilvince911/Moonshine/releases/download/v1.0.0/Moonshine-Windows-1.0.0.zip) · [Notes de version](https://github.com/pilvince911/Moonshine/releases/tag/v1.0.0) · [Empreinte SHA-256](https://github.com/pilvince911/Moonshine/releases/download/v1.0.0/Moonshine-Windows-1.0.0.sha256) · [GitHub Pages](https://pilvince911.github.io/Moonshine/)
 
-Le prototype part de **VibeShine 2.0.1**, commit `f078104b2b9224f080e503271dcea2a96fb573c1`, pour correspondre à la base utilisée par PL. La branche `upstream/v2.0.1` conserve cette référence; `moonshine/main` est la branche de destination propre à la fork et `moonshine/windows-integration` contient l'intégration proposée dans la PR nº 1. `master` suit encore la base reçue lors de la création de la fork.
+## Installer sur Windows
 
-**État : finition 1.0 RC2 en ZIP avec service Windows et icône de notification.** Le propriétaire a signalé la RC1 fonctionnelle après préparation d'une installation neuve et retrait de VibeShine. La RC2 ajoute le parcours guidé, l'icône dans le compte normal, l'entretien et l'inscription dans les applications Windows. Consulter les workflows du commit exact pour la qualification logicielle et [le guide](tools/moonshine-setup/LIRE-MOI.txt) pour les essais. La publication de la 1.0 finale attend la validation réelle de la RC2.
+1. Extrais le ZIP au complet dans un dossier local.
+2. Ouvre **Ouvrir-Moonshine.cmd** depuis ton compte Windows habituel. Choisis **Installer Moonshine** et accepte la confirmation administrateur.
+3. Suis la fenêtre pour préparer les pilotes signés si elle le demande. Redémarre Windows si l’étape l’indique.
+4. Démarre Moonshine depuis l’icône près de l’horloge et ouvre la bibliothèque. Crée tes identifiants et appaire ton client Moonlight.
 
-## Bibliothèque intégrée
+Le service et le gestionnaire s’installent dans `Program Files\Moonshine`. La bibliothèque appartient au compte Windows qui utilise les jeux. Ce compte doit être connecté pour les lancer. Les jeux utilisent leurs lanceurs installés. Le programme Moonshine est non signé et les pilotes fournis gardent leurs signatures originales.
 
-- Le moteur PowerShell que nous avons développé est embarqué dans `tools/moonshine`, version 1.0.0 pour le nouveau ZIP autonome, issue du moteur 0.8.1 qualifié.
-- Il retrouve les installations Xbox/GDK, Steam et EA prises en charge par notre découverte locale. Le périmètre initial est celui des jeux installés; il n'interroge pas tout le catalogue d'un abonnement Game Pass.
-- La page Bibliothèque regroupe analyse, aperçu, confirmation, synchronisation, profils de diffusion et récupération.
-- Les UUID, marqueurs, sauvegardes et données `%LOCALAPPDATA%\OPi5\VibeShine-Xbox` sont conservés pour reprendre nos anciennes entrées.
-- Les importateurs Steam et Playnite amont sont désactivés, leurs routes de synchronisation et leurs commandes d'import sont retirées de l'interface. Steam Big Picture ne fait plus partie des applications par défaut. Les jeux Steam passent par notre moteur et utilisent toujours leur lanceur installé.
-- Les applications personnelles, Desktop, Remote Input et Remote Monitor restent distinctes des jeux importés. Les anciennes entrées Steam/Playnite externes ne sont pas supprimées automatiquement et doivent être vérifiées si leur commande dépend de l'ancien connecteur.
+[Guide Windows complet](tools/moonshine-setup/LIRE-MOI.txt)
 
-## Fonctionnement Windows
+## Mettre à jour la RC1 ou la RC2
 
-L'hôte lance le moteur dans le compte Windows connecté, avec un jeton limité aux routes de bibliothèque nécessaires. Ce jeton transite dans un canal privé, n'est pas enregistré par le moteur, est révoqué à la fin et les autorisations temporaires abandonnées sont retirées au démarrage suivant.
+Termine le stream et arrête le service Moonshine. Ferme sa fenêtre et quitte l’ancienne icône si elle est affichée. Extrais la 1.0.0 dans un nouveau dossier, ouvre **Ouvrir-Moonshine.cmd** et choisis **Mettre à jour Moonshine**. Le catalogue, l’appairage et les réglages sont conservés. Le gestionnaire réutilise les pilotes opérationnels.
 
-Les opérations utilisent les mêmes sauvegardes, comparaisons de personnalisations, relectures API et journaux de reprise que le synchroniseur autonome. Les écritures attendent une session de streaming inactive. Annuler demande un arrêt à un point sûr; une écriture déjà envoyée doit être vérifiée. Le reset et le retour arrière mettent l'automatisation en pause.
+## Utiliser Moonshine
 
-Une tâche automatique OPi5 reconnue peut être transférée à l'automatisation intégrée; son XML est sauvegardé en privé. Une tâche personnalisée bloque la reprise plutôt que d'être remplacée. Le menu autonome reste un outil de secours manuel pendant la transition.
+- **Bibliothèque.** Analyse les installations Xbox PC, Steam et EA reconnues, vérifie l’aperçu des changements puis synchronise. Les actions de récupération permettent d’annuler les derniers changements ou de retirer les entrées gérées. Les jeux déjà configurés gardent leur identité.
+- **Icône Windows.** Elle revient à la connexion du compte choisi. Son menu ouvre la bibliothèque, démarre ou arrête le service et donne accès à l’entretien. Quitter l’icône laisse le service dans son état actuel.
+- **Entretien.** Réparation à partir du kit installé, sauvegarde privée, diagnostic et désinstallation avec archivage. Moonshine est aussi accessible dans **Applications installées**.
+- **Connexion.** L’interface locale est à `https://localhost:48990/v2/library`. Le port de connexion du client Moonlight est **48989**. DLSS et Frame Generation se règlent dans les jeux.
 
-## Essai Windows séparé
+## Sources et validation
 
-Le workflow `.github/workflows/moonshine-host.yml` compile l’hôte complet, ses helpers et l’interface, vérifie les dépendances DLL, puis exige un démarrage réel sans droits administrateur et un aperçu produit par le moteur embarqué via HTTPS avant de publier son artefact d’essai. Consulter le résultat du commit exact : un script de test présent dans le dépôt ne prouve pas sa réussite.
+La 1.0.0 reprend les fonctionnalités de la RC2 validée sur le PC du propriétaire. Les notes de version indiquent le commit exact du ZIP et les résultats de qualification logicielle. Le ZIP contient les sources et les licences.
 
-Le kit propose une fenêtre Windows (`Demarrer-Moonshine.cmd`), une sauvegarde locale vérifiée et un arrêt propre. Il utilise son propre profil sous `%LOCALAPPDATA%\\OPi5\\Moonshine-Trial`, un catalogue neuf et le port Web 48990. Il ne reprend pas les tâches ni les données de production; arrêter temporairement l’autre hôte avant de démarrer cet essai. Voir [le parcours d’essai](tools/moonshine-trial/LIRE-MOI.txt).
+[Installation autonome](docs/moonshine/STANDALONE-1.0.md) · [Validation](docs/moonshine/VALIDATION.md) · [Développement](docs/moonshine/DEVELOPMENT.md) · [Protocole de la bibliothèque](docs/moonshine/PROTOCOL.md)
 
-Les versions portables sont des builds de développement non signés. Elles ne qualifient pas le streaming, les pilotes ou l’installateur. WebRTC et PyroWave sont désactivés dans ce kit. Le DLSS et la Frame Generation restent configurés dans les jeux.
+Moonshine est un fork de [VibeShine](https://github.com/Nonary/vibeshine), issu de [Sunshine](https://github.com/LizardByte/Sunshine). La base VibeShine 2.0.1 est conservée dans `upstream/v2.0.1` et le développement Moonshine cible `moonshine/main`.
 
-## Candidat service Windows 0.9.0
-
-Le kit `tools/moonshine-service` reprend une copie vérifiée du profil de l’essai portable arrêté. Il conserve les certificats, l’appairage Moonlight et les UUID, puis enregistre **MoonshineService**, distinct de SunshineService. Le binaire amont s’exécute comme SYSTEM dans la session de console; le worker est toujours lancé sans élévation dans le compte sélectionné. Le moteur et ses données d’essai restent en version 0.8.1. Aucun autre importateur n’est réintroduit.
-
-Les exécutables sont protégés sous Program Files, les configurations privées ont une ACL réservée à SYSTEM/Administrateurs, et l’ancien hôte reste installé. Le service démarre manuellement; le réglage de démarrage Windows contrôle uniquement MoonshineService. La fenêtre fournit installation, démarrage, arrêt et retour à VibeShine. Aucun pilote n’est installé ni réinstallé. Voir [la procédure](tools/moonshine-service/LIRE-MOI.txt).
-
-La CI doit installer, démarrer, arrêter, redémarrer et retirer le véritable service sur un runner jetable, vérifier son enfant SYSTEM et son worker utilisateur réel, préserver un catalogue synthétique et révoquer les jetons temporaires. Elle ne qualifie pas l’écran virtuel d’un PC sans GPU. Le candidat du commit `96239aa250d10501f66a1eacca6a9496bc58d09a` a passé ces contrôles; son essai réel a ensuite confirmé l’affichage virtuel exclusif et la restauration sur le PC essayé.
-
-## Validation et compilation
-
-Voir [la procédure de développement](docs/moonshine/DEVELOPMENT.md), [les limites de validation](docs/moonshine/VALIDATION.md) et [le protocole du moteur](docs/moonshine/PROTOCOL.md). La CI dédiée exécute la politique native, le frontend, les régressions Windows PowerShell et le vrai pont Windows avec un moteur synthétique.
-
-Le build standard du binaire reste celui de VibeShine, avec ses dépendances. Les cibles d'installateur sont désactivées par défaut; leur identité et leur comportement de mise à niveau doivent être qualifiés avant distribution. Les vérifications de mise à jour ciblent `pilvince911/Moonshine`.
-
-## Licence et confidentialité
-
-Le projet conserve la [GPL-3.0](LICENSE), les [avis amont](NOTICE) et les licences des dépendances. Aucun identifiant de PL, inventaire personnel, journal brut, jeton, clé de signature de production ou compte de service ne fait partie du dépôt. `tools/moonshine/Transport-Test.pfx` est exclusivement le certificat synthétique public des tests de transport; il ne doit jamais servir en production.
-
-GitHub conserve les sources; les archives de développement et rapports de PL restent sur son Drive. Le dépôt ne publie pas de release ni d'installateur automatiquement.
-
-Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fournie par le jeu » et désactive Lossless Scaling dans les entrées créées. Ce choix est visible dans le plan avant confirmation. Diffusion permet de choisir un préréglage neutre ou sans FG. Les entrées déjà présentes et les profils explicites d’un jeu restent prioritaires; les fréquences, corrections de capture et réglages internes DLSS/FG ne sont pas imposés par ce préréglage.
-
-Le [kit de ménage 0.2](tools/moonshine-maintenance/LIRE-MOI.txt) analyse les anciennes racines et distributions 0.x, les sauvegarde en privé avec vérification intégrale, puis archive celles devenues inutilisées. Le choix explicite « Repartir à neuf » peut désenregistrer le seul service 0.9 arrêté, lié exactement à `Moonshine-Preview`, avant l'archivage. Il conserve la nouvelle installation et sa bibliothèque, les pilotes et les jeux. Les références d'un autre service, les tâches personnalisées et les identités inconnues bloquent le retrait concerné.
-
-## ZIP avec installation simple du service
-
-Le candidat **1.0.0-rc.2** se prépare dans `tools/moonshine-setup`. Il installe le même service sous `Program Files\Moonshine`, avec une bibliothèque indépendante dans `%LOCALAPPDATA%\Moonshine\Library\<id>`. Une installation neuve ne demande aucun index ni profil d’essai. La reprise facultative du service 0.9 copie catalogue/appairage/personnalisations et retargete les chemins de notre moteur; les originaux sont conservés.
-
-Les pilotes d’écran/manettes et les couches HDR Vulkan x64/x86 proviennent des octets épinglés de l’installateur officiel VibeShine 2.0.1, extraits sans exécuter son installateur. Les signatures et contrats sont vérifiés. Le bouton distinct **Préparer les pilotes signés** demande l’accord du propriétaire et l’élévation Windows. Aucun pilote n’est installé par la CI.
-
-La publication du ZIP exige les tests Windows du commit exact : installation neuve, vrai service/worker, réparation, retrait/réinstallation et migration suivie du retrait des anciens dossiers avant le nouveau lancement. Les instructions sont dans [le guide](tools/moonshine-setup/LIRE-MOI.txt). La candidate reste à essayer sur le PC réel après remplacement de l’ancien hôte; ce texte ne déclare pas la release finale 1.0.
-
-## Gestion Windows RC2
-
-L'installation conserve le format ZIP et le service qualifié. La fenêtre guide installation, pilotes puis démarrage; le bouton principal suit l'état réel et la progression est transmise par des comptes rendus privés écrits par l'opération administrateur. Après installation, une icône démarre dans la session du compte choisi, sans fenêtre visible. Son menu regroupe bibliothèque, démarrage/arrêt et entretien. Fermer la fenêtre revient à l'icône; quitter l'icône conserve le service. Une instance par session et des signaux limités au compte permettent de retrouver la fenêtre et de passer à un nouveau kit.
-
-L'entrée dans Applications installées appelle notre propre retrait, sans MSI. Les inscriptions sont bornées à leur identité, compte et chemin. Le retrait sauvegarde la configuration et la bibliothèque, archive le programme, retire service/raccourci/démarrage de l'icône et conserve les pilotes partagés et la bibliothèque. L'export diagnostic reste local, borné et sans copie des identifiants/certificats. La mise à jour conserve l'identifiant, les UUID, appairages et préférences de la RC1.
+[GPL-3.0](LICENSE) · [Avis et attributions](NOTICE) · [Licences des pilotes](tools/moonshine-setup/LICENCES-PILOTES.txt)

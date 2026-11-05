@@ -32,7 +32,7 @@ try {
             $parent=Split-Path -Parent ([IO.Path]::GetFullPath($PreviewPath));[IO.Directory]::CreateDirectory($parent)|Out-Null
             $file=[IO.File]::Create([IO.Path]::GetFullPath($PreviewPath));try {$encoder.Save($file)} finally {$file.Dispose()}
         }
-        $window.Close();Write-Output 'Moonshine RC2 WPF constructed; icon loaded without keeping a file handle.';return
+        $window.Close();Write-Output 'Moonshine WPF constructed; icon loaded without keeping a file handle.';return
     }
     [Environment]::CurrentDirectory=$env:WINDIR;Set-Location -LiteralPath $env:WINDIR
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
