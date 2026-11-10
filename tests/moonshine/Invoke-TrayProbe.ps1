@@ -34,8 +34,8 @@ $ErrorActionPreference='Stop'
 $trace='@TRACE@'
 [IO.File]::WriteAllText($trace+'.phase','bootstrap-entered'+[Environment]::NewLine)
 $env:GITHUB_ACTIONS='true';$env:CI='true'
-$launcher=Start-Process -FilePath '@LAUNCHER@' -ArgumentList ('@ARGUMENTS@ -CITrace "'+$trace+'"') -PassThru -Wait
-try{if($launcher.ExitCode -ne 0){throw 'The graphical launcher failed.'}}finally{$launcher.Dispose()}
+$launcher=Start-Process -FilePath '@LAUNCHER@' -ArgumentList ('@ARGUMENTS@ -CITrace "'+$trace+'"') -PassThru
+try{if(-not $launcher.WaitForExit(20000) -or $launcher.ExitCode -ne 0){throw 'The graphical launcher failed.'}}finally{$launcher.Dispose()}
 for($n=0;$n -lt 480 -and -not [IO.File]::Exists($trace);$n++){Start-Sleep -Milliseconds 250}
 if(-not [IO.File]::Exists($trace)){throw 'The manager did not report ready.'}
 $data=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($trace))
