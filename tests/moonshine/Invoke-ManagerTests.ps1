@@ -24,7 +24,11 @@ try {
  Check ([IO.File]::Exists((Join-Path $root 'build-evidence\moonshine-windows-window.png'))) 'The actual WPF view must render to a PNG.'
  $script:MoonshineServiceRoot=$temporary
  $command=Get-MoonshineManagerCommand
- Check ($command.EndsWith(' -TrayOnly') -and $command.Contains('Gestion-Moonshine.ps1')) 'Session startup must launch only the normal tray companion.'
+ Check ($command.EndsWith(' -TrayOnly') -and $command.Contains('Kit\Moonshine.exe')) 'Session startup must launch only the normal tray companion.'
+ Check (Test-MoonshineStartupCommand $command) 'The graphical startup must be recognized.'
+ Check (Test-MoonshineStartupCommand (Get-MoonshineLegacyManagerCommand)) 'The exact 1.0 startup must migrate.'
+ Check (-not (Test-MoonshineStartupCommand ((Get-MoonshineLegacyManagerCommand)+' -Unexpected'))) 'A modified startup command must remain protected.'
+ Check (-not (Test-MoonshineStartupCommand 'cmd.exe /c foreign.cmd')) 'A foreign startup command must remain protected.'
  Check ((Get-MoonshineManagerCommand -Uninstall).Contains('Desinstaller-Moonshine.ps1')) 'Windows Apps must call the owned uninstaller entry.'
  # Test a real isolated registry entry. Production registration is covered by SCM smoke.
  $script:MoonshineUninstallKey='SOFTWARE\Moonshine-CI-Tests\'+[guid]::NewGuid().ToString('N')

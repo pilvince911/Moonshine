@@ -1,10 +1,17 @@
 ﻿#Requires -Version 5.1
 # SPDX-License-Identifier: GPL-3.0-only
 $script:MoonshineUninstallKey='SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Moonshine'
-function Get-MoonshineManagerCommand([switch]$Uninstall) {
+function Get-MoonshineLegacyManagerCommand([switch]$Uninstall) {
     $ps=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $manager=Join-Path $script:MoonshineServiceRoot $(if($Uninstall){'Kit\Desinstaller-Moonshine.ps1'}else{'Kit\Gestion-Moonshine.ps1'})
     return ('"'+$ps+'" -NoLogo -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$manager+'"'+$(if ($Uninstall) {''} else {' -TrayOnly'}))
+}
+function Get-MoonshineManagerCommand([switch]$Uninstall) {
+    if ($Uninstall) { return Get-MoonshineLegacyManagerCommand -Uninstall }
+    return ('"'+(Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.exe')+'" -TrayOnly')
+}
+function Test-MoonshineStartupCommand([string]$Value) {
+    return ($Value -ceq (Get-MoonshineManagerCommand) -or $Value -ceq (Get-MoonshineLegacyManagerCommand))
 }
 function Get-MoonshineDesktopRegistration {
     $base=[Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry64)
@@ -27,7 +34,7 @@ function Get-MoonshineStartupCommand([string]$OwnerSid) {
 }
 function Assert-MoonshineStartupCommand([string]$OwnerSid) {
     $value=Get-MoonshineStartupCommand $OwnerSid
-    if ($value -and $value -cne (Get-MoonshineManagerCommand)) { throw 'Un autre demarrage de session porte le nom Moonshine. Il est conserve.' }
+    if ($value -and -not (Test-MoonshineStartupCommand $value)) { throw 'Un autre demarrage de session porte le nom Moonshine. Il est conserve.' }
 }
 function Register-MoonshineDesktop($Receipt) {
     Assert-MoonshineAdmin;Assert-MoonshineDesktopRegistration $Receipt;Assert-MoonshineStartupCommand $Receipt.owner_sid
@@ -53,11 +60,11 @@ function Unregister-MoonshineDesktop($Receipt) {
         if (Get-MoonshineDesktopRegistration) { $base.DeleteSubKeyTree($script:MoonshineUninstallKey,$false) }
         $run=[Microsoft.Win32.Registry]::Users.OpenSubKey($Receipt.owner_sid+'\Software\Microsoft\Windows\CurrentVersion\Run',$true)
         $live=Get-MoonshineStartupCommand $Receipt.owner_sid
-        if ($run -and $live) { if($live -cne (Get-MoonshineManagerCommand)){throw 'Le demarrage de session a change pendant le retrait.'};$run.DeleteValue('Moonshine',$false) }
+        if ($run -and $live) { if(-not (Test-MoonshineStartupCommand $live)){throw 'Le demarrage de session a change pendant le retrait.'};$run.DeleteValue('Moonshine',$false) }
         $path=Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Moonshine.lnk'
         if ([IO.File]::Exists($path)) {
             Assert-MoonshinePlainPath $path;$shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($path)
-            if ($link.TargetPath -ieq (Join-Path $script:MoonshineServiceRoot 'Kit\Ouvrir-Moonshine.cmd') -and -not $link.Arguments) { [IO.File]::Delete($path) }
+            if (@((Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.exe'),(Join-Path $script:MoonshineServiceRoot 'Kit\Ouvrir-Moonshine.cmd')) -icontains $link.TargetPath -and -not $link.Arguments) { [IO.File]::Delete($path) }
         }
     } finally { if ($run) {$run.Dispose()};$base.Dispose() }
 }

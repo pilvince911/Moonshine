@@ -262,8 +262,9 @@ function Install-MoonshineZip([string]$KitRoot,[string]$OwnerSid,[switch]$Migrat
 function Add-MoonshineInstalledShortcut {
     $path=Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Moonshine.lnk'
     $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($path)
-    $target=Join-Path $script:MoonshineServiceRoot 'Kit\Ouvrir-Moonshine.cmd'
-    if ([IO.File]::Exists($path) -and $link.TargetPath -ine $target) { throw 'Un autre raccourci Moonshine existe; il est conserve.' }
+    $target=Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.exe'
+    $legacy=Join-Path $script:MoonshineServiceRoot 'Kit\Ouvrir-Moonshine.cmd'
+    if ([IO.File]::Exists($path) -and (($link.TargetPath -ine $target -and $link.TargetPath -ine $legacy) -or $link.Arguments)) { throw 'Un autre raccourci Moonshine existe; il est conserve.' }
     $link.TargetPath=$target;$link.WorkingDirectory=$env:WINDIR;$link.IconLocation=Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.ico';$link.Description='Moonshine - icone de notification et bibliotheque';$link.Save()
 }
 function Stop-MoonshineSelectedService([string]$OwnerSid) {

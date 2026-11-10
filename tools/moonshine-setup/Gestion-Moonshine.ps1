@@ -184,7 +184,8 @@ try {
     if($Uninstall){Show-MoonshineWindow -Maintenance;Invoke-MoonshineSetupAction 'Uninstall'}elseif((-not $fromInstalled -and -not $TrayOnly) -or -not $evidence.installed){$window.Show()}
     if($CITrace){
         if($env:GITHUB_ACTIONS -ne 'true' -or $env:CI -ne 'true'){throw 'CI trace is restricted to a disposable runner.'}
-        [IO.File]::WriteAllText($CITrace,(ConvertTo-Json @{icon_visible=[bool]($notify -and $notify.Visible);window_visible=$window.IsVisible;sid=$ownerSid;system=$identity.IsSystem;admin=(New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);menu_items=@($trayItems.Keys);service_running=$evidence.running}))
+        Add-Type 'public static class MoonshineConsoleProbe { [System.Runtime.InteropServices.DllImport("kernel32.dll")] public static extern System.IntPtr GetConsoleWindow(); }'
+        [IO.File]::WriteAllText($CITrace,(ConvertTo-Json @{pid=$PID;console_attached=([MoonshineConsoleProbe]::GetConsoleWindow() -ne [IntPtr]::Zero);icon_visible=[bool]($notify -and $notify.Visible);window_visible=$window.IsVisible;sid=$ownerSid;system=$identity.IsSystem;admin=(New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);menu_items=@($trayItems.Keys);service_running=$evidence.running}))
     }
     $script:timer=New-Object Windows.Threading.DispatcherTimer;$timer.Interval=[TimeSpan]::FromSeconds(1);$timer.Add_Tick({Update-MoonshineManager});$timer.Start()
     $null=$application.Run()
@@ -197,4 +198,4 @@ finally {
     if($script:timer){$timer.Stop()};if($script:notify){$notify.Visible=$false;$notify.Dispose()};if($script:trayIcon){$trayIcon.Dispose()};if($script:trayMenu){$trayMenu.Dispose()}
     if($script:operation){$operation.process.Dispose()};foreach($signal in $signals.Values){$signal.Dispose()};if($ownsMutex){$mutex.ReleaseMutex()};if($mutex){$mutex.Dispose()}
 }
-if($script:launchInstalled){Start-Process -FilePath "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList ('-NoLogo -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+(Join-Path $script:MoonshineServiceRoot 'Kit\Gestion-Moonshine.ps1')+'" -TrayOnly')}
+if($script:launchInstalled){Start-Process -FilePath (Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.exe') -ArgumentList '-TrayOnly'}

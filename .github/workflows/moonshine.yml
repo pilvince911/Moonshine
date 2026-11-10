@@ -90,7 +90,7 @@ jobs:
           ./tools/moonshine-service/Gestion-Moonshine.ps1 -ValidateWindowOnly
   windows-user-context:
     runs-on: windows-2022
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - name: Standard-account process startup

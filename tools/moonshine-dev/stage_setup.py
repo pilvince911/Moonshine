@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Assemble the self-contained ZIP; never install a service or driver here."""
 from pathlib import Path
-import argparse,hashlib,json,shutil,subprocess,zipfile
+import argparse,hashlib,json,os,shutil,subprocess,zipfile
 
-VERSION='1.0.0'
+VERSION='1.0.1-rc.1'
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--trial-kit',type=Path,required=True);parser.add_argument('--prerequisites',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
@@ -25,6 +25,8 @@ def main():
         assert (out/'Package/drivers'/name).is_file(),name
     for path in (source/'tools/moonshine-setup').iterdir():
         if path.is_file():shutil.copy2(path,out/path.name)
+    powershell=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
+    subprocess.run([str(powershell),'-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',str(source/'tools/moonshine-dev/Build-Launcher.ps1'),'-OutputPath',str(out/'Moonshine.exe')],check=True)
     shutil.copy2(source/'tools/moonshine-setup/LICENCES-PILOTES.txt',out/'Licences/LICENCES-PILOTES.txt')
     wrapper=out/'Package/tools/sunshinesvc.exe';result=subprocess.run([str(wrapper),'--identity'],capture_output=True,text=True,timeout=15)
     if result.returncode or result.stdout.strip()!='MoonshineService':raise RuntimeError('Wrong service wrapper identity')
