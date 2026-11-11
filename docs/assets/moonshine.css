@@ -20,6 +20,7 @@ a:hover { text-decoration-thickness: 2px; }
 a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; border-radius: 3px; }
 img, svg { max-width: 100%; }
 img { height: auto; }
+.arrow-icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
 h1, h2, h3, p, figure { margin: 0; }
 h1, h2, h3 { text-wrap: balance; }
 h1, h2 { letter-spacing: -.045em; }
