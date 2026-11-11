@@ -11,7 +11,7 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Moonshine graphical launcher")]
 [assembly: AssemblyVersion("1.0.1.0")]
 [assembly: AssemblyFileVersion("1.0.1.0")]
-[assembly: AssemblyInformationalVersion("1.0.1-rc.1")]
+[assembly: AssemblyInformationalVersion("1.0.1")]
 
 internal static class MoonshineLauncher
 {

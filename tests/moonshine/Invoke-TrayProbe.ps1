@@ -19,9 +19,9 @@ try{
     Copy-Item -LiteralPath (Join-Path $repo 'tools\moonshine-setup') -Destination $kit -Recurse
     & (Join-Path $repo 'tools\moonshine-dev\Build-Launcher.ps1') -OutputPath (Join-Path $kit 'Moonshine.exe')
     $commit='c'*40
-    [IO.File]::WriteAllText((Join-Path $kit 'build-info.json'),(ConvertTo-Json @{commit=$commit;version='1.0.1-rc.1'}))
+    [IO.File]::WriteAllText((Join-Path $kit 'build-info.json'),(ConvertTo-Json @{commit=$commit;version='1.0.1'}))
     $files=@();foreach($name in @('one','two','three','four')){$files+=@(@{path=('Package/'+$name);sha256=('d'*64)})}
-    Write-MoonshineServiceJson (Join-Path $script:MoonshineServiceRoot 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=('b'*32);owner_sid=$sid;commit=$commit;version='1.0.1-rc.1';phase='installed';firewall_created=$false;files=$files}
+    Write-MoonshineServiceJson (Join-Path $script:MoonshineServiceRoot 'service-receipt.json') @{schema='moonshine-service-receipt/1';mode='installed';name='MoonshineService';id=('b'*32);owner_sid=$sid;commit=$commit;version='1.0.1';phase='installed';firewall_created=$false;files=$files}
     $release=New-MoonshineManagerSignal $sid 'Release'
     $ps=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     foreach($entry in @(@{name='shortcut';arguments=''},@{name='startup';arguments=' -TrayOnly'})){

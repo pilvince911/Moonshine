@@ -1,4 +1,4 @@
-MOONSHINE 1.0.1 RC1 - ZIP, SERVICE ET ICONE WINDOWS
+MOONSHINE 1.0.1 - ZIP, SERVICE ET ICONE WINDOWS
 
 Ce paquet fonctionne sans ancien kit ni VibeShine installe. Le programme
 Moonshine reste non signe; ses pilotes gardent leurs signatures originales
@@ -20,8 +20,7 @@ MISE A JOUR DE LA VERSION 1.0.0 OU D UNE CANDIDATE
 INSTALLATION NEUVE
 1. Quitter les streams et arreter les anciens hotes/synchroniseurs.
 2. Extraire tout le ZIP, puis ouvrir Moonshine.exe normalement.
-3. Garder Reprendre mon service 0.9 decoche pour repartir a neuf. Installer.
-   La reprise 0.9 reste facultative si son ancien profil reconnu existe encore.
+3. Choisir Installer Moonshine et accepter la confirmation Windows.
 4. Si VibeShine est encore installe, le desinstaller dans Applications Windows
    avant la preparation finale des pilotes. Conserver les sauvegardes privees.
 5. Choisir Preparer les pilotes signes, accepter Windows et attendre la fin.
@@ -76,8 +75,9 @@ Verifier le catalogue, l'appairage et le demarrage depuis l'icone. Lancer un
 jeu depuis Moonlight et verifier la fin du stream ainsi que le retour de
 l'affichage physique. DLSS et Frame Generation se reglent dans les jeux.
 
-Cette candidate corrige les fenetres de terminal du lancement. Verifier
-le raccourci du menu Demarrer et l'icone apres une nouvelle connexion Windows.
+Le lancement du raccourci et de l'icone a ete valide sur le PC du proprietaire
+avec la candidate 1.0.1. Le ZIP final et son empreinte sont dans la release :
+https://github.com/pilvince911/Moonshine/releases/tag/v1.0.1
 
 Sources et licences incluses. Fork de VibeShine/Sunshine :
 https://github.com/pilvince911/Moonshine

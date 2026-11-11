@@ -15,7 +15,7 @@ try {
     $reader=New-Object Xml.XmlNodeReader($layout);$script:window=[Windows.Markup.XamlReader]::Load($reader)
     Write-MoonshineCIPhase 'window-constructed'
     $script:controls=@{}
-    foreach ($name in @('MainTabs','BrandImage','StatusText','DetailText','InstallStep','DriverStep','RunStep','PrimaryButton','StopButton','OperationProgress','OperationText','InstallChoices','MigrateChoice','AutomaticChoice','RepairButton','DriversButton','BackupButton','DiagnosticButton','HelpButton','RemoveButton','TrayButton')) {
+    foreach ($name in @('MainTabs','BrandImage','StatusText','DetailText','InstallStep','DriverStep','RunStep','PrimaryButton','StopButton','OperationProgress','OperationText','InstallChoices','AutomaticChoice','RepairButton','DriversButton','BackupButton','DiagnosticButton','HelpButton','RemoveButton','TrayButton')) {
         $controls[$name]=$window.FindName($name);if (-not $controls[$name]) {throw ('Controle absent : '+$name)}
     }
     $iconBytes=[IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Moonshine.ico'))
@@ -60,8 +60,6 @@ try {
     $build=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'build-info.json')))
     $script:sourceCommit=[string]$build.commit
     if ($sourceCommit -cnotmatch '\A[a-f0-9]{40}\z') {throw 'Identite du paquet absente. Extraire le ZIP complet.'}
-    $preview=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Moonshine-Preview\service-receipt.json'
-    $controls.MigrateChoice.IsChecked=[IO.File]::Exists($preview)
     $script:application=New-Object Windows.Application;$application.ShutdownMode=[Windows.ShutdownMode]::OnExplicitShutdown
     Write-MoonshineCIPhase 'application-created'
     function Show-MoonshineWindow([switch]$Maintenance) {
@@ -116,7 +114,7 @@ try {
             if ($Action -ne 'Start' -and [Windows.MessageBox]::Show($message,'Moonshine',[Windows.MessageBoxButton]::YesNo,[Windows.MessageBoxImage]::Question) -ne [Windows.MessageBoxResult]::Yes) {return}
             $id=[guid]::NewGuid().ToString('N')
             $arguments='-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+(Join-Path $PSScriptRoot 'Action.ps1')+'" -Action '+$Action+' -OwnerSid '+$ownerSid+' -OperationId '+$id
-            if ($Action -eq 'Install') {if($controls.MigrateChoice.IsChecked){$arguments+=' -Migrate'};if($controls.AutomaticChoice.IsChecked){$arguments+=' -Automatic'}}
+            if ($Action -eq 'Install' -and $controls.AutomaticChoice.IsChecked) {$arguments+=' -Automatic'}
             $controls.OperationText.Text='Confirmation Windows...';$controls.OperationProgress.Value=0
             $process=Start-Process -FilePath "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $arguments -Verb RunAs -PassThru
             $script:operation=@{id=$id;action=$Action;process=$process;from_tray=$fromTray}
@@ -157,7 +155,6 @@ try {
             foreach($key in @('RepairButton','DriversButton','BackupButton','RemoveButton')) {$controls[$key].IsEnabled=$evidence.installed -and -not $evidence.running -and -not $evidence.blocked}
             $controls.DiagnosticButton.IsEnabled=$evidence.installed -and -not $evidence.blocked
             $controls.InstallChoices.Visibility=if($evidence.installed){'Collapsed'}else{'Visible'}
-            $controls.MigrateChoice.IsEnabled=(-not $evidence.installed -and [IO.File]::Exists($preview))
             if(-not $script:choicesInitialized -and $evidence.installed){$controls.AutomaticChoice.IsChecked=$evidence.automatic;$script:choicesInitialized=$true}
             $controls.TrayButton.IsEnabled=$evidence.installed
             Ensure-MoonshineTray

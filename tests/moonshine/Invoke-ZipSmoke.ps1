@@ -18,7 +18,7 @@ try {
     $null=Read-MoonshineServiceManifest $KitRoot
     $receipt=Install-MoonshineZip ([IO.Path]::GetFullPath($KitRoot)) $serviceOwnerSid -Automatic;$created=$true
     $desktop=Get-MoonshineDesktopRegistration
-    Check ($desktop.DisplayVersion -ceq '1.0.1-rc.1' -and $desktop.MoonshineId -ceq $receipt.id -and $desktop.UninstallString -ceq (Get-MoonshineManagerCommand -Uninstall)) 'Windows Installed Apps registration is absent or bound to another command.'
+    Check ($desktop.DisplayVersion -ceq '1.0.1' -and $desktop.MoonshineId -ceq $receipt.id -and $desktop.UninstallString -ceq (Get-MoonshineManagerCommand -Uninstall)) 'Windows Installed Apps registration is absent or bound to another command.'
     Check ((Get-MoonshineStartupCommand $serviceOwnerSid) -ceq (Get-MoonshineManagerCommand)) 'The selected account tray startup command was not registered.'
     $id=$receipt.id;$record.id=$id;$dataRoots+=@($receipt.data_root);$before=@{}
     Check ($receipt.data_root -notmatch 'OPi5|Moonshine-Trial' -and [IO.Directory]::Exists($receipt.data_root)) 'Fresh install depends on an old trial directory.'
@@ -55,9 +55,9 @@ try {
     $previousBefore=@(Get-ChildItem -LiteralPath (Split-Path -Parent $script:MoonshineServiceRoot) -Directory -Filter 'Moonshine.Previous.*' | ForEach-Object {$_.FullName})
     $receipt=Install-MoonshineZip $KitRoot $serviceOwnerSid -Automatic
     $ownedPrevious+=@(Get-ChildItem -LiteralPath (Split-Path -Parent $script:MoonshineServiceRoot) -Directory -Filter 'Moonshine.Previous.*' | Where-Object {$_.FullName -notin $previousBefore} | ForEach-Object {$_.FullName})
-    Check ($receipt.id -ceq $beforeId -and $receipt.data_root -ceq $beforeData -and $receipt.version -ceq '1.0.1-rc.1') 'In-place upgrade changed installation/library identity.'
+    Check ($receipt.id -ceq $beforeId -and $receipt.data_root -ceq $beforeData -and $receipt.version -ceq '1.0.1') 'In-place upgrade changed installation/library identity.'
     Check ((Get-FileHash -LiteralPath (Join-Path $target 'config\apps.json')).Hash -ceq $appsBefore -and [IO.File]::ReadAllText($customFile) -ceq 'keep this private personal file') 'In-place upgrade changed the personal catalogue or custom file.'
-    Check ($ownedPrevious.Count -eq 1 -and (Get-MoonshineDesktopRegistration).DisplayVersion -ceq '1.0.1-rc.1') 'The previous program was not retained or Windows registration was not refreshed.'
+    Check ($ownedPrevious.Count -eq 1 -and (Get-MoonshineDesktopRegistration).DisplayVersion -ceq '1.0.1') 'The previous program was not retained or Windows registration was not refreshed.'
     Check ((Get-MoonshineStartupCommand $serviceOwnerSid) -ceq (Get-MoonshineManagerCommand)) 'Upgrade did not migrate the legacy PowerShell startup.'
     $shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
     Check ($shortcut.TargetPath -ieq (Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.exe') -and -not $shortcut.Arguments) 'Upgrade did not migrate the legacy CMD shortcut.'
