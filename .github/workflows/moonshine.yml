@@ -32,7 +32,8 @@ jobs:
         working-directory: src_assets/common/assets/web
       - run: npm run test:unit
         working-directory: src_assets/common/assets/web
-      - run: npx playwright install --with-deps chromium
+      - name: Install Chromium using the runner system libraries
+        run: npx playwright install chromium
         working-directory: src_assets/common/assets/web
       - run: npx playwright test e2e/moonshine-library.spec.ts
         working-directory: src_assets/common/assets/web
