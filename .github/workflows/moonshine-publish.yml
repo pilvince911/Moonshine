@@ -1,0 +1,124 @@
+name: Publish Moonshine 1.0.1
+on:
+  push:
+    branches: [moonshine/publish-v1.0.1]
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: moonshine-publish-v1.0.1
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'pilvince911/Moonshine' && github.ref == 'refs/heads/moonshine/publish-v1.0.1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_COMMIT: 'a257c52030d06766259fa76ff9dd113e9991888d'
+      MERGED_COMMIT: '87644ba50ab7edf5e978f613b5c3326ba46c895f'
+      RELEASE_TREE: 'cfb20cfa66f41390d1c93731d65202b2823af82a'
+      EXPECTED_ASSETS: '[{"name":"Moonshine-Windows-1.0.1.zip","size":86480199,"digest":"sha256:c6e33b03c9018124a2c346cf8d92b6400d7c79ddf46491def0adb193a7a83114","state":"uploaded"},{"name":"Moonshine-Windows-1.0.1.sha256","size":95,"digest":"sha256:8ce7ddefac8d280275f74cb62792c94de2c4d7735187d47405c3e4f73d76322f","state":"uploaded"}]'
+    steps:
+      - name: Verify the qualified build and publish its exact assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run in 43042242959 43042242973 43042243159; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" |
+              jq -e --arg commit "$RELEASE_COMMIT" '
+                .head_sha == $commit and .event == "pull_request" and
+                .status == "completed" and .conclusion == "success"
+              ' >/dev/null
+          done
+          main="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/moonshine/main" --jq '.[] | select(.ref == "refs/heads/moonshine/main") | .object.sha')"
+          test "$main" = "$MERGED_COMMIT"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$main" --jq .tree.sha)" = "$RELEASE_TREE"
+          gh run download 43042242959 --repo "$GITHUB_REPOSITORY" --name Moonshine-Windows-1.0.1 --dir release
+          for asset in Moonshine-Windows-1.0.1.zip Moonshine-Windows-1.0.1.sha256; do
+            entry="$(jq -ce --arg name "$asset" '.[] | select(.name == $name)' <<<"$EXPECTED_ASSETS")"
+            test "$(stat -c %s "release/$asset")" = "$(jq -r .size <<<"$entry")"
+            test "sha256:$(sha256sum "release/$asset" | cut -d ' ' -f 1)" = "$(jq -r .digest <<<"$entry")"
+          done
+          (cd release && tr -d '\r' < Moonshine-Windows-1.0.1.sha256 | sha256sum --check -)
+          cat > release-notes.md <<'MOONSHINE_NOTES'
+          Moonshine 1.0.1 utilise un lanceur graphique pour ouvrir le gestionnaire et l’icône Windows sans créer de console. La reprise de l’ancien service 0.9 a été retirée de l’interface d’installation.
+
+          ## Changements
+
+          - Le raccourci et le démarrage de session utilisent **Moonshine.exe**. Les anciennes entrées de démarrage reconnues de la 1.0 sont migrées lors de la mise à jour.
+          - La fenêtre affiche la version finale 1.0.1 et propose directement l’installation ou la mise à jour de l’installation reconnue.
+          - Le guide, le README et la page de présentation pointent vers cette version.
+
+          ## Installation et mise à jour
+
+          Télécharge **Moonshine-Windows-1.0.1.zip** et extrais-le au complet. Ouvre **Moonshine.exe** depuis ton compte Windows habituel. Le gestionnaire propose **Installer Moonshine** pour un profil neuf ou **Mettre à jour Moonshine** pour une installation reconnue.
+
+          Pour une mise à jour, termine le stream, arrête le service et quitte l’ancienne icône avant d’ouvrir le nouveau paquet. Le catalogue, l’appairage et les réglages sont conservés. La gestion quotidienne passe ensuite par l’icône près de l’horloge.
+
+          [Guide Windows](https://github.com/pilvince911/Moonshine/blob/v1.0.1/tools/moonshine-setup/LIRE-MOI.txt) · [Documentation](https://github.com/pilvince911/Moonshine/tree/v1.0.1)
+
+          ## Qualification
+
+          Le propriétaire a validé le lanceur de la candidate 1.0.1 sur son PC le 11 novembre 2026. Le rendu Windows de la version finale a été inspecté après le retrait de l’option de reprise 0.9.
+
+          - 459 autotests du synchroniseur, 23 contrôles du gestionnaire et vrais lancements du raccourci et de l’icône dans un compte standard. L’absence de console est vérifiée dans le gestionnaire. [Intégration](https://github.com/pilvince911/Moonshine/actions/runs/43042242973)
+          - 201 contrôles de l’hôte et 48 du vrai service Windows, dont installation neuve, mise à jour avec reçu 1.0 synthétique, réparation, sauvegarde et désinstallation. [Hôte Windows](https://github.com/pilvince911/Moonshine/actions/runs/43042242959)
+          - 19 fichiers originaux de pilotes vérifiés. Le programme Moonshine est non signé et les pilotes gardent leurs signatures originales. Les essais de CI utilisent des profils temporaires et vérifient les pilotes par lecture de leur paquet. [Prérequis](https://github.com/pilvince911/Moonshine/actions/runs/43042243159)
+
+          Commit du ZIP **a257c52030d06766259fa76ff9dd113e9991888d**. Les 382 fichiers du manifeste et les 2290 fichiers des sources embarquées ont été vérifiés après téléchargement. L’empreinte du ZIP figure aussi dans **Moonshine-Windows-1.0.1.sha256**.
+
+          ```text
+          c6e33b03c9018124a2c346cf8d92b6400d7c79ddf46491def0adb193a7a83114
+          ```
+
+          ## Sources et licences
+
+          Le ZIP contient les sources, les licences et la provenance des pilotes. Moonshine dérive de VibeShine et de Sunshine. [GPL-3.0](https://github.com/pilvince911/Moonshine/blob/v1.0.1/LICENSE) · [Attributions](https://github.com/pilvince911/Moonshine/blob/v1.0.1/NOTICE)
+          MOONSHINE_NOTES
+          find_release() {
+            gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" |
+              jq -c '[.[] | select(.tag_name == "v1.0.1")]'
+          }
+          releases="$(find_release)"
+          if [[ "$(jq length <<<"$releases")" == 0 ]]; then
+            tag="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v1.0.1" --jq '.[] | select(.ref == "refs/tags/v1.0.1") | .object.sha')"
+            test -z "$tag"
+            gh release create v1.0.1 --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --draft --title "Moonshine 1.0.1" --notes-file release-notes.md
+            for attempt in {1..10}; do
+              releases="$(find_release)"
+              if [[ "$(jq length <<<"$releases")" == 1 ]]; then break; fi
+              sleep 2
+            done
+          fi
+          jq -e --arg commit "$RELEASE_COMMIT" '
+            length == 1 and .[0].target_commitish == $commit and
+            .[0].name == "Moonshine 1.0.1" and .[0].prerelease == false
+          ' <<<"$releases" >/dev/null
+          jq -e --argjson expected "$EXPECTED_ASSETS" '
+            [.[0].assets[] | {name, size, digest, state}] as $actual |
+            all($actual[]; . as $asset | ($expected | index($asset) != null))
+          ' <<<"$releases" >/dev/null
+          draft="$(jq -r '.[0].draft' <<<"$releases")"
+          if [[ "$draft" == true ]]; then
+            for asset in Moonshine-Windows-1.0.1.zip Moonshine-Windows-1.0.1.sha256; do
+              if ! jq -e --arg name "$asset" 'any(.[0].assets[]; .name == $name)' <<<"$releases" >/dev/null; then
+                gh release upload v1.0.1 "release/$asset" --repo "$GITHUB_REPOSITORY"
+              fi
+            done
+          fi
+          for attempt in {1..10}; do
+            releases="$(find_release)"
+            if jq -e --argjson expected "$EXPECTED_ASSETS" '
+              ([.[0].assets[] | {name, size, digest, state}] | sort_by(.name)) == ($expected | sort_by(.name))
+            ' <<<"$releases" >/dev/null; then break; fi
+            sleep 2
+          done
+          jq -e --argjson expected "$EXPECTED_ASSETS" '
+            ([.[0].assets[] | {name, size, digest, state}] | sort_by(.name)) == ($expected | sort_by(.name))
+          ' <<<"$releases" >/dev/null
+          if [[ "$draft" == true ]]; then
+            gh release edit v1.0.1 --repo "$GITHUB_REPOSITORY" --draft=false --latest=true
+          fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.1" --jq .object.sha)" = "$RELEASE_COMMIT"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/v1.0.1" --jq '{html_url, tag_name, draft, prerelease, assets: [.assets[] | {name, size, digest}]}'
