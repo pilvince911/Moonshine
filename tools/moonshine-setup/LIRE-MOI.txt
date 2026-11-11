@@ -1,14 +1,14 @@
-MOONSHINE 1.0.0 - ZIP, SERVICE ET ICONE WINDOWS
+MOONSHINE 1.0.1 - ZIP, SERVICE ET ICONE WINDOWS
 
 Ce paquet fonctionne sans ancien kit ni VibeShine installe. Le programme
 Moonshine reste non signe; ses pilotes gardent leurs signatures originales
 verifiees. Les jeux Xbox, EA et Steam utilisent leurs lanceurs installes.
 
-PASSER DE LA RC1 OU RC2 A LA VERSION 1.0.0
+MISE A JOUR DE LA VERSION 1.0.0 OU D UNE CANDIDATE
 1. Terminer le stream et arreter le service Moonshine. Fermer sa fenetre,
    puis quitter l'ancienne icone si elle est affichee.
 2. Extraire tout ce nouveau ZIP dans un dossier local ordinaire.
-3. Ouvrir Ouvrir-Moonshine.cmd normalement et choisir Mettre a jour Moonshine.
+3. Ouvrir Moonshine.exe normalement et choisir Mettre a jour Moonshine.
    Accepter la confirmation Windows. Catalogue, appairage, UUID et reglages
    sont conserves. Les fichiers precedents restent dans une copie de secours.
 4. Suivre l'etape proposee. Si les pilotes sont operationnels, il suffit de
@@ -19,9 +19,8 @@ PASSER DE LA RC1 OU RC2 A LA VERSION 1.0.0
 
 INSTALLATION NEUVE
 1. Quitter les streams et arreter les anciens hotes/synchroniseurs.
-2. Extraire tout le ZIP, puis ouvrir Ouvrir-Moonshine.cmd normalement.
-3. Garder Reprendre mon service 0.9 decoche pour repartir a neuf. Installer.
-   La reprise 0.9 reste facultative si son ancien profil reconnu existe encore.
+2. Extraire tout le ZIP, puis ouvrir Moonshine.exe normalement.
+3. Choisir Installer Moonshine et accepter la confirmation Windows.
 4. Si VibeShine est encore installe, le desinstaller dans Applications Windows
    avant la preparation finale des pilotes. Conserver les sauvegardes privees.
 5. Choisir Preparer les pilotes signes, accepter Windows et attendre la fin.
@@ -34,6 +33,10 @@ INSTALLATION NEUVE
    Interface : https://localhost:48990/v2/library. Port Moonlight : 48989.
 
 GESTION PAR L'ICONE
+Moonshine.exe est un lanceur graphique. Le raccourci et le demarrage de session
+utilisent ce lanceur pour ouvrir le gestionnaire sans creer de console.
+La mise a jour reprend les anciennes entrees de demarrage reconnues de la 1.0.
+
 L'icone demarre normalement avec le compte choisi lors de l'installation.
 Elle peut etre rangee sous la fleche des icones masquees de Windows.
 - Ouvrir la bibliotheque : gestion des jeux dans le navigateur.
@@ -72,9 +75,9 @@ Verifier le catalogue, l'appairage et le demarrage depuis l'icone. Lancer un
 jeu depuis Moonlight et verifier la fin du stream ainsi que le retour de
 l'affichage physique. DLSS et Frame Generation se reglent dans les jeux.
 
-La RC2 a ete validee sur un PC reel. Les resultats logiciels, le ZIP et son
-empreinte SHA-256 sont dans la release GitHub de Moonshine 1.0.0 :
-https://github.com/pilvince911/Moonshine/releases/tag/v1.0.0
+Le lancement du raccourci et de l'icone a ete valide sur le PC du proprietaire
+avec la candidate 1.0.1. Le ZIP final et son empreinte sont dans la release :
+https://github.com/pilvince911/Moonshine/releases/tag/v1.0.1
 
 Sources et licences incluses. Fork de VibeShine/Sunshine :
 https://github.com/pilvince911/Moonshine

@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-param([Parameter(Mandatory=$true)][ValidateSet('Install','Repair','Start','Stop','Drivers','Backup','Diagnostic','Uninstall','Remove')][string]$Action,[Parameter(Mandatory=$true)][ValidatePattern('^S-1-(5-21|12-1)-[0-9-]+$')][string]$OwnerSid,[ValidatePattern('^[a-f0-9]{32}$')][string]$OperationId,[switch]$Migrate,[switch]$Automatic)
+param([Parameter(Mandatory=$true)][ValidateSet('Install','Repair','Start','Stop','Drivers','Backup','Diagnostic','Uninstall','Remove')][string]$Action,[Parameter(Mandatory=$true)][ValidatePattern('^S-1-(5-21|12-1)-[0-9-]+$')][string]$OwnerSid,[ValidatePattern('^[a-f0-9]{32}$')][string]$OperationId,[switch]$Automatic)
 $ErrorActionPreference='Stop';$lock=$null;$operationFolder=$null;$outcome=$null;$exitCode=0
 try {
     . (Join-Path $PSScriptRoot 'Installation.ps1')
@@ -11,7 +11,7 @@ try {
     & $script:MoonshineSetupProgress 2 'Verification des conditions de l operation...'
     $lock=[IO.File]::Open((Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Moonshine.setup.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     switch ($Action) {
-        'Install' { $receipt=Install-MoonshineZip $PSScriptRoot $OwnerSid -Migrate:$Migrate -Automatic:$Automatic;$outcome=@{version=$receipt.version} }
+        'Install' { $receipt=Install-MoonshineZip $PSScriptRoot $OwnerSid -Automatic:$Automatic;$outcome=@{version=$receipt.version} }
         'Repair' {
             $receipt=Read-MoonshineServiceReceipt
             if ($receipt.owner_sid -cne $OwnerSid) { throw 'Cette installation appartient a un autre compte.' }

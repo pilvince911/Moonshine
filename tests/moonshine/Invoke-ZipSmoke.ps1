@@ -18,7 +18,7 @@ try {
     $null=Read-MoonshineServiceManifest $KitRoot
     $receipt=Install-MoonshineZip ([IO.Path]::GetFullPath($KitRoot)) $serviceOwnerSid -Automatic;$created=$true
     $desktop=Get-MoonshineDesktopRegistration
-    Check ($desktop.DisplayVersion -ceq '1.0.0' -and $desktop.MoonshineId -ceq $receipt.id -and $desktop.UninstallString -ceq (Get-MoonshineManagerCommand -Uninstall)) 'Windows Installed Apps registration is absent or bound to another command.'
+    Check ($desktop.DisplayVersion -ceq '1.0.1' -and $desktop.MoonshineId -ceq $receipt.id -and $desktop.UninstallString -ceq (Get-MoonshineManagerCommand -Uninstall)) 'Windows Installed Apps registration is absent or bound to another command.'
     Check ((Get-MoonshineStartupCommand $serviceOwnerSid) -ceq (Get-MoonshineManagerCommand)) 'The selected account tray startup command was not registered.'
     $id=$receipt.id;$record.id=$id;$dataRoots+=@($receipt.data_root);$before=@{}
     Check ($receipt.data_root -notmatch 'OPi5|Moonshine-Trial' -and [IO.Directory]::Exists($receipt.data_root)) 'Fresh install depends on an old trial directory.'
@@ -44,14 +44,23 @@ try {
     $beforeId=$receipt.id;$beforeData=$receipt.data_root
     $appsBefore=(Get-FileHash -LiteralPath (Join-Path $target 'config\apps.json')).Hash
     $customFile=Join-Path $target 'config\personal-upgrade.txt';[IO.File]::WriteAllText($customFile,'keep this private personal file')
-    $receipt=Read-MoonshineServiceReceipt;$receipt.commit='d'*40;$receipt.version='1.0.0-rc.2';Save-MoonshineServiceReceipt $receipt
+    $receipt=Read-MoonshineServiceReceipt;$receipt.commit='d'*40;$receipt.version='1.0.0';Save-MoonshineServiceReceipt $receipt
     Register-MoonshineDesktop $receipt
+    # Reproduce the 1.0 Run entry and CMD shortcut before the real update.
+    $legacyRun=[Microsoft.Win32.Registry]::Users.OpenSubKey($serviceOwnerSid+'\Software\Microsoft\Windows\CurrentVersion\Run',$true)
+    try {$legacyRun.SetValue('Moonshine',(Get-MoonshineLegacyManagerCommand),[Microsoft.Win32.RegistryValueKind]::String)} finally {$legacyRun.Dispose()}
+    $shortcutPath=Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Moonshine.lnk'
+    $shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
+    $shortcut.TargetPath=Join-Path $script:MoonshineServiceRoot 'Kit\Ouvrir-Moonshine.cmd';$shortcut.Save()
     $previousBefore=@(Get-ChildItem -LiteralPath (Split-Path -Parent $script:MoonshineServiceRoot) -Directory -Filter 'Moonshine.Previous.*' | ForEach-Object {$_.FullName})
     $receipt=Install-MoonshineZip $KitRoot $serviceOwnerSid -Automatic
     $ownedPrevious+=@(Get-ChildItem -LiteralPath (Split-Path -Parent $script:MoonshineServiceRoot) -Directory -Filter 'Moonshine.Previous.*' | Where-Object {$_.FullName -notin $previousBefore} | ForEach-Object {$_.FullName})
-    Check ($receipt.id -ceq $beforeId -and $receipt.data_root -ceq $beforeData -and $receipt.version -ceq '1.0.0') 'In-place upgrade changed installation/library identity.'
+    Check ($receipt.id -ceq $beforeId -and $receipt.data_root -ceq $beforeData -and $receipt.version -ceq '1.0.1') 'In-place upgrade changed installation/library identity.'
     Check ((Get-FileHash -LiteralPath (Join-Path $target 'config\apps.json')).Hash -ceq $appsBefore -and [IO.File]::ReadAllText($customFile) -ceq 'keep this private personal file') 'In-place upgrade changed the personal catalogue or custom file.'
-    Check ($ownedPrevious.Count -eq 1 -and (Get-MoonshineDesktopRegistration).DisplayVersion -ceq '1.0.0') 'The previous program was not retained or Windows registration was not refreshed.'
+    Check ($ownedPrevious.Count -eq 1 -and (Get-MoonshineDesktopRegistration).DisplayVersion -ceq '1.0.1') 'The previous program was not retained or Windows registration was not refreshed.'
+    Check ((Get-MoonshineStartupCommand $serviceOwnerSid) -ceq (Get-MoonshineManagerCommand)) 'Upgrade did not migrate the legacy PowerShell startup.'
+    $shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
+    Check ($shortcut.TargetPath -ieq (Join-Path $script:MoonshineServiceRoot 'Kit\Moonshine.exe') -and -not $shortcut.Arguments) 'Upgrade did not migrate the legacy CMD shortcut.'
     $cfg=Join-Path $target 'config\moonshine.conf';$text=[IO.File]::ReadAllText($cfg)
     $text=[regex]::Replace($text,'(?m)^virtual_display_mode\s*=.*$','virtual_display_mode = disabled')
     [IO.File]::WriteAllText($cfg,$text+"`r`nencoder = software`r`n")
@@ -205,7 +214,7 @@ try {
     $removed=Uninstall-MoonshineInstalled $serviceOwnerSid;$ownedRecovery+=@($removed.path);$created=$false
     Check (-not (Get-Service -Name MoonshineService -ErrorAction SilentlyContinue) -and -not (Get-MoonshineDesktopRegistration) -and -not (Get-MoonshineStartupCommand $serviceOwnerSid)) 'Uninstall left its SCM, Apps or tray startup registration.'
     Check (-not [IO.Directory]::Exists($script:MoonshineServiceRoot) -and [IO.Directory]::Exists($migrated.data_root) -and [IO.File]::Exists((Join-Path $removed.path 'program\Package\config\apps.json'))) 'Uninstall lost the library or archived program/configuration.'
-    $record=@{status='passed';service='MoonshineService';id=$oldId;checks=$record.checks;system_host=$true;normal_user_worker=$true;catalogue_preserved=$true;fresh_install_without_trial=$true;prior_roots_removed_before_worker=$true;migration_pairing_and_preferences_preserved=$true;local_verified_repair=$true;engine_tests=$job.snapshot.tests;migrated_engine_tests=$migratedJob.snapshot.tests;scm_start_stop_restart_remove=$true;reinstall_preserved_profile=$true;synthetic_rc2_in_place_upgrade=$true;windows_apps_registration=$true;owner_tray_startup=$true;private_backup=$true;diagnostic_export=$true;uninstall_archives_program_and_keeps_library=$true;driver_install_executed=$false;real_display_qualified=$false}
+    $record=@{status='passed';service='MoonshineService';id=$oldId;checks=$record.checks;system_host=$true;normal_user_worker=$true;catalogue_preserved=$true;fresh_install_without_trial=$true;prior_roots_removed_before_worker=$true;migration_pairing_and_preferences_preserved=$true;local_verified_repair=$true;engine_tests=$job.snapshot.tests;migrated_engine_tests=$migratedJob.snapshot.tests;scm_start_stop_restart_remove=$true;reinstall_preserved_profile=$true;synthetic_1_0_in_place_upgrade=$true;windows_apps_registration=$true;owner_tray_startup=$true;private_backup=$true;diagnostic_export=$true;uninstall_archives_program_and_keeps_library=$true;driver_install_executed=$false;real_display_qualified=$false}
 
 } catch { $record.status='failed';$record.error=$_.Exception.Message;$record.stack=$_.ScriptStackTrace }
 finally {
