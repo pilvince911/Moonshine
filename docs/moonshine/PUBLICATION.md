@@ -18,12 +18,19 @@ Adresse prévue : **https://pilvince911.github.io/Moonshine/**.
 
 Le dossier contient `index.html`, `moonshine-mark.svg` et `.nojekyll`. Il est prêt à être publié sans compilation du programme. Les réglages de Pages et de branche par défaut se font avec le compte propriétaire du dépôt.
 
+## Le thème Moonshine
+
+La page utilise son propre thème HTML/CSS : fond bleu nuit `#0d151c`, surfaces vertes `#14211e`, accent lime `#b8eb79` et logo officiel au croissant vert. `docs/index.html` contient la présentation et `docs/assets/moonshine.css` définit le thème, les formats téléphone et ordinateur, ainsi que les états de navigation au clavier.
+
+Les polices système et les fichiers du dépôt suffisent au rendu. La page n’utilise ni police distante, ni script, ni thème Jekyll à télécharger. Le fichier `.nojekyll` garde cette publication statique; les options `theme:` et `remote_theme:` de Jekyll ne servent donc pas à personnaliser cette page. Les changements visuels se font dans la feuille de style et sont publiés avec `/docs`.
+
 ## Maintenir la documentation
 
 | Fichier | Contenu |
 |---|---|
 | `README.md` | Présentation du dépôt, version stable, installation et liens utiles |
 | `docs/index.html` | Page publique, téléchargement, installation, mise à jour et aide |
+| `docs/assets/moonshine.css` | Thème Moonshine, mise en page adaptative et navigation au clavier |
 | `docs/moonshine-mark.svg` | Logo public, identique au logo de l’application |
 | `docs/moonshine/VALIDATION.md` | Commit distribué, empreinte et preuves des vérifications |
 | `docs/moonshine/STANDALONE-1.0.md` | Fonctionnement de l’installation autonome |

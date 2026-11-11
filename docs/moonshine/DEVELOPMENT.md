@@ -95,6 +95,6 @@ Le lanceur graphique `Moonshine.exe` est compilé depuis `tools/moonshine-dev/La
 
 ## Documentation et site public
 
-Le README et `docs/index.html` présentent la version stable distribuée. Le logo du site, `docs/moonshine-mark.svg`, reprend celui de l’application. Le fichier `docs/.nojekyll` permet de publier ces fichiers statiques directement. La branche de publication est `moonshine/main`, dossier `/docs`.
+Le README et `docs/index.html` présentent la version stable distribuée. `docs/assets/moonshine.css` porte le thème Moonshine et ses formats adaptatifs. Le logo du site, `docs/moonshine-mark.svg`, reprend celui de l’application. Le fichier `docs/.nojekyll` permet de publier ces fichiers statiques directement. La branche de publication est `moonshine/main`, dossier `/docs`.
 
 Voir [Publication GitHub](PUBLICATION.md) pour la branche par défaut, l’activation de Pages et les vérifications après mise à jour. Les changements de documentation suivent leur propre commit; la balise et les fichiers d’une version déjà publiée restent attachés à leur source qualifiée.
