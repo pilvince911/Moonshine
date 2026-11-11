@@ -91,4 +91,10 @@ Préréglage des nouvelles fiches : Moonshine propose « Frame Generation fourni
 
 Les tests construisent et rendent le vrai WPF, vérifient le modèle d'états et les garde-fous d'inscription. Le probe Windows lance le vrai compagnon dans un compte standard jetable, vérifie son icône/menu, son démarrage caché et sa sortie coopérative. Le test SCM couvre la mise à jour à partir d’un reçu 1.0 synthétique avec ses anciennes entrées Run et CMD, la conservation du profil, la sauvegarde, le diagnostic et la désinstallation avec archivage. L’essai sur un PC avec des jeux et des pilotes actifs constitue une validation distincte.
 
-Le lanceur graphique `Moonshine.exe` est compile depuis `tools/moonshine-dev/Launcher.cs` avec le compilateur .NET Framework x64 fourni par Windows. Il cree le gestionnaire PowerShell avec `CreateNoWindow`, puis se termine pour liberer son executable avant une mise a jour. Les entrees Run et les raccourcis connus de la 1.0 sont migres. Le test dans un compte standard lance les deux entrees et verifie `GetConsoleWindow() == 0` dans le gestionnaire reel.
+Le lanceur graphique `Moonshine.exe` est compilé depuis `tools/moonshine-dev/Launcher.cs` avec le compilateur .NET Framework x64 fourni par Windows. Il crée le gestionnaire PowerShell avec `CreateNoWindow`, puis se termine pour libérer son exécutable avant une mise à jour. Les entrées Run et les raccourcis connus de la 1.0 sont migrés. Le test dans un compte standard lance les deux entrées et vérifie `GetConsoleWindow() == 0` dans le gestionnaire réel.
+
+## Documentation et site public
+
+Le README et `docs/index.html` présentent la version stable distribuée. Le logo du site, `docs/moonshine-mark.svg`, reprend celui de l’application. Le fichier `docs/.nojekyll` permet de publier ces fichiers statiques directement. La branche de publication est `moonshine/main`, dossier `/docs`.
+
+Voir [Publication GitHub](PUBLICATION.md) pour la branche par défaut, l’activation de Pages et les vérifications après mise à jour. Les changements de documentation suivent leur propre commit; la balise et les fichiers d’une version déjà publiée restent attachés à leur source qualifiée.

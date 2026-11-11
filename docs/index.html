@@ -65,6 +65,14 @@
     code { color: var(--text); background: #223128; border-radius: .25rem; padding: .12em .25em; overflow-wrap: anywhere; }
     .resources { border-top: 1px solid var(--border); padding-block: 1.7rem 2.5rem; }
     .resources p { max-width: 51rem; }
+    .release-notes, .help { margin-bottom: 2.75rem; }
+    .release-notes { border-left: 3px solid var(--accent); padding-left: 1.3rem; }
+    .release-notes p { max-width: 51rem; color: var(--muted); }
+    details { border-top: 1px solid var(--border); padding-block: 1rem; }
+    details:last-child { border-bottom: 1px solid var(--border); }
+    summary { cursor: pointer; font-weight: 650; }
+    summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    details p { max-width: 51rem; color: var(--muted); margin-block: .75rem 0; }
     .links { display: flex; flex-wrap: wrap; gap: .6rem 1.25rem; }
     footer { border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
     footer p { margin: 0; }
@@ -86,6 +94,7 @@
       <nav aria-label="Navigation principale">
         <a href="#installer">Installer</a>
         <a href="#mise-a-jour">Mettre à jour</a>
+        <a href="#depannage">Aide</a>
         <a href="https://github.com/pilvince911/Moonshine/tree/moonshine/main">GitHub</a>
       </nav>
     </div>
@@ -114,6 +123,12 @@
       </aside>
     </section>
 
+    <section class="release-notes" aria-labelledby="nouveautes">
+      <h2 id="nouveautes">Nouveautés de la 1.0.1</h2>
+      <p>Le raccourci et le démarrage de session utilisent maintenant le lanceur graphique <code>Moonshine.exe</code> pour ouvrir l’icône sans terminal. La mise à jour reprend les anciennes entrées de démarrage reconnues de la 1.0.</p>
+      <p>La fenêtre propose directement l’installation ou la mise à jour. L’ancienne option de reprise du service 0.9 a été retirée. <a href="https://github.com/pilvince911/Moonshine/releases/tag/v1.0.1">Voir les changements et les résultats de validation.</a></p>
+    </section>
+
     <section aria-labelledby="fonctionnalites">
       <h2 id="fonctionnalites">Ce que Moonshine regroupe</h2>
       <div class="features">
@@ -135,6 +150,7 @@
     <div class="procedures">
       <section class="procedure" id="installer" aria-labelledby="premiere">
         <h2 id="premiere">Installer Moonshine</h2>
+        <p>PC hôte Windows 64 bits, client Moonlight et jeux installés avec leurs lanceurs. Usage réel validé sur Windows 11.</p>
         <ol>
           <li>Extrais tout le ZIP dans un dossier local.</li>
           <li>Ouvre <code>Moonshine.exe</code> et choisis <strong>Installer Moonshine</strong>. Accepte la confirmation Windows.</li>
@@ -154,13 +170,37 @@
       </section>
     </div>
 
+    <section class="help" id="depannage" aria-labelledby="aide">
+      <h2 id="aide">Questions pratiques</h2>
+      <details>
+        <summary>Où retrouver l’icône Moonshine?</summary>
+        <p>Regarde sous la flèche des icônes masquées près de l’horloge. Le raccourci <strong>Moonshine</strong> du menu Démarrer permet de la rouvrir. Fermer la fenêtre de gestion revient à l’icône; quitter l’icône laisse le service dans son état actuel.</p>
+      </details>
+      <details>
+        <summary>Pourquoi un jeu n’apparaît-il pas dans la bibliothèque?</summary>
+        <p>Moonshine analyse les installations reconnues de Xbox PC, Steam et EA. Vérifie que le jeu est installé et que son compte Windows est connecté, puis relance l’analyse. Vérifie l’aperçu avant de synchroniser. Le catalogue complet de l’abonnement Game Pass n’est pas importé.</p>
+      </details>
+      <details>
+        <summary>Quel port utiliser pour Moonlight?</summary>
+        <p>Le port de connexion Moonlight est <strong>48989</strong>. Le port <strong>48990</strong> sert à l’interface Web de gestion. Vérifie que le service est démarré depuis l’icône avant d’appairer le client.</p>
+      </details>
+      <details>
+        <summary>Comment régler le DLSS et la Frame Generation?</summary>
+        <p>Active le DLSS et la Frame Generation NVIDIA dans chaque jeu. Les réglages de diffusion d’une entrée restent accessibles dans Moonshine; les réglages graphiques internes du jeu se font dans le jeu.</p>
+      </details>
+      <details>
+        <summary>Comment réparer une installation?</summary>
+        <p>Arrête le service et ouvre <strong>Entretien → Réparer</strong> depuis le gestionnaire. Moonshine utilise le kit vérifié installé sur le PC et conserve les fichiers remplacés. L’action <strong>Exporter un diagnostic</strong> prépare les journaux utiles à l’analyse.</p>
+      </details>
+    </section>
+
     <section class="resources" aria-labelledby="repere">
       <h2 id="repere">Connexion et documentation</h2>
       <p>La bibliothèque s’ouvre à <code>https://localhost:48990/v2/library</code> sur le PC hôte. Le port Moonlight est <strong>48989</strong>. Les jeux utilisent leurs lanceurs installés.</p>
-      <p>Le ZIP inclut les sources, les licences et les pilotes signés d’origine. Le programme Moonshine est non signé. Le propriétaire a validé le lancement sans console avec la candidate 1.0.1. Les notes de la 1.0.1 donnent les résultats de la qualification du ZIP distribué.</p>
+      <p>Le ZIP inclut les sources, les licences et les pilotes signés d’origine. Le programme Moonshine est non signé. Le lancement sans console a été validé sur Windows 11; la qualification logicielle couvre aussi le service et le synchroniseur. <a href="https://github.com/pilvince911/Moonshine/blob/moonshine/main/docs/moonshine/VALIDATION.md">Consulter les preuves de la 1.0.1.</a></p>
       <div class="links">
         <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.1/tools/moonshine-setup/LIRE-MOI.txt">Guide Windows complet</a>
-        <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.1/docs/moonshine/VALIDATION.md">Validation</a>
+        <a href="https://github.com/pilvince911/Moonshine/tree/moonshine/main#readme">Documentation à jour</a>
         <a href="https://github.com/pilvince911/Moonshine/tree/v1.0.1">Code source 1.0.1</a>
       </div>
     </section>
@@ -171,7 +211,7 @@
       <div class="links">
         <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.1/LICENSE">Licence</a>
         <a href="https://github.com/pilvince911/Moonshine/blob/v1.0.1/NOTICE">Attributions</a>
-        <a href="https://github.com/pilvince911/Moonshine/issues">Signaler un problème</a>
+        <a href="#depannage">Dépannage</a>
       </div>
     </div>
   </footer>
